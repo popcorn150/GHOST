@@ -14,39 +14,47 @@ const WelcomePage = () => {
     };
 
     return (
-        <div className="relative flex items-center justify-center bg-black w-full h-screen">
-            <div className="opacity-50">
+        <div className="relative flex items-center justify-center bg-[#010409] w-full h-screen overflow-hidden">
+            {/* Background Image */}
+            <div className="absolute inset-0 opacity-50">
                 <img src={BackGround_} alt="Games Background" className="w-full h-full object-cover" />
             </div>
 
-            <div className="absolute flex flex-row items-center justify-between gap-40">
-                <div className="flex flex-col items-center justify-center p-5">
-                    <img src={Logo} alt="Ghost Logo" className="w-96 h-96" />
-                    <img src={Title} alt="Title" className="w-56" />
+            {/* Content Wrapper */}
+            <div className="absolute flex flex-col items-center gap-8 px-6 md:flex-row md:gap-20">
+                {/* Logo & Title */}
+                <div className="flex flex-col items-center">
+                    <img src={Logo} alt="Ghost Logo" className="w-32 h-32  md:w-48 md:h-48 lg:w-64 lg:h-64" />
+                    <img src={Title} alt="Title" className="w-40 md:w-56" />
                 </div>
 
-                <div className="flex flex-col items-center justify-center p-5">
-                    <h1 className="text-white text-3xl font-bold">Sign In</h1>
+                {/* Sign-In Section */}
+                <div className="flex flex-col items-center bg-[#010409] p-7 md:p-14 rounded-xl w-full max-w-sm">
+                    <h1 className="text-white text-2xl md:text-3xl font-bold">Sign In</h1>
 
-                    <div className="grid gap-7 mt-5 p-14 rounded-xl bg-[#010409]">
-                        <button onClick={() => handleSignIn("google")} className="flex items-center justify-center w-auto p-2 bg-white rounded-4xl shadow-md hover:cursor-pointer">
-                            <img src={Google} alt="Google Icon" className="w-8 h-8 m-2" />
+                    {/* Buttons */}
+                    <div className="grid gap-5 mt-5 w-full">
+                        <button onClick={() => handleSignIn("google")}
+                            className="flex items-center justify-center w-full p-3 bg-white hover:bg-gray-300 rounded-3xl shadow-md hover:cursor-pointer transition duration-200">
+                            <img src={Google} alt="Google Icon" className="w-6 h-6 mr-2" />
                             <span className="text-sm font-medium">Continue with Google</span>
                         </button>
-                        <button onClick={() => handleSignIn("facebook")} className="flex items-center justify-center w-auto p-2 bg-white rounded-4xl shadow-md hover:cursor-pointer">
-                            <img src={Facebook} alt="Facebook Icon" className="w-8 h-8 m-2" />
-                            <span className="text-sm font-medium px-2">Continue with Facebook</span>
+                        <button onClick={() => handleSignIn("facebook")}
+                            className="flex items-center justify-center w-full p-3 bg-white hover:bg-gray-300 rounded-3xl shadow-md hover:cursor-pointer transition duration-200">
+                            <img src={Facebook} alt="Facebook Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-sm font-medium">Continue with Facebook</span>
                         </button>
-                        <p className="text-white text-center mt-5">
-                            <a href="#">Terms of Service</a> & <span className="text-[#4426B9]">
-                                <a href="#">Privacy Policy</a>
-                            </span>
-                        </p>
                     </div>
-                </div>
 
+                    {/* Terms & Policy */}
+                    <p className="text-white text-sm text-center mt-5">
+                        <a href="#">Terms of Service</a> & <a href="#" className="text-[#4426B9]">Privacy Policy</a>
+                    </p>
+                </div>
             </div>
-            <p className="absolute bottom-5 text-xs text-white">
+
+            {/* Footer */}
+            <p className="absolute bottom-5 text-xs text-white text-center">
                 Copyright &copy; 2025 All rights reserved.
             </p>
         </div>

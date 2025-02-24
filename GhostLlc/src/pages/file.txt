@@ -1,0 +1,82 @@
+{/* Background Image */}
+            <div className="absolute inset-0 opacity-50">
+                <img src={BackGround_} alt="Games Background" className="w-full h-full object-cover" />
+            </div>
+
+            {/* Logo & Title */}
+            <div className="absolute flex flex-col items-center gap-8 px-6 md:flex-row md:gap-20">
+                <img src={Logo} alt="Ghost Logo" className="w-32 h-32  md:w-48 md:h-48 lg:w-64 lg:h-64" />
+                <img src={Title} alt="Title" className="w-40 md:w-56" />
+            </div>
+
+            {/* Complete Account Set-Up */}
+            <div className="flex flex-col items-center bg-[#010409] p-7 md:p-14 rounded-xl w-full max-w-md z-10">
+                <h1 className="text-white text-2xl font-semibold mb-4">Finish Account Set-Up</h1>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Username */}
+                    <div>
+                        <label className="text-white block mb-1">Ghost Username</label>
+                        <input
+                            type="text"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            onBlur={checkUsernameAvailability}
+                            className="w-full p-2 bg-[#161B22] text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
+                            required
+                        />
+                        {!isUsernameAvailable && (
+                            <p className="text-red-500 text-sm mt-1">Username taken. Try: {suggestedUsernames.join(", ")}</p>
+                        )}
+                    </div>
+
+                    {/* Password */}
+                    <div>
+                        <label className="text-white block mb-1">Choose Password</label>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => validatePassword(e.target.value)}
+                            className="w-full p-2 bg-[#161B22] text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
+                            required
+                        />
+                        <p className={`text-sm mt-1 ${passwordStrength === "Strong" ? "text-green-400" : "text-yellow-400"}`}>{passwordStrength}</p>
+                    </div>
+
+                    {/* Confirm Password */}
+                    <div>
+                        <label className="text-white block mb-1">Confirm Password</label>
+                        <input
+                            type="password"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            className="w-full p-2 bg-[#161B22] text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
+                            required
+                        />
+                    </div>
+
+                    {/* Terms Checkbox */}
+                    <div className="flex items-center text-white">
+                        <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => setIsChecked(!isChecked)}
+                            className="mr-2 w-5 h-5"
+                        />
+                        <label>
+                            I am 13 years or older and agree to the <a href="#" className="text-[#4426B9] font-semibold">Ghost Subscriber Agreement</a> and <a href="#" className="text-[#4426B9] font-semibold">Privacy Policy</a>.
+                        </label>
+                    </div>
+
+                    {/* Submit Button */}
+                    <button
+                        type="submit"
+                        className="w-full bg-[#4426B9] hover:bg-[#341d8c] hover:cursor-pointer text-white font-semibold p-2 rounded-md transition duration-200"
+                    >
+                        Proceed
+                    </button>
+                </form>
+            </div>
+            {/* Footer */}
+            <p className="absolute bottom-5 text-xs text-white text-center">
+                Copyright &copy; 2025 All rights reserved.
+            </p>

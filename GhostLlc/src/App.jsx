@@ -1,10 +1,12 @@
 import './App.css'
-import WelcomePage from './pages/WelcomePage'
+import AccountSetup from './pages/AccountSetup'
+// import WelcomePage from './pages/WelcomePage'
 
 const App = () => {
   return (
     <>
-      <WelcomePage />
+      {/* <WelcomePage /> */}
+      <AccountSetup />
     </>
   )
 }
