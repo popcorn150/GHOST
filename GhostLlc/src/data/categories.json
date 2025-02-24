@@ -1,0 +1,484 @@
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "Shooter",
+      "games": [
+        {
+          "id": 101,
+          "title": "Call of Duty®: Modern Warfare® III",
+          "views": "84.2K",
+          "image": "../assets/imgs/COD-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/COD-Ss1.png",
+            "../assets/imgs/COD-Ss2.jpg",
+            "../assets/imgs/COD-Ss3.jpg"
+          ]
+        },
+        {
+          "id": 102,
+          "title": "Apex Legends™",
+          "views": "132.4K",
+          "image": "../assets/imgs/Apex-Legends-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/Apex-Legends-Ss1.jpg",
+            "../assets/imgs/Apex-Legends-Ss2.jpg",
+            "../assets/imgs/Apex-Legends-Ss3.jpg"
+          ]
+        },
+        {
+          "id": 103,
+          "title": "Far Cry® 5",
+          "views": "164.4K",
+          "image": "../assets/imgs/Far-Cry-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/FarCry-Ss1.jpg",
+            "../assets/imgs/FarCry-Ss2.png",
+            "../assets/imgs/FarCry-Ss3.jpg"
+          ]
+        },
+        {
+          "id": 104,
+          "title": "Valorant",
+          "views": "239.6K",
+          "image": "../assets/imgs/Valorant-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/Valorant-Ss1.jpeg",
+            "../assets/imgs/Valorant-Ss2.jpg",
+            "../assets/imgs/Valorant-Ss3.jpg"
+          ]
+        },
+        {
+          "id": 105,
+          "title": "Left 4 Dead 2",
+          "views": "142.6K",
+          "image": "../assets/imgs/Left-4-Dead-2-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/Left4-Dead-Ss1.png",
+            "../assets/imgs/Left4-Dead-Ss2.jpeg",
+            "../assets/imgs/Left4-Dead-Ss3.png"
+          ]
+        },
+        {
+          "id": 106,
+          "title": "Titanfall 3",
+          "views": "97.9K",
+          "image": "../assets/imgs/TitanFall-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/TitanFall-Ss1.jpg",
+            "../assets/imgs/TitanFall-Ss2.jpg",
+            "../assets/imgs/TitanFall-Ss3.jpg"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Action",
+      "games": [
+        {
+          "id": 201,
+          "title": "Rust",
+          "views": "94.2K",
+          "image": "../assets/imgs/Rust-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/Rust-Ss1.jpg",
+            "../assets/imgs/Rust-Ss2.jpeg",
+            "../assets/imgs/Rust-Ss3.png"
+          ]
+        },
+        {
+          "id": 202,
+          "title": "Dark Souls III",
+          "views": "124.2K",
+          "image": "../assets/imgs/Dark-Souls-III-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/Dark-Souls-III-Ss1.jpg",
+            "../assets/imgs/Dark-Souls-III-Ss2.jpeg",
+            "../assets/imgs/Dark-Souls-III-Ss3.jpg"
+          ]
+        },
+        {
+          "id": 203,
+          "title": "Dragon's Dogma 2",
+          "views": "125.8K",
+          "image": "../assets/imgs/Dragons-Dogma-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/Dragon-Dogma-Ss1.jpg",
+            "../assets/imgs/Dragon-Dogma-Ss2.jpg",
+            "../assets/imgs/Dragon-Dogma-Ss3.jpg"
+          ]
+        },
+        {
+          "id": 204,
+          "title": "Valorant",
+          "views": "239.6K",
+          "image": "../assets/imgs/Valorant-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/Valorant-Ss1.jpeg",
+            "../assets/imgs/Valorant-Ss2.jpg",
+            "../assets/imgs/Valorant-Ss3.jpg"
+          ]
+        },
+        {
+          "id": 205,
+          "title": "Left 4 Dead 2",
+          "views": "142.6K",
+          "image": "../assets/imgs/Left-4-Dead-2-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/Left4-Dead-Ss1.png",
+            "../assets/imgs/Left4-Dead-Ss2.jpeg",
+            "../assets/imgs/Left4-Dead-Ss3.png"
+          ]
+        },
+        {
+          "id": 206,
+          "title": "Titanfall 3",
+          "views": "97.9K",
+          "image": "../assets/imgs/TitanFall-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/TitanFall-Ss1.jpg",
+            "../assets/imgs/TitanFall-Ss2.jpg",
+            "../assets/imgs/TitanFall-Ss3.jpg"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Racing",
+      "games": [
+        {
+          "id": 301,
+          "title": "Froza Horizon 2",
+          "views": "152.5K",
+          "image": "../assets/imgs/Forza-Horizon-5-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/Froza-Horizon-Ss1.jpeg",
+            "../assets/imgs/Froza-Horizon-Ss2.png",
+            "../assets/imgs/Froza-Horizon-Ss3.png"
+          ]
+        },
+        {
+          "id": 302,
+          "title": "Need for Speed™ Heat",
+          "views": "112.9K",
+          "image": "../assets/imgs/NFS-Heat-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/NFS-Heat-Ss1.jpeg",
+            "../assets/imgs/NFS-Heat-Ss2.png",
+            "../assets/imgs/NFS-Heat-Ss3.jpg"
+          ]
+        },
+        {
+          "id": 303,
+          "title": "The Crew™ 2",
+          "views": "93.1K",
+          "image": "../assets/imgs/Crew-2-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/Crew2-Ss1.jpg",
+            "../assets/imgs/Crew2-Ss2.jpg",
+            "../assets/imgs/Crew2-Ss3.jpeg"
+          ]
+        },
+        {
+          "id": 304,
+          "title": "Valorant",
+          "views": "239.6K",
+          "image": "../assets/imgs/Valorant-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/Valorant-Ss1.jpeg",
+            "../assets/imgs/Valorant-Ss2.jpg",
+            "../assets/imgs/Valorant-Ss3.jpg"
+          ]
+        },
+        {
+          "id": 305,
+          "title": "Left 4 Dead 2",
+          "views": "142.6K",
+          "image": "../assets/imgs/Left-4-Dead-2-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/Left4-Dead-Ss1.png",
+            "../assets/imgs/Left4-Dead-Ss2.jpeg",
+            "../assets/imgs/Left4-Dead-Ss3.png"
+          ]
+        },
+        {
+          "id": 306,
+          "title": "Titanfall 3",
+          "views": "97.9K",
+          "image": "../assets/imgs/TitanFall-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/TitanFall-Ss1.jpg",
+            "../assets/imgs/TitanFall-Ss2.jpg",
+            "../assets/imgs/TitanFall-Ss3.jpg"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Sports",
+      "games": [
+        {
+          "id": 401,
+          "title": "EA Sports FC 24",
+          "views": "132.8K",
+          "image": "../assets/imgs/EA-Sports-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/EASports-FC24-Ss1.jpg",
+            "../assets/imgs/EASports-FC24-Ss2.jpeg",
+            "../assets/imgs/EASports-FC24-Ss3.jpg"
+          ]
+        },
+        {
+          "id": 402,
+          "title": "BMX Streets",
+          "views": "101.1K",
+          "image": "../assets/imgs/BMX-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/BMX-Ss1.jpg",
+            "../assets/imgs/BMX-Ss2.jpg",
+            "../assets/imgs/BMX-Ss3.jpg"
+          ]
+        },
+        {
+          "id": 403,
+          "title": "NBA 2k24",
+          "views": "125.6K",
+          "image": "../assets/imgs/NBA-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/NBA24-Ss1.jpg",
+            "../assets/imgs/NBA24-Ss2.jpg",
+            "../assets/imgs/NBA24-Ss3.jpg"
+          ]
+        },
+        {
+          "id": 404,
+          "title": "Valorant",
+          "views": "239.6K",
+          "image": "../assets/imgs/",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/Valorant-Ss1.jpeg",
+            "../assets/imgs/Valorant-Ss2.jpg",
+            "../assets/imgs/Valorant-Ss3.jpg"
+          ]
+        },
+        {
+          "id": 405,
+          "title": "Left 4 Dead 2",
+          "views": "142.6K",
+          "image": "../assets/imgs/",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/Left4-Dead-Ss1.png",
+            "../assets/imgs/Left4-Dead-Ss2.jpeg",
+            "../assets/imgs/Left4-Dead-Ss3.png"
+          ]
+        },
+        {
+          "id": 406,
+          "title": "Titanfall 3",
+          "views": "97.9K",
+          "image": "../assets/imgs/",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/TitanFall-Ss1.jpg",
+            "../assets/imgs/TitanFall-Ss2.jpg",
+            "../assets/imgs/TitanFall-Ss3.jpg"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Fighting",
+      "games": [
+        {
+          "id": 501,
+          "title": "Ghost of Tsushima",
+          "views": "135.7K",
+          "image": "../assets/imgs/Ghost-of-Tsushima-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/GOT-Ss1.jpeg",
+            "../assets/imgs/GOT-Ss2.jpg",
+            "../assets/imgs/GOT-Ss3.jpeg"
+          ]
+        },
+        {
+          "id": 502,
+          "title": "Super Smash Bros. Ultimate",
+          "views": "105.8K",
+          "image": "../assets/imgs/Super-Smash-Bros-Ultimate-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/SSB-Ss1.jpg",
+            "../assets/imgs/SSB-Ss2.jpg",
+            "../assets/imgs/SSB-Ss3.jpg"
+          ]
+        },
+        {
+          "id": 503,
+          "title": "Street Fighter VI",
+          "views": "139.5K",
+          "image": "../assets/imgs/Street-Fighter-VI-Thumbnail.png",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/StreetFighter-Ss1.jpg",
+            "../assets/imgs/StreetFighter-Ss2.png",
+            "../assets/imgs/StreetFighter-Ss3.jpg"
+          ]
+        },
+        {
+          "id": 504,
+          "title": "Valorant",
+          "views": "239.6K",
+          "image": "../assets/imgs/",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/Valorant-Ss1.jpeg",
+            "../assets/imgs/Valorant-Ss2.jpg",
+            "../assets/imgs/Valorant-Ss3.jpg"
+          ]
+        },
+        {
+          "id": 505,
+          "title": "Left 4 Dead 2",
+          "views": "142.6K",
+          "image": "../assets/imgs/",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/Left4-Dead-Ss1.png",
+            "../assets/imgs/Left4-Dead-Ss2.jpeg",
+            "../assets/imgs/Left4-Dead-Ss3.png"
+          ]
+        },
+        {
+          "id": 506,
+          "title": "Titanfall 3",
+          "views": "97.9K",
+          "image": "../assets/imgs/",
+          "uploader": {
+            "name": "Admin",
+            "profileImage": "../assets/imgs/Admin-Profile.svg"
+          },
+          "Screenshots": [
+            "../assets/imgs/TitanFall-Ss1.jpg",
+            "../assets/imgs/TitanFall-Ss2.jpg",
+            "../assets/imgs/TitanFall-Ss3.jpg"
+          ]
+        }
+      ]
+    }
+  ]
+}

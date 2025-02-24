@@ -1,0 +1,49 @@
+{
+  "availableAccounts": [
+    {
+      "id": 1,
+      "title": "God of War: Ragnarök (Complete Upgrades)",
+      "views": "37.2K",
+      "image": "../assets/imgs/Gow-Thumbnail.png",
+      "uploader": {
+        "name": "Admin",
+        "profileImage": "../assets/imgs/Admin-Profile.svg"
+      },
+      "screenshots": [
+        "../assets/imgs/Gow-Ss1.svg",
+        "../assets/imgs/Gow-Ss2.svg",
+        "../assets/imgs/Gow-Ss3.svg"
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Tekken8: The Ghost Fighter",
+      "views": "500K",
+      "image": "../assets/imgs/Tekken8-Thumbnail.png",
+      "uploader": {
+        "name": "Admin",
+        "profileImage": "../assets/imgs/Admin-Profile.svg"
+      },
+      "screenshots": [
+        "../assets/imgs/Tekken8-Ss1.jpg",
+        "../assets/imgs/Tekken8-Ss2.jpg",
+        "../assets/imgs/Tekken8-Ss3.png"
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Call of Duty®: Modern Warfare® III",
+      "views": "84.2K",
+      "image": "../assets/imgs/COD-Thumbnail.png",
+      "uploader": {
+        "name": "Admin",
+        "profileImage": "../assets/imgs/Admin-Profile.svg"
+      },
+      "screenshots": [
+        "../assets/imgs/COD-Ss1.png",
+        "../assets/imgs/COD-Ss2.jpg",
+        "../assets/imgs/COD-Ss3.jpg"
+      ]
+    }
+  ]
+}
