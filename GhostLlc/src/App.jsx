@@ -1,12 +1,21 @@
 import './App.css'
-import AccountSetup from './pages/AccountSetup'
-// import WelcomePage from './pages/WelcomePage'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Category from './pages/Category';
+import AccountDetails from './pages/AccountDetails';
+import CategoryFilter from './pages/CategoryFilter';
+
 
 const App = () => {
+
   return (
     <>
-      {/* <WelcomePage /> */}
-      <AccountSetup />
+      <Router>
+        <Routes>
+          <Route index element={<Category />} />
+          <Route path='/account/:slug' element={<AccountDetails />} />
+          <Route path='/categories' element={<CategoryFilter />} />
+        </Routes>
+      </Router>
     </>
   )
 }
