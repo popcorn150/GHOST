@@ -14,14 +14,15 @@ const NavBar = () => {
             </button>
 
             {menuOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex flex-col w-64 p-6">
+                <div className="fixed inset-0 bg-[#0E1115] bg-opacity-80 z-50 flex flex-col w-64 p-6">
                     <button onClick={() => setMenuOpen(false)} className="self-end mb-4 cursor-pointer">
                         <X size={24} />
                     </button>
                     <ul className="space-y-4">
-                        <li><Link to="/" className="hover:text-gray-400">Home</Link></li>
-                        <li><Link to="/" className="hover:text-gray-400">About</Link></li>
-                        <li><Link to="/" className="hover:text-gray-400">Services</Link></li>
+                        <li><Link to="/" className="hover:text-gray-400">Cart</Link></li>
+                        <li><Link to="/" className="hover:text-gray-400">Notifications</Link></li>
+                        <li><Link to="/" className="hover:text-gray-400">Community</Link></li>
+                        <li><Link to="/" className="hover:text-gray-400">Withdrawal</Link></li>
                     </ul>
                 </div>
             )}
