@@ -17,18 +17,15 @@
   display: flex;
   gap: 0;
   will-change: transform;
-  /* animation: scroll 20s linear infinite; */
 }
 
 .carousel-item {
   flex: 0 0 auto;
-  background-color: #1e1e1e;
+  background-color: #18202D;
   padding: 16px;
   border-radius: 8px;
   width: 350px;
   margin-right: 16px;
-  /* min-width: 300px; */
-  /* transition: transform 0.3s ease-in-out; */
 }
 
 .carousel-image {
@@ -37,13 +34,3 @@
   object-fit: cover;
   border-radius: 8px;
 }
-
-/* @keyframes scroll {
-  0% {
-    transform: translateX(0);
-  }
-
-  100% {
-    transform: translateX(-100%);
-  }
-} */

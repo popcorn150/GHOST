@@ -23,7 +23,7 @@ const CategoryFilter = () => {
                     <button
                         key={category}
                         onClick={() => setActiveCategory(category)}
-                        className={`px-4 py-2 rounded-full cursor-pointer ${activeCategory === category ? "bg-blue-900 text-white" : "bg-gray-200 text-black"
+                        className={`px-4 py-2 rounded-full cursor-pointer font-semibold ${activeCategory === category ? "bg-blue-900 text-white" : "bg-gray-200 text-black"
                             }`}>
                         {category}
                     </button>
@@ -32,7 +32,7 @@ const CategoryFilter = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredGames.map((game) => (
-                    <div key={game.slug} className="border p-4 rounded-lg bg-gray-800 text-white">
+                    <div key={game.slug} className="p-2 rounded-lg bg-[#18202D] text-white shadow-lg hover:shadow-xl">
                         <img src={game.img} alt={game.title} className="w-full h-40 object-cover rounded-lg" />
                         <h3 className="mt-2 text-lg font-bold">{game.title}</h3>
                         <span className="flex justify-between items-center">
