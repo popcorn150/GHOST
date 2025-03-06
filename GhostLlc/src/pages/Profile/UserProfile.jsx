@@ -1,17 +1,28 @@
 import NavBar from "./NavBar";
 import { MdOutlineCameraEnhance } from "react-icons/md";
+import { IoAdd } from "react-icons/io5";
 import { AdminIcon } from "../../utils";
 import { useState } from "react";
 
 const tabs = ["Uploads", "Bio", "Socials"];
 
 const Layout = ({ activeTab, setActiveTab, children }) => {
+    const [profileImage, setProfileImage] = useState(AdminIcon);
+
+    const handleImageChange = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const imageUrl = URL.createObjectURL(file);
+            setProfileImage(imageUrl);
+        }
+    };
+
     return (
         <>
             <NavBar />
-            <div className="flex flex-col items-center justify-center p-3">
-                <div className="my-10 relative w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-blue-500">
-                    <img src={AdminIcon} alt="Profile" className="w-full h-full object-cover" />
+            <div className="flex flex-col items-center justify-center p-3 bg-[#010409]">
+                <div className="my-10 relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-blue-500">
+                    <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
 
                     <label
                         htmlFor="file-upload"
@@ -25,9 +36,10 @@ const Layout = ({ activeTab, setActiveTab, children }) => {
                         type="file"
                         accept="image/*"
                         className="hidden"
+                        onChange={handleImageChange}
                     />
                 </div>
-                <div className="w-full px-24 mx-auto">
+                <div className="w-full px-4 sm:px-12 md:px-24 mx-auto">
                     <div className="flex justify-between border-b relative">
                         {tabs.map((tab) => (
                             <button
@@ -47,7 +59,7 @@ const Layout = ({ activeTab, setActiveTab, children }) => {
                         ></div>
                     </div>
 
-                    <div className="mt-6 w-full">
+                    <div className="w-full">
                         {children}
                     </div>
                 </div>
@@ -59,6 +71,7 @@ const Layout = ({ activeTab, setActiveTab, children }) => {
 const Uploads = () => {
     const [accountImage, setAccountImage] = useState(null);
     const [screenshots, setScreenshots] = useState([]);
+    const [isUploading, setIsUploading] = useState(false);
     const maxScreenshots = 5;
 
     const handleAccountImageUpload = (event) => {
@@ -79,44 +92,62 @@ const Uploads = () => {
     };
 
     return (
-        <div className="p-5">
-            <div className="flex flex-col md:flex-row justify-between gap-5">
-                <div className="grid max-w-4xl gap-4">
-                    <div className="w-full flex flex-col items-start md:items-start">
-                        <label htmlFor="account-image-upload" className="w-80 md:w-[500px] h-60 md:h-[300px] border-2 border-blue-500 rounded-xl overflow-hidden flex flex-col items-center justify-center cursor-pointer">
-                            {accountImage ? <img src={accountImage} alt="Account" className="w-full h-full object-cover" /> : <MdOutlineCameraEnhance className="text-gray-500 w-20 h-20" />}
-                            {!accountImage && <p className="text-gray-400 text-sm text-center mt-5">Click to upload account image</p>}
-                        </label>
-                        <input id="account-image-upload" type="file" accept="image/*" className="hidden" onChange={handleAccountImageUpload} />
+        <div className="p-3">
+            <div className="flex flex-col mb-5 sm:flex-row justify-between items-center gap-4 sm:gap-10 p-3 my-3 border border-gray-200">
+                <h2 className="text-white text-md md:text-lg text-center sm:text-left">Upload An Account</h2>
+                <button className="bg-gray-400 rounded-lg cursor-pointer p-2"
+                    onClick={() => setIsUploading(!isUploading)}
+                >
+                    <IoAdd className="w-5 h-5 sm:w-7 sm:h-7" />
+                </button>
+            </div>
+
+            {isUploading && (
+                <>
+                    <div className="flex flex-col md:flex-row justify-between gap-5">
+                        <div className="grid w-full max-w-4xl gap-4">
+                            <div className="w-full flex flex-col items-start md:items-start">
+                                <label htmlFor="account-image-upload" className="w-full max-w-sm sm:max-w-sm md:w-[500px] h-60 border-2 border-blue-500 rounded-xl overflow-hidden flex flex-col items-center justify-center cursor-pointer">
+                                    {accountImage ? <img src={accountImage} alt="Account" className="w-full h-full object-cover" /> : <MdOutlineCameraEnhance className="text-gray-500 w-16 h-16 sm:w-20 sm:h-20" />}
+                                    {!accountImage && <p className="text-gray-400 text-xs sm:text-sm text-center mt-3">Click to upload account image</p>}
+                                </label>
+                                <input id="account-image-upload" type="file" accept="image/*" className="hidden" onChange={handleAccountImageUpload} />
+                            </div>
+
+                            <input type="text" placeholder="Name of Account" className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]" required />
+                            <input type="text" placeholder="Account Credential" className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]" required />
+                            <input type="number" placeholder="Account's Worth" className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]" required />
+                        </div>
+
+                        <div className="w-full">
+                            <textarea placeholder="Full Account Description" className="w-full h-32 md:h-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]" required />
+                        </div>
                     </div>
 
-                    <input type="text" placeholder="Name of Account" className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]" required />
-                    <input type="text" placeholder="Account Credential" className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]" required />
-                    <input type="number" placeholder="Account's Worth" className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]" required />
-                </div>
+                    <div className="mt-6 border border-gray-300 p-5 rounded-lg">
+                        <p className="text-white text-lg my-2">Screenshots</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            {screenshots.map((src, index) => (
+                                <img key={index} src={src} alt="Screenshot" className="w-full h-32 sm:h-40 object-cover rounded-md" />
+                            ))}
+                            {screenshots.length < maxScreenshots && (
+                                <label htmlFor="screenshot-upload" className="w-full h-32 sm:h-40 rounded-md flex items-center justify-center bg-gray-700 cursor-pointer">
+                                    <MdOutlineCameraEnhance className="text-white w-8 h-8 sm:w-10 sm:h-10" />
+                                </label>
+                            )}
+                        </div>
+                        <input id="screenshot-upload" type="file" accept="image/*" className="hidden" onChange={handleScreenshotUpload} />
+                    </div>
 
-                <div>
-                    <textarea placeholder="Full Account Description" className="w-full md:w-[500px] h-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]" required />
-                </div>
-            </div>
+                    <div className="flex flex-col sm:flex-row justify-end my-5 gap-3 sm:gap-5">
+                        <button className="text-white font-medium bg-red-500 px-4 py-2 rounded cursor-pointer w-full sm:w-auto">Discard</button>
+                        <button className="text-white font-medium bg-purple-500 px-4 py-2 rounded cursor-pointer w-full sm:w-auto">Upload</button>
+                    </div>
+                </>
+            )}
 
-            <div className="mt-6 border border-gray-300 p-5 rounded-lg">
-                <p className="text-white text-lg my-2">Screenshots</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {screenshots.map((src, index) => (
-                        <img key={index} src={src} alt="Screenshot" className="w-full h-40 object-cover rounded-md" />
-                    ))}
-                    {screenshots.length < maxScreenshots && (
-                        <label htmlFor="screenshot-upload" className="w-full h-40 rounded-md flex items-center justify-center bg-gray-700 cursor-pointer">
-                            <MdOutlineCameraEnhance className="text-white w-10 h-10" />
-                        </label>
-                    )}
-                </div>
-                <input id="screenshot-upload" type="file" accept="image/*" className="hidden" onChange={handleScreenshotUpload} />
-            </div>
-            <div className="flex justify-end my-5 gap-5">
-                <button className="text-white font-medium bg-red-500 px-4 py-2 rounded cursor-pointer">Discard</button>
-                <button className="text-white font-medium bg-purple-500 px-4 py-2 rounded cursor-pointer">Upload</button>
+            <div className="flex items-center p-3 my-3 border border-gray-200">
+                <h2 className="text-white text-md md:text-lg">Accounts Uploaded</h2>
             </div>
         </div>
     );
