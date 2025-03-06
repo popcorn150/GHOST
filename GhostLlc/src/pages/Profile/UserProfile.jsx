@@ -1,6 +1,11 @@
 import NavBar from "./NavBar";
 import { MdOutlineCameraEnhance } from "react-icons/md";
+import { BsPencilSquare } from "react-icons/bs";
+import { FaSave, FaTrashAlt } from "react-icons/fa";
+import { FaSquareFacebook, FaXTwitter, FaLink } from "react-icons/fa6";
+import { FaInstagram, FaTiktok } from "react-icons/fa";
 import { IoAdd } from "react-icons/io5";
+import { LuUpload } from "react-icons/lu";
 import { AdminIcon } from "../../utils";
 import { useState } from "react";
 
@@ -21,7 +26,7 @@ const Layout = ({ activeTab, setActiveTab, children }) => {
         <>
             <NavBar />
             <div className="flex flex-col items-center justify-center p-3 bg-[#010409]">
-                <div className="my-10 relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-blue-500">
+                <div className="my-10 relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-[#0576FF]">
                     <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
 
                     <label
@@ -107,7 +112,7 @@ const Uploads = () => {
                     <div className="flex flex-col md:flex-row justify-between gap-5">
                         <div className="grid w-full max-w-4xl gap-4">
                             <div className="w-full flex flex-col items-start md:items-start">
-                                <label htmlFor="account-image-upload" className="w-full max-w-sm sm:max-w-sm md:w-[500px] h-60 border-2 border-blue-500 rounded-xl overflow-hidden flex flex-col items-center justify-center cursor-pointer">
+                                <label htmlFor="account-image-upload" className="w-full max-w-sm sm:max-w-sm md:w-[500px] h-60 border-2 border-[#0576FF] rounded-xl overflow-hidden flex flex-col items-center justify-center cursor-pointer">
                                     {accountImage ? <img src={accountImage} alt="Account" className="w-full h-full object-cover" /> : <MdOutlineCameraEnhance className="text-gray-500 w-16 h-16 sm:w-20 sm:h-20" />}
                                     {!accountImage && <p className="text-gray-400 text-xs sm:text-sm text-center mt-3">Click to upload account image</p>}
                                 </label>
@@ -140,8 +145,18 @@ const Uploads = () => {
                     </div>
 
                     <div className="flex flex-col sm:flex-row justify-end my-5 gap-3 sm:gap-5">
-                        <button className="text-white font-medium bg-red-500 px-4 py-2 rounded cursor-pointer w-full sm:w-auto">Discard</button>
-                        <button className="text-white font-medium bg-purple-500 px-4 py-2 rounded cursor-pointer w-full sm:w-auto">Upload</button>
+                        <button className="flex items-center gap-2 text-white font-medium bg-[#EB3223] px-4 py-2 rounded cursor-pointer w-full sm:w-auto">
+                            <span>
+                                <FaTrashAlt className="align-middle" />
+                            </span>
+                            Discard
+                        </button>
+                        <button className="flex items-center gap-2 text-white font-medium bg-[#4426B9] px-4 py-2 rounded cursor-pointer w-full sm:w-auto">
+                            <span>
+                                <LuUpload className="align-middle" />
+                            </span>
+                            Upload
+                        </button>
                     </div>
                 </>
             )}
@@ -153,14 +168,165 @@ const Uploads = () => {
     );
 };
 
+const About = () => {
+    const [aboutText, setAboutText] = useState("Write a little something about yourself. It helps communicate with your visitors.");
+    const [tempText, setTempText] = useState(aboutText);
+    const [isEditing, setIsEditing] = useState(false);
+
+    const handleEdit = () => {
+        setIsEditing(true);
+    };
+
+    const handleDiscard = () => {
+        setTempText(aboutText);
+        setIsEditing(false);
+    };
+
+    const handleSave = () => {
+        setAboutText(tempText);
+        setIsEditing(false);
+    };
+
+    return (
+        <div className="p-5">
+            <textarea
+                className="w-full h-60 p-3 border border-gray-600 rounded-md bg-[#0E1115] text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#0576FF]"
+                placeholder={tempText}
+                onChange={(e) => setTempText(e.target.value)}
+                readOnly={!isEditing}
+            />
+
+            <div className="mt-4 flex justify-end gap-3">
+                {isEditing ? (
+                    <>
+                        <button
+                            onClick={handleDiscard}
+                            className="flex items-center gap-2 bg-[#EB3223] text-white px-4 py-2 rounded-md cursor-pointer"
+                        >
+                            <FaTrashAlt /> Discard
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            className="flex items-center gap-2 bg-[#4426B9] text-white px-4 py-2 rounded-md cursor-pointer"
+                        >
+                            <FaSave /> Save
+                        </button>
+                    </>
+                ) : (
+                    <button
+                        onClick={handleEdit}
+                        className="flex items-center gap-2 border-2 border-[#0576FF] text-white px-4 py-2 rounded-md cursor-pointer"
+                    >
+                        <BsPencilSquare /> Edit
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+}
+
+const Socials = () => {
+    const [isEditing, setIsEditing] = useState(false);
+
+    const handleEdit = () => {
+        setIsEditing(true);
+    };
+
+    const handleDiscard = () => {
+        setIsEditing(false);
+    };
+
+    const handleSave = () => {
+        setIsEditing(false);
+    };
+
+    return (
+        <div className="p-5">
+            <h2 className="flex align-middle gap-2 text-white text-md font-semibold md:text-lg text-left my-3">Link Social accounts
+                <FaLink className="text-gray-300 w-5 h-5" />
+            </h2>
+
+            <div className="flex align-middle mb-2 gap-3 w-full p-2 rounded-lg bg-[#0E1115] text-white border border-gray-600">
+                <FaSquareFacebook className="text-gray-300 w-7 h-7" />
+                <input
+                    type="text"
+                    placeholder="Link your facebook account"
+                    className="w-full outline-none"
+                    required
+                    readOnly={!isEditing}
+                />
+            </div>
+
+            <div className="flex align-middle mb-2 gap-3 w-full p-2 rounded-lg bg-[#0E1115] text-white border border-gray-600 focus:outline-none">
+                <FaInstagram className="text-gray-300 w-7 h-7" />
+                <input
+                    type="text"
+                    placeholder="Link your instagram account"
+                    className="w-full outline-none"
+                    required
+                    readOnly={!isEditing}
+                />
+            </div>
+
+            <div className="flex align-middle mb-2 gap-3 w-full p-2 rounded-lg bg-[#0E1115] text-white border border-gray-600">
+                <FaTiktok className="text-gray-300 w-7 h-7" />
+                <input
+                    type="text"
+                    placeholder="Link your tiktok account"
+                    className="w-full outline-none"
+                    required
+                    readOnly={!isEditing}
+                />
+            </div>
+
+            <div className="flex align-middle mb-2 gap-3 w-full p-2 rounded-lg bg-[#0E1115] text-white border border-gray-600">
+                <FaXTwitter className="text-gray-300 w-7 h-7" />
+                <input
+                    type="text"
+                    placeholder="Link your twitter account"
+                    className="w-full outline-none"
+                    required
+                    readOnly={!isEditing}
+                />
+            </div>
+
+            <div className="mt-4 flex justify-end gap-3">
+                {isEditing ? (
+                    <>
+                        <button
+                            onClick={handleDiscard}
+                            className="flex items-center gap-2 bg-[#EB3223] text-white px-4 py-2 rounded-md cursor-pointer"
+                        >
+                            <FaTrashAlt /> Discard
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            className="flex items-center gap-2 bg-[#4426B9] text-white px-4 py-2 rounded-md cursor-pointer"
+                        >
+                            <FaSave /> Save
+                        </button>
+                    </>
+                ) : (
+                    <button
+                        onClick={handleEdit}
+                        className="flex items-center gap-2 border-2 border-[#0576FF] text-white px-4 py-2 rounded-md cursor-pointer"
+                    >
+                        <BsPencilSquare /> Edit
+                    </button>
+                )}
+            </div>
+        </div>
+    )
+}
+
 const UserProfile = () => {
     const [activeTab, setActiveTab] = useState("Uploads");
 
     return (
         <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
             {activeTab === "Uploads" && <Uploads />}
-            {activeTab === "Bio" && <div className="text-center text-white text-2xl">Bio</div>}
-            {activeTab === "Socials" && <div className="text-center text-white text-2xl">Socials</div>}
+            {activeTab === "Bio" && <About />}
+            {activeTab === "Socials" && <Socials />}
         </Layout>
     );
 }
