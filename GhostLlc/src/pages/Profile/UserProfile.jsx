@@ -1,0 +1,334 @@
+import NavBar from "./NavBar";
+import { MdOutlineCameraEnhance } from "react-icons/md";
+import { BsPencilSquare } from "react-icons/bs";
+import { FaSave, FaTrashAlt } from "react-icons/fa";
+import { FaSquareFacebook, FaXTwitter, FaLink } from "react-icons/fa6";
+import { FaInstagram, FaTiktok } from "react-icons/fa";
+import { IoAdd } from "react-icons/io5";
+import { LuUpload } from "react-icons/lu";
+import { AdminIcon } from "../../utils";
+import { useState } from "react";
+
+const tabs = ["Uploads", "Bio", "Socials"];
+
+const Layout = ({ activeTab, setActiveTab, children }) => {
+    const [profileImage, setProfileImage] = useState(AdminIcon);
+
+    const handleImageChange = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const imageUrl = URL.createObjectURL(file);
+            setProfileImage(imageUrl);
+        }
+    };
+
+    return (
+        <>
+            <NavBar />
+            <div className="flex flex-col items-center justify-center p-3 bg-[#010409]">
+                <div className="my-10 relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-[#0576FF]">
+                    <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+
+                    <label
+                        htmlFor="file-upload"
+                        className="absolute bottom-2 right-2 bg-black/50 p-2 rounded-full cursor-pointer hover:bg-black/70 transition"
+                    >
+                        <MdOutlineCameraEnhance className="text-white w-5 h-5" />
+                    </label>
+
+                    <input
+                        id="file-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageChange}
+                    />
+                </div>
+                <div className="w-full px-4 sm:px-12 md:px-24 mx-auto">
+                    <div className="flex justify-between border-b relative">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`py-2 flex-1 text-center relative cursor-pointer ${activeTab === tab ? "text-white font-semibold" : "text-gray-400"
+                                    }`}
+                            >
+                                {tab}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="relative w-full h-1 bg-[#0E1115] border-none">
+                        <div className="h-full bg-purple-500 transition-all duration-300"
+                            style={{ width: "20%", transform: `translateX(${tabs.indexOf(activeTab) * 200}%)` }}
+                        ></div>
+                    </div>
+
+                    <div className="w-full">
+                        {children}
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+}
+
+const Uploads = () => {
+    const [accountImage, setAccountImage] = useState(null);
+    const [screenshots, setScreenshots] = useState([]);
+    const [isUploading, setIsUploading] = useState(false);
+    const maxScreenshots = 5;
+
+    const handleAccountImageUpload = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const imageUrl = URL.createObjectURL(file);
+            setAccountImage(imageUrl);
+        }
+    };
+
+    const handleScreenshotUpload = (event) => {
+        if (screenshots.length < maxScreenshots) {
+            const file = event.target.files[0];
+            if (file) {
+                setScreenshots([...screenshots, URL.createObjectURL(file)]);
+            }
+        }
+    };
+
+    return (
+        <div className="p-3">
+            <div className="flex flex-col mb-5 sm:flex-row justify-between items-center gap-4 sm:gap-10 p-3 my-3 border border-gray-200">
+                <h2 className="text-white text-md md:text-lg text-center sm:text-left">Upload An Account</h2>
+                <button className="bg-gray-400 rounded-lg cursor-pointer p-2"
+                    onClick={() => setIsUploading(!isUploading)}
+                >
+                    <IoAdd className="w-5 h-5 sm:w-7 sm:h-7" />
+                </button>
+            </div>
+
+            {isUploading && (
+                <>
+                    <div className="flex flex-col md:flex-row justify-between gap-5">
+                        <div className="grid w-full max-w-4xl gap-4">
+                            <div className="w-full flex flex-col items-start md:items-start">
+                                <label htmlFor="account-image-upload" className="w-full max-w-sm sm:max-w-sm md:w-[500px] h-60 border-2 border-[#0576FF] rounded-xl overflow-hidden flex flex-col items-center justify-center cursor-pointer">
+                                    {accountImage ? <img src={accountImage} alt="Account" className="w-full h-full object-cover" /> : <MdOutlineCameraEnhance className="text-gray-500 w-16 h-16 sm:w-20 sm:h-20" />}
+                                    {!accountImage && <p className="text-gray-400 text-xs sm:text-sm text-center mt-3">Click to upload account image</p>}
+                                </label>
+                                <input id="account-image-upload" type="file" accept="image/*" className="hidden" onChange={handleAccountImageUpload} />
+                            </div>
+
+                            <input type="text" placeholder="Name of Account" className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]" required />
+                            <input type="text" placeholder="Account Credential" className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]" required />
+                            <input type="number" placeholder="Account's Worth" className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]" required />
+                        </div>
+
+                        <div className="w-full">
+                            <textarea placeholder="Full Account Description" className="w-full h-32 md:h-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]" required />
+                        </div>
+                    </div>
+
+                    <div className="mt-6 border border-gray-300 p-5 rounded-lg">
+                        <p className="text-white text-lg my-2">Screenshots</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            {screenshots.map((src, index) => (
+                                <img key={index} src={src} alt="Screenshot" className="w-full h-32 sm:h-40 object-cover rounded-md" />
+                            ))}
+                            {screenshots.length < maxScreenshots && (
+                                <label htmlFor="screenshot-upload" className="w-full h-32 sm:h-40 rounded-md flex items-center justify-center bg-gray-700 cursor-pointer">
+                                    <MdOutlineCameraEnhance className="text-white w-8 h-8 sm:w-10 sm:h-10" />
+                                </label>
+                            )}
+                        </div>
+                        <input id="screenshot-upload" type="file" accept="image/*" className="hidden" onChange={handleScreenshotUpload} />
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row justify-end my-5 gap-3 sm:gap-5">
+                        <button className="flex items-center gap-2 text-white font-medium bg-[#EB3223] px-4 py-2 rounded cursor-pointer w-full sm:w-auto">
+                            <span>
+                                <FaTrashAlt className="align-middle" />
+                            </span>
+                            Discard
+                        </button>
+                        <button className="flex items-center gap-2 text-white font-medium bg-[#4426B9] px-4 py-2 rounded cursor-pointer w-full sm:w-auto">
+                            <span>
+                                <LuUpload className="align-middle" />
+                            </span>
+                            Upload
+                        </button>
+                    </div>
+                </>
+            )}
+
+            <div className="flex items-center p-3 my-3 border border-gray-200">
+                <h2 className="text-white text-md md:text-lg">Accounts Uploaded</h2>
+            </div>
+        </div>
+    );
+};
+
+const About = () => {
+    const [aboutText, setAboutText] = useState("Write a little something about yourself. It helps communicate with your visitors.");
+    const [tempText, setTempText] = useState(aboutText);
+    const [isEditing, setIsEditing] = useState(false);
+
+    const handleEdit = () => {
+        setIsEditing(true);
+    };
+
+    const handleDiscard = () => {
+        setTempText(aboutText);
+        setIsEditing(false);
+    };
+
+    const handleSave = () => {
+        setAboutText(tempText);
+        setIsEditing(false);
+    };
+
+    return (
+        <div className="p-5">
+            <textarea
+                className="w-full h-60 p-3 border border-gray-600 rounded-md bg-[#0E1115] text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#0576FF]"
+                placeholder={tempText}
+                onChange={(e) => setTempText(e.target.value)}
+                readOnly={!isEditing}
+            />
+
+            <div className="mt-4 flex justify-end gap-3">
+                {isEditing ? (
+                    <>
+                        <button
+                            onClick={handleDiscard}
+                            className="flex items-center gap-2 bg-[#EB3223] text-white px-4 py-2 rounded-md cursor-pointer"
+                        >
+                            <FaTrashAlt /> Discard
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            className="flex items-center gap-2 bg-[#4426B9] text-white px-4 py-2 rounded-md cursor-pointer"
+                        >
+                            <FaSave /> Save
+                        </button>
+                    </>
+                ) : (
+                    <button
+                        onClick={handleEdit}
+                        className="flex items-center gap-2 border-2 border-[#0576FF] text-white px-4 py-2 rounded-md cursor-pointer"
+                    >
+                        <BsPencilSquare /> Edit
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+}
+
+const Socials = () => {
+    const [isEditing, setIsEditing] = useState(false);
+
+    const handleEdit = () => {
+        setIsEditing(true);
+    };
+
+    const handleDiscard = () => {
+        setIsEditing(false);
+    };
+
+    const handleSave = () => {
+        setIsEditing(false);
+    };
+
+    return (
+        <div className="p-5">
+            <h2 className="flex align-middle gap-2 text-white text-md font-semibold md:text-lg text-left my-3">Link Social accounts
+                <FaLink className="text-gray-300 w-5 h-5" />
+            </h2>
+
+            <div className="flex align-middle mb-2 gap-3 w-full p-2 rounded-lg bg-[#0E1115] text-white border border-gray-600">
+                <FaSquareFacebook className="text-gray-300 w-7 h-7" />
+                <input
+                    type="text"
+                    placeholder="Link your facebook account"
+                    className="w-full outline-none"
+                    required
+                    readOnly={!isEditing}
+                />
+            </div>
+
+            <div className="flex align-middle mb-2 gap-3 w-full p-2 rounded-lg bg-[#0E1115] text-white border border-gray-600 focus:outline-none">
+                <FaInstagram className="text-gray-300 w-7 h-7" />
+                <input
+                    type="text"
+                    placeholder="Link your instagram account"
+                    className="w-full outline-none"
+                    required
+                    readOnly={!isEditing}
+                />
+            </div>
+
+            <div className="flex align-middle mb-2 gap-3 w-full p-2 rounded-lg bg-[#0E1115] text-white border border-gray-600">
+                <FaTiktok className="text-gray-300 w-7 h-7" />
+                <input
+                    type="text"
+                    placeholder="Link your tiktok account"
+                    className="w-full outline-none"
+                    required
+                    readOnly={!isEditing}
+                />
+            </div>
+
+            <div className="flex align-middle mb-2 gap-3 w-full p-2 rounded-lg bg-[#0E1115] text-white border border-gray-600">
+                <FaXTwitter className="text-gray-300 w-7 h-7" />
+                <input
+                    type="text"
+                    placeholder="Link your twitter account"
+                    className="w-full outline-none"
+                    required
+                    readOnly={!isEditing}
+                />
+            </div>
+
+            <div className="mt-4 flex justify-end gap-3">
+                {isEditing ? (
+                    <>
+                        <button
+                            onClick={handleDiscard}
+                            className="flex items-center gap-2 bg-[#EB3223] text-white px-4 py-2 rounded-md cursor-pointer"
+                        >
+                            <FaTrashAlt /> Discard
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            className="flex items-center gap-2 bg-[#4426B9] text-white px-4 py-2 rounded-md cursor-pointer"
+                        >
+                            <FaSave /> Save
+                        </button>
+                    </>
+                ) : (
+                    <button
+                        onClick={handleEdit}
+                        className="flex items-center gap-2 border-2 border-[#0576FF] text-white px-4 py-2 rounded-md cursor-pointer"
+                    >
+                        <BsPencilSquare /> Edit
+                    </button>
+                )}
+            </div>
+        </div>
+    )
+}
+
+const UserProfile = () => {
+    const [activeTab, setActiveTab] = useState("Uploads");
+
+    return (
+        <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
+            {activeTab === "Uploads" && <Uploads />}
+            {activeTab === "Bio" && <About />}
+            {activeTab === "Socials" && <Socials />}
+        </Layout>
+    );
+}
+
+export default UserProfile
