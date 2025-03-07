@@ -15,16 +15,13 @@ const CategoryFilter = ({ searchTerm }) => {
   // Normalize search term
   const normalizedSearch = searchTerm.toLowerCase().trim();
 
-  // If a search term is entered, filter across ALL games.
-  // Otherwise, filter by the active category.
+  // Filter games based on search term or active category.
   let filteredGames = [];
   if (normalizedSearch !== "") {
-    // Combine all games from every category and filter them.
     filteredGames = categoryAccounts
       .flatMap((cat) => cat.games)
       .filter((game) => game.title.toLowerCase().includes(normalizedSearch));
   } else {
-    // No search term: filter by active category.
     if (activeCategory === "All") {
       filteredGames = categoryAccounts.flatMap((cat) => cat.games);
     } else {
@@ -35,7 +32,7 @@ const CategoryFilter = ({ searchTerm }) => {
     }
   }
 
-  // When the search term is cleared, reset activeCategory to "All"
+  // When search term is cleared, reset activeCategory to "All"
   useEffect(() => {
     if (normalizedSearch === "") {
       setActiveCategory("All");
@@ -43,43 +40,51 @@ const CategoryFilter = ({ searchTerm }) => {
   }, [normalizedSearch]);
 
   return (
-    <div>
-      <div className="flex space-x-2 mb-4">
+    <div className="p-2 md:p-8">
+      {/* Category Buttons */}
+      <div className="flex flex-wrap gap-2 mb-4">
         {categories.map((category) => (
           <button
             key={category}
             onClick={() => setActiveCategory(category)}
-            className={`px-4 py-2 rounded-full cursor-pointer font-semibold ${
-              activeCategory === category
-                ? "bg-blue-900 text-white"
-                : "bg-gray-200 text-black"
-            }`}
+            className={`rounded-full cursor-pointer font-semibold 
+              ${
+                activeCategory === category
+                  ? "bg-blue-900 text-white"
+                  : "bg-gray-200 text-black"
+              }
+              px-2 py-1 md:px-4 md:py-2`}
           >
             {category}
           </button>
         ))}
       </div>
 
+      {/* Games Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredGames.length > 0 ? (
           filteredGames.map((game) => (
             <div
               key={game.slug}
-              className="p-2 rounded-lg bg-[#18202D] text-white shadow-lg hover:shadow-xl"
+              className="p-1 md:p-2 rounded-lg bg-[#18202D] text-white shadow-lg hover:shadow-xl"
             >
               <img
                 src={game.img}
                 alt={game.title}
-                className="w-full h-40 object-cover rounded-lg"
+                className="w-full h-24 md:h-40 object-cover rounded-lg"
               />
-              <h3 className="mt-2 text-lg font-bold">{game.title}</h3>
+              <h3 className="mt-1 md:mt-2 text-sm md:text-lg font-bold">
+                {game.title}
+              </h3>
               <span className="flex justify-between items-center">
-                <p className="text-gray-400 my-2">{game.views} Total Views</p>
-                <img src={AdminIcon} alt="admin" className="w-8 md:w-10" />
+                <p className="text-gray-400 my-1 md:my-2 text-xs md:text-sm">
+                  {game.views} Total Views
+                </p>
+                <img src={AdminIcon} alt="admin" className="w-6 md:w-8" />
               </span>
               <Link
                 to={`/account/${game.slug}`}
-                className="mt-3 inline-block bg-blue-500 text-white px-4 py-2 rounded-md"
+                className="mt-2 inline-block bg-blue-500 text-white px-2 py-1 md:px-4 md:py-2 rounded-md text-xs md:text-sm"
               >
                 View Details
               </Link>
