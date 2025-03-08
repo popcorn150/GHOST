@@ -2,6 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { X, Menu, User, Settings, LogOut } from "lucide-react";
 import { NavLogo, ProfileIcon } from "../utils";
+import { IoCartOutline } from "react-icons/io5";
+import { IoStorefrontOutline } from "react-icons/io5";
+import { IoGlobeOutline } from "react-icons/io5";
+import { IoWalletOutline } from "react-icons/io5";
+
 
 const NavBar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -27,23 +32,23 @@ const NavBar = () => {
           </button>
           <ul className="space-y-4">
             <li>
-              <Link to="/" className="hover:text-gray-400">
-                Cart
+              <Link to="/" className="flex gap-2 hover:text-gray-400">
+                Cart <IoCartOutline className="self-center w-5 h-5" />
               </Link>
             </li>
             <li>
-              <Link to="/" className="hover:text-gray-400">
-                Notifications
+              <Link to="/" className="flex gap-2 hover:text-gray-400">
+                Store <IoStorefrontOutline className="self-center w-5 h-5" />
               </Link>
             </li>
             <li>
-              <Link to="/" className="hover:text-gray-400">
-                Community
+              <Link to="/" className="flex gap-2 hover:text-gray-400">
+                Community <IoGlobeOutline className="self-center w-5 h-5" />
               </Link>
             </li>
             <li>
-              <Link to="/" className="hover:text-gray-400">
-                Withdrawal
+              <Link to="/" className="flex gap-2 hover:text-gray-400">
+                Withdrawal <IoWalletOutline className="self-center w-5 h-5" />
               </Link>
             </li>
           </ul>
@@ -67,7 +72,7 @@ const NavBar = () => {
           <div className="absolute right-0 mt-2 bg-gray-800 p-4 rounded-lg w-40 shadow-lg">
             <ul className="space-y-2">
               <li className="flex items-center gap-2">
-                <User size={16} /> <Link to="/account">Account</Link>
+                <User size={16} /> <Link to="/profile">Account</Link>
               </li>
               <li
                 className="flex items-center gap-2 cursor-pointer"
@@ -78,9 +83,14 @@ const NavBar = () => {
               >
                 <Settings size={16} /> <span>Settings</span>
               </li>
-              <li className="flex items-center gap-2">
-                <LogOut size={16} />{" "}
-                <button className="hover:cursor-pointer">Logout</button>
+              <li
+                className="flex items-center gap-2"
+                onClick={() => {
+                  navigate("/login");
+                  setDropdownOpen(false);
+                }}
+              >
+                <LogOut size={16} /> <span className="hover:cursor-pointer">Logout</span>
               </li>
             </ul>
           </div>

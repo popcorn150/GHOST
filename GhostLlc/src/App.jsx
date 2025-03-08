@@ -6,6 +6,7 @@ import Settings from "./pages/Settings";
 import UserProfile from "./pages/Profile/UserProfile";
 import WelcomePage from "./pages/WelcomePage";
 import AccountSetup from "./pages/AccountSetup";
+import AccountLogin from "./pages/AccountLogin";
 
 const App = () => {
   return (
@@ -13,7 +14,8 @@ const App = () => {
       <Router>
         <Routes>
           <Route index element={<WelcomePage />} />
-          <Route path="/setup" element={<AccountSetup />} />
+          <Route path="/sign-up" element={<AccountSetup />} />
+          <Route path="/login" element={<AccountLogin />} />
           <Route path="/categories" element={<Category />} />
           <Route path="/account/:slug" element={<AccountDetails />} />
           <Route path="/settings" element={<Settings />} />

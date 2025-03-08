@@ -66,7 +66,7 @@ const CategoryFilter = ({ searchTerm }) => {
           filteredGames.map((game) => (
             <div
               key={game.slug}
-              className="p-1 md:p-2 rounded-lg bg-[#18202D] text-white shadow-lg hover:shadow-xl"
+              className="p-2 md:p-2 rounded-lg bg-[#18202D] text-white shadow-lg hover:shadow-xl"
             >
               <img
                 src={game.img}

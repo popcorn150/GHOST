@@ -2,6 +2,12 @@ import { useState } from "react"
 import { Link } from "react-router-dom";
 import { X, Menu, User, Settings, LogOut } from "lucide-react"
 import { NavLogo, ProfileIcon } from "../../utils";
+import { IoCartOutline } from "react-icons/io5";
+import { IoStorefrontOutline } from "react-icons/io5";
+import { IoGlobeOutline } from "react-icons/io5";
+import { IoWalletOutline } from "react-icons/io5";
+
+
 
 const NavBar = () => {
     const [menuOpen, setMenuOpen] = useState(false);
@@ -19,14 +25,25 @@ const NavBar = () => {
                         <X size={24} />
                     </button>
                     <ul className="space-y-4">
-                        <li><Link to="/" className="hover:text-gray-400">Cart</Link></li>
-                        <li><Link to="/" className="hover:text-gray-400">Notifications</Link></li>
-                        <li><Link to="/" className="hover:text-gray-400">Community</Link></li>
-                        <li><Link to="/" className="hover:text-gray-400">Withdrawal</Link></li>
+                        <li><Link to="/" className="flex gap-2 hover:text-gray-400">
+                            Cart <IoCartOutline className="self-center w-5 h-5" />
+                        </Link>
+                        </li>
+                        <li><Link to="/" className="flex gap-2 hover:text-gray-400">
+                            Store <IoStorefrontOutline className="self-center w-5 h-5" />
+                        </Link>
+                        </li>
+                        <li><Link to="/" className="flex gap-2 hover:text-gray-400">
+                            Community <IoGlobeOutline className="self-center w-5 h-5" />
+                        </Link></li>
+                        <li><Link to="/" className="flex gap-2 hover:text-gray-400">
+                            Withdrawal <IoWalletOutline className="self-center w-5 h-5" />
+                        </Link>
+                        </li>
                     </ul>
                 </div>
             )}
-            
+
             <img src={NavLogo} alt="Navbar" className="w-40 h-8 md:h-10 mx-auto" />
 
             <div className="relative">
@@ -34,16 +51,16 @@ const NavBar = () => {
                     <img src={ProfileIcon} alt="profile" className="w-14 items-center rounded-lg" />
                 </button>
                 {dropdownOpen && (
-                    <div className="absolute right-0 mt-2 bg-gray-800 p-4 rounded-lg w-40 shadow-lg">
+                    <div className="absolute right-0 mt-2 bg-gray-800 p-4 rounded-lg w-40 shadow-lg z-50">
                         <ul className="space-y-2">
                             <li className="flex items-center gap-2">
-                                <User size={16} /> <Link to="/account">Category</Link>
+                                <User size={16} /> <Link to="/categories">Category</Link>
                             </li>
                             <li className="flex items-center gap-2">
                                 <Settings size={16} /> <Link to="/settings">Settings</Link>
                             </li>
                             <li className="flex items-center gap-2">
-                                <LogOut size={16} /> <button className="hover:cursor-pointer">Logout</button>
+                                <LogOut size={16} /> <Link to="/login">Logout</Link>
                             </li>
                         </ul>
                     </div>
