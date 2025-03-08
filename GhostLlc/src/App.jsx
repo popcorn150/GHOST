@@ -17,7 +17,8 @@ const App = () => {
           <Route path="/categories" element={<Category />} />
           <Route path="/account/:slug" element={<AccountDetails />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/profile" element={<UserProfile />} />
+          <Route path="/account" element={<UserProfile />} />
+          <Route path="/categories" element={<UserProfile />} />
         </Routes>
       </Router>
     </>
