@@ -1,4 +1,5 @@
 import { useParams } from "react-router-dom"
+import { Link } from "react-router-dom";
 import availableAccounts from "../constants";
 import categoryAccounts from "../constants/category";
 import NavBar from "../components/NavBar";
@@ -35,7 +36,9 @@ const AccountDetails = () => {
                                 <h1 className="text-md md:text-xl font-bold">{account.title}</h1>
                                 <span className="flex justify-between items-center mt-2">
                                     <p className="text-gray-400 mr-44">{account.views} Total Views</p>
-                                    <img src={AdminIcon} alt="admin" className="w-8 md:w-10 hover:cursor-pointer" />
+                                    <Link to={'/profile'}>
+                                        <img src={AdminIcon} alt="admin" className="w-8 md:w-10 hover:cursor-pointer" />
+                                    </Link>
                                 </span>
                             </div>
                         </div>

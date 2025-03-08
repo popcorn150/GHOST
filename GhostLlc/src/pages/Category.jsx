@@ -81,7 +81,7 @@ const Category = () => {
                   <p className="text-gray-400 my-2">
                     {account.views} Total Views
                   </p>
-                  <img src={AdminIcon} alt="admin" className="w-8 md:w-10" />
+                    <img src={AdminIcon} alt="admin" className="w-8 md:w-10" />
                 </span>
                 <Link
                   to={`/account/${account.slug}`}
