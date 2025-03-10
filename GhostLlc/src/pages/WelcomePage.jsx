@@ -1,6 +1,7 @@
 import { auth, facebookProvider, googleProvider } from "../database/firebaseConfig";
 import { signInWithPopup } from "firebase/auth";
 import { BackGround_, Facebook, Google, Logo, Title } from "../utils";
+import { Link } from "react-router-dom";
 
 const WelcomePage = () => {
 
@@ -45,6 +46,17 @@ const WelcomePage = () => {
                             <span className="text-sm font-medium">Continue with Facebook</span>
                         </button>
                     </div>
+
+                    <p className="text-gray-400 text-center text-xs my-3">Already have an account?</p>
+
+                    <Link to="/login">
+                        <button
+                            type="submit"
+                            className="w-full mt-5 bg-none border-2 border-gray-500 hover:cursor-pointer text-white text-xs font-medium p-2 rounded-md"
+                        >
+                            Login to existing account
+                        </button>
+                    </Link>
 
                     {/* Terms & Policy */}
                     <p className="text-white text-sm text-center mt-5">

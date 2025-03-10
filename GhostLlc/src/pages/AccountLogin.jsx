@@ -1,4 +1,5 @@
 import { BackGround_, Logo, Title } from "../utils"
+import { Link } from "react-router-dom";
 
 const AccountLogin = () => {
     return (
@@ -38,10 +39,27 @@ const AccountLogin = () => {
                         <button
                             type="submit"
                             className="w-full bg-[#4426B9] hover:bg-[#341d8c] hover:cursor-pointer text-white font-semibold p-2 rounded-md transition duration-200"
-                            onClick={() => {alert('Login successful!')}}
+                            onClick={() => { alert('Login successful!') }}
                         >
                             Login
                         </button>
+
+                        <p className="text-gray-400 text-center text-xs"><a href="#" className="no-underline">Forgotten Password?</a></p>
+
+                        <h5 className="text-white text-sm text-center">Join Ghost and discover thousands
+                            of gaming account for sale at your
+                            finger tip.
+                        </h5>
+
+                        <Link to="/">
+
+                            <button
+                                type="submit"
+                                className="w-full mt-5 bg-none border-2 border-gray-500 hover:cursor-pointer text-white text-xs font-medium p-2 rounded-md"
+                            >
+                                Create An Account
+                            </button>
+                        </Link>
                     </form>
                 </div>
             </div>
