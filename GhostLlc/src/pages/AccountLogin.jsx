@@ -63,6 +63,11 @@ const AccountLogin = () => {
                     </form>
                 </div>
             </div>
+
+            {/* Footer */}
+            <p className="absolute bottom-5 text-xs text-white text-center">
+                Copyright &copy; 2025 All rights reserved.
+            </p>
         </div>
     );
 }

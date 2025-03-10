@@ -7,6 +7,7 @@ import UserProfile from "./pages/Profile/UserProfile";
 import WelcomePage from "./pages/WelcomePage";
 import AccountSetup from "./pages/AccountSetup";
 import AccountLogin from "./pages/AccountLogin";
+import Store from "./pages/Store/Store";
 
 const App = () => {
   return (
@@ -20,6 +21,7 @@ const App = () => {
           <Route path="/account/:slug" element={<AccountDetails />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/profile" element={<UserProfile />} />
+          <Route path="/store" element={<Store />} />
         </Routes>
       </Router>
     </>
