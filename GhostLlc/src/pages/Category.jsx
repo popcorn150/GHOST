@@ -74,14 +74,17 @@ const Category = () => {
                   alt={account.title}
                   className="carousel-image"
                 />
-                <h2 className="text-lg text-white font-semibold mt-2">
-                  {account.title}
-                </h2>
+                {/* Title wrapped in container with fixed width and truncate */}
+                <div className="w-48">
+                  <h2 className="text-lg text-white font-semibold mt-2 truncate">
+                    {account.title}
+                  </h2>
+                </div>
                 <span className="flex justify-between items-center">
                   <p className="text-gray-400 my-2">
                     {account.views} Total Views
                   </p>
-                    <img src={AdminIcon} alt="admin" className="w-8 md:w-10" />
+                  <img src={AdminIcon} alt="admin" className="w-8 md:w-10" />
                 </span>
                 <Link
                   to={`/account/${account.slug}`}

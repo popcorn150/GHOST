@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { useNavigate } from "react-router-dom";
 import { BackGround_, Logo, Title } from "../utils";
 
 const AccountSetup = () => {
+  // Existing states
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -10,6 +11,12 @@ const AccountSetup = () => {
   const [suggestedUsernames, setSuggestedUsernames] = useState([]);
   const [passwordStrength, setPasswordStrength] = useState("");
   const [isChecked, setIsChecked] = useState(false);
+
+  // New state for country (email section removed)
+  const [country, setCountry] = useState("Canada"); // default
+
+  // New state to track if password mismatch error should be shown
+  const [passwordError, setPasswordError] = useState(false);
 
   // Initialize navigate
   const navigate = useNavigate();
@@ -47,18 +54,47 @@ const AccountSetup = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!isUsernameAvailable) return alert("Choose another username");
-    if (password !== confirmPassword) return alert("Password do not match");
-    if (passwordStrength !== "Strong") return alert("Use a stronger password");
-    if (!isChecked) return alert("You must agree to the terms");
 
+    // Validate username availability
+    if (!isUsernameAvailable) {
+      alert("Choose another username");
+      return;
+    }
+
+    // Validate password match: if they don't match, clear both and set error flag.
+    if (password !== confirmPassword) {
+      setPasswordError(true);
+      setPassword("");
+      setConfirmPassword("");
+      return;
+    }
+
+    // Validate password strength
+    if (passwordStrength !== "Strong") {
+      alert("Use a stronger password");
+      return;
+    }
+
+    // Validate checkbox
+    if (!isChecked) {
+      alert("You must agree to the terms");
+      return;
+    }
+
+    // If all checks pass, clear any password error flag and navigate.
+    setPasswordError(false);
     alert("Account setup complete!");
-    // Navigate to the Category page after successful account setup
     navigate("/categories");
   };
 
+  // When user changes password fields, remove the password error flag
+  const handlePasswordChange = (value) => {
+    if (passwordError) setPasswordError(false);
+    validatePassword(value);
+  };
+
   return (
-    <div className="relative flex items-center justify-center bg-[#010409] w-full h-screen overflow-hidden">
+    <div className="relative flex items-center justify-center bg-[#010409] w-full h-screen overflow-auto">
       {/* Background Image */}
       <div className="absolute inset-0 opacity-50">
         <img
@@ -86,7 +122,7 @@ const AccountSetup = () => {
           </h1>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Username */}
+            {/* Ghost Username */}
             <div>
               <label className="text-white block mb-1">Ghost Username</label>
               <input
@@ -104,13 +140,31 @@ const AccountSetup = () => {
               )}
             </div>
 
+            {/* Country of Residence */}
+            <div>
+              <label className="text-white block mb-1">
+                Country of Residence
+              </label>
+              <select
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                className="w-full p-2 bg-[#161B22] text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
+              >
+                <option value="Canada">Canada</option>
+                <option value="United States">United States</option>
+                <option value="United Kingdom">United Kingdom</option>
+                <option value="Australia">Australia</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
             {/* Password */}
             <div>
               <label className="text-white block mb-1">Choose Password</label>
               <input
                 type="password"
                 value={password}
-                onChange={(e) => validatePassword(e.target.value)}
+                onChange={(e) => handlePasswordChange(e.target.value)}
                 className="w-full p-2 bg-[#161B22] text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
                 required
               />
@@ -131,10 +185,20 @@ const AccountSetup = () => {
               <input
                 type="password"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full p-2 bg-[#161B22] text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
+                onChange={(e) => {
+                  if (passwordError) setPasswordError(false);
+                  setConfirmPassword(e.target.value);
+                }}
+                className={`w-full p-2 bg-[#161B22] text-white rounded-md border ${
+                  passwordError ? "border-red-500" : "border-gray-600"
+                } focus:outline-none focus:ring-2 focus:ring-[#4426B9]`}
                 required
               />
+              {passwordError && (
+                <p className="text-red-500 text-sm mt-1">
+                  Passwords do not match.
+                </p>
+              )}
             </div>
 
             {/* Terms Checkbox */}
@@ -171,7 +235,7 @@ const AccountSetup = () => {
 
       {/* Footer */}
       <p className="absolute bottom-3 text-xs text-white text-center">
-        Copyright &copy; 2025 All rights reserved.
+        &copy; 2025 All rights reserved.
       </p>
     </div>
   );
