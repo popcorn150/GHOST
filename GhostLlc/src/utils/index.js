@@ -133,6 +133,7 @@ import ProGamer3 from "../assets/imgs/Pro Gamer package3.jpg"
 import RookiePackage1 from "../assets/imgs/Rookie Package1.jpg"
 import RookiePackage2 from "../assets/imgs/Rookie Package2.jpg"
 import RookiePackage3 from "../assets/imgs/Rookie Package3.jpg"
+import XennaLogo from "../assets/imgs/XenaLogo.png"
 import Xiaomi from "../assets/imgs/Xiaomi Pad6.jpg"
 
 
@@ -279,4 +280,5 @@ export const RookieGamerPackage1 = RookiePackage1
 export const RookieGamerPackage2 = RookiePackage2
 export const RookieGamerPackage3 = RookiePackage3
 
+export const Xenna = XennaLogo
 export const XiaomiPad6 = Xiaomi

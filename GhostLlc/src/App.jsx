@@ -11,24 +11,19 @@ import Store from "./pages/Store/Store";
 
 const App = () => {
   return (
-    <>
-      <Router>
-        <Routes>
-          <Route index element={<WelcomePage />} />
-          <Route path="/sign-up" element={<AccountSetup />} />
-          <Route path="/login" element={<AccountLogin />} />
-          <Route path="/categories" element={<Category />} />
-          <Route path="/account/:slug" element={<AccountDetails />} />
-          <Route path="/settings" element={<Settings />} />
-
-          <Route path="/account" element={<UserProfile />} />
-          <Route path="/categories" element={<UserProfile />} />
-          <Route path="/profile" element={<UserProfile />} />
-          <Route path="/store" element={<Store />} />
-
-        </Routes>
-      </Router>
-    </>
+    <Router>
+      <Routes>
+        <Route index element={<WelcomePage />} />
+        <Route path="/sign-up" element={<AccountSetup />} />
+        <Route path="/login" element={<AccountLogin />} />
+        <Route path="/categories" element={<Category />} />
+        <Route path="/account" element={<UserProfile />} />
+        <Route path="/account/:slug" element={<AccountDetails />} />
+        <Route path="/profile" element={<UserProfile />} />
+        <Route path="/store" element={<Store />} />
+        <Route path="/settings" element={<Settings />} />
+      </Routes>
+    </Router>
   );
 };
 
