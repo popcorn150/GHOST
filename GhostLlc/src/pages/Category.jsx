@@ -43,7 +43,7 @@ const Category = () => {
   return (
     <>
       <NavBar />
-      <div className="p-6">
+      <div className="p-5">
         {/* Search Input */}
         <input
           type="text"

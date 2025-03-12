@@ -1,15 +1,14 @@
 import NavBar from "./NavBar";
 import { MdOutlineCameraEnhance } from "react-icons/md";
 import { BsPencilSquare } from "react-icons/bs";
-import { FaSave, FaTrashAlt } from "react-icons/fa";
+import { FaSave, FaTrashAlt, FaStar, FaInstagram, FaTiktok } from "react-icons/fa";
 import { FaSquareFacebook, FaXTwitter, FaLink } from "react-icons/fa6";
-import { FaInstagram, FaTiktok } from "react-icons/fa";
 import { IoAdd } from "react-icons/io5";
 import { LuUpload } from "react-icons/lu";
 import { AdminIcon } from "../../utils";
 import { useState } from "react";
 
-const tabs = ["Uploads", "Bio", "Socials"];
+const tabs = ["Uploads", "Bio", "Socials", "Favorites"];
 
 const Layout = ({ activeTab, setActiveTab, children }) => {
     const [profileImage, setProfileImage] = useState(AdminIcon);
@@ -60,7 +59,7 @@ const Layout = ({ activeTab, setActiveTab, children }) => {
 
                     <div className="relative w-full h-1 bg-[#0E1115] border-none">
                         <div className="h-full bg-purple-500 transition-all duration-300"
-                            style={{ width: "20%", transform: `translateX(${tabs.indexOf(activeTab) * 200}%)` }}
+                            style={{ width: "20%", transform: `translateX(${tabs.indexOf(activeTab) * 135}%)` }}
                         ></div>
                     </div>
 
@@ -243,7 +242,7 @@ const Socials = () => {
     return (
         <div className="p-5">
             <h2 className="flex align-middle gap-2 text-white text-md font-semibold md:text-lg text-left my-3">Link Social accounts
-                <FaLink className="text-gray-300 w-5 h-5" />
+                <FaLink className="text-gray-300 self-center w-5 h-5" />
             </h2>
 
             <div className="flex align-middle mb-2 gap-3 w-full p-2 rounded-lg bg-[#0E1115] text-white border border-gray-600">
@@ -319,6 +318,18 @@ const Socials = () => {
     )
 }
 
+const Favorites = () => {
+    return (
+        <div className="p-5">
+            <div className="flex items-center p-3 my-3 border border-gray-200">
+                <h2 className="flex text-white text-md md:text-lg gap-2">Saved Accounts
+                    <FaStar className="text-gray-300 self-center w-5 h-5" />
+                </h2>
+            </div>
+        </div>
+    )
+}
+
 const UserProfile = () => {
     const [activeTab, setActiveTab] = useState("Uploads");
 
@@ -327,6 +338,7 @@ const UserProfile = () => {
             {activeTab === "Uploads" && <Uploads />}
             {activeTab === "Bio" && <About />}
             {activeTab === "Socials" && <Socials />}
+            {activeTab === "Favorites" && <Favorites />}
         </Layout>
     );
 }
