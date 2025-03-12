@@ -12,21 +12,7 @@ const AccountSetup = () => {
   const [isChecked, setIsChecked] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
   const [userCountry, setUserCountry] = useState("");
-  const [userCurrency, setUserCurrency] = useState("");
-  const [exchangeRate, setExchangeRate] = useState(null);
-
   const navigate = useNavigate();
-
-  // Country-Currency Mapping
-  const countryToCurrency = {
-    Nigeria: "NGN",
-    USA: "USD",
-    UK: "GBP",
-    Canada: "CAD",
-    India: "INR",
-    Germany: "EUR",
-    France: "EUR",
-  };
 
   // Detect User's Country Using Geolocation API
   useEffect(() => {
@@ -36,30 +22,12 @@ const AccountSetup = () => {
         const data = await response.json();
         const countryName = data.country_name;
         setUserCountry(countryName);
-        setUserCurrency(countryToCurrency[countryName] || "USD");
       } catch (error) {
         console.error("Error fetching user location:", error);
       }
     };
     fetchUserLocation();
   }, []);
-
-  // Fetch Exchange Rate
-  useEffect(() => {
-    const fetchExchangeRate = async () => {
-      if (!userCurrency || userCurrency === "USD") return;
-      try {
-        const response = await fetch(
-          `https://v6.exchangerate-api.com/v6/744b7cb711c84f34de72a706/latest/USD`
-        );
-        const data = await response.json();
-        setExchangeRate(data.conversion_rates[userCurrency]);
-      } catch (error) {
-        console.error("Error fetching exchange rates:", error);
-      }
-    };
-    fetchExchangeRate();
-  }, [userCurrency]);
 
   const checkUsernameAvailability = async () => {
     const takenUsernames = ["ghost", "player1", "gamerx"];
