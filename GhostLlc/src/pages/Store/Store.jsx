@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { IoSearchOutline } from "react-icons/io5";
 import { TbRectangleVerticalFilled } from "react-icons/tb";
 import {
@@ -130,6 +131,7 @@ const Store = () => {
             </div>
 
             {/* Flash Sales Section */}
+
             <div className="w-full max-w-7xl mt-10 px-5">
                 <div className="flex justify-start my-2 gap-2">
                     <TbRectangleVerticalFilled className="text-red-500 self-center w-7 h-7" />
@@ -144,24 +146,29 @@ const Store = () => {
 
                 <div className="flex overflow-x-auto space-x-4 scrollbar-hide">
                     {flashSalesProducts.map((product) => (
-                        <div
-                            key={product.id}
-                            className="min-w-[280px] text-black p-4 rounded-lg shadow-lg"
-                        >
-                            <img src={product.image} alt={product.name} className="w-full h-44 object-cover rounded" />
-                            <h3 className="mt-2 text-sm text-white font-medium">
-                                {product.name}
-                            </h3>
-                            <div className="max-w-fit my-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
-                                {product.views} views
-                            </div>
-                            <p className="text-xs text-gray-500">
-                                ⭐ {product.rating} reviews
-                            </p>
-                        </div>
+                        <>
+                            <Link to={`/product/${product.slug}`} className="cursor-pointer">
+                                <div
+                                    key={product.id}
+                                    className="min-w-[280px] text-black p-4 rounded-lg shadow-lg"
+                                >
+                                    <img src={product.image} alt={product.name} className="w-full h-44 object-cover rounded" />
+                                    <h3 className="mt-2 text-sm text-white font-medium">
+                                        {product.name}
+                                    </h3>
+                                    <div className="max-w-fit my-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
+                                        {product.views} views
+                                    </div>
+                                    <p className="text-xs text-gray-500">
+                                        ⭐ {product.rating} reviews
+                                    </p>
+                                </div>
+                            </Link>
+                        </>
                     ))}
                 </div>
             </div>
+
 
             {/* Category Section */}
             <div className="mt-5 flex gap-4 overflow-x-auto">
@@ -186,7 +193,7 @@ const Store = () => {
 
             <div className="w-full px-15 flex justify-between items-center mb-4">
                 <h2 className="text-2xl text-white font-bold">
-                    {`Best Selling ${filteredProducts.category}`}
+                    Best Selling {}
                 </h2>
                 <button className="px-6 py-2 bg-red-500 text-white rounded-lg cursor-pointer">
                     View All
