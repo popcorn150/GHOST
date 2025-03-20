@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   auth,
@@ -82,7 +81,7 @@ const WelcomePage = () => {
         {/* Logo & Title */}
         <div className="flex flex-col items-center text-center">
           <img src={Logo} alt="Ghost Logo" className="w-28 md:w-36 lg:w-40" />
-          <img src={Title} alt="Title" className="w-40 md:w-56" />
+          <img src={Title} alt="Title" className="w-40 md:w-56 mt-5" />
         </div>
 
         {/* Sign-In Section */}
@@ -94,7 +93,7 @@ const WelcomePage = () => {
           {/* Google Sign-In */}
           <button
             onClick={() => handleSignIn("google")}
-            className="w-full flex items-center justify-center p-3 bg-white hover:bg-gray-300 rounded-3xl shadow-md transition duration-300 mt-4"
+            className="w-full flex items-center justify-center p-3 bg-white hover:bg-gray-300 rounded-3xl shadow-md transition duration-300 mt-4 cursor-pointer"
           >
             <img src={Google} alt="Google Logo" className="w-6 h-6 mr-2" />
             <span className="text-sm font-medium">Continue with Google</span>
@@ -103,10 +102,10 @@ const WelcomePage = () => {
           {/* Facebook Sign-In */}
           <button
             onClick={() => handleSignIn("facebook")}
-            className="w-full flex items-center justify-center p-3 bg-white hover:bg-gray-300 rounded-3xl shadow-md transition duration-300 mt-3"
+            className="w-full flex items-center justify-center p-3 bg-white hover:bg-gray-300 rounded-3xl shadow-md transition duration-300 mt-3 cursor-pointer"
           >
             <img src={Facebook} alt="Facebook Icon" className="w-6 h-6 mr-2" />
-            <span className="text-base font-medium">
+            <span className="text-sm font-medium">
               Continue with Facebook
             </span>
           </button>
@@ -115,7 +114,7 @@ const WelcomePage = () => {
           <p className="text-white text-sm mt-6">Already have an account?</p>
           <button
             onClick={() => navigate("/login")}
-            className="w-full text-white border border-gray-500 text-sm font-medium p-2 rounded-md hover:bg-gray-300 transition mt-2"
+            className="w-full text-white border border-gray-500 text-sm font-medium p-2 rounded-md mt-2 cursor-pointer"
           >
             Log In
           </button>
