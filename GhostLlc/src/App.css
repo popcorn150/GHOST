@@ -36,3 +36,21 @@
   object-fit: cover;
   border-radius: 8px;
 }
+
+.loader {
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #fff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

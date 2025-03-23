@@ -1,7 +1,37 @@
-import { BackGround_, Logo, Title } from "../utils"
+import "../App.css";
+import { useState } from "react";
+import { BackGround_, Logo, Title } from "../utils";
 import { Link } from "react-router-dom";
 
 const AccountLogin = () => {
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const handleLogin = (e) => {
+        e.preventDefault();
+        setError("");
+
+        if (!username || !password) {
+            setError("Please fill out the required fields");
+            return
+        }
+
+        setLoading(true);
+        setTimeout(() => {
+            setLoading(false);
+            if (username !== "correctUsername") {
+                setError("This username is not recognized");
+            } else if (password !== "correctPassword") {
+                setError("This password is not recognized");
+            }
+            else {
+                alert("Login successful!")
+            }
+        }, 2000);
+    };
+
     return (
         <div className="relative flex items-center justify-center bg-[#010409] w-full h-screen overflow-hidden">
             <div className="absolute inset-0 opacity-50">
@@ -17,13 +47,16 @@ const AccountLogin = () => {
                 <div className="flex flex-col items-center bg-[#010409] p-7 md:p-14 rounded-xl w-full max-w-md">
                     <h1 className="text-white text-xl lg:text-2xl font-semibold mb-4">Login</h1>
 
-                    <form className="space-y-4">
+                    {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+
+                    <form className="space-y-4" onSubmit={handleLogin}>
                         <div>
                             <label className="text-white block mb-1">Ghost Username</label>
                             <input
                                 type="text"
                                 className="w-full p-2 bg-[#161B22] text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
-                                required
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
                             />
                         </div>
 
@@ -32,16 +65,26 @@ const AccountLogin = () => {
                             <input
                                 type="password"
                                 className="w-full p-2 bg-[#161B22] text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
-                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                             />
                         </div>
 
                         <button
                             type="submit"
                             className="w-full bg-[#4426B9] hover:bg-[#341d8c] hover:cursor-pointer text-white font-semibold p-2 rounded-md transition duration-200"
-                            onClick={() => { alert('Login successful!') }}
+                            disabled={loading}
                         >
-                            Login
+                            {loading ? (
+                                <div className="flex justify-center gap-2">
+                                    <p className="self-center">Logging in...</p>
+                                    <span className="loader border-t-2 border-white border-solid rounded-full w-5 h-5 animate-spin self-center"></span>
+                                </div>
+                            ) : (
+                                <>
+                                    <p className="self-center">Log In</p>
+                                </>
+                            )}
                         </button>
 
                         <p className="text-gray-400 text-center text-xs"><a href="#" className="no-underline">Forgotten Password?</a></p>
