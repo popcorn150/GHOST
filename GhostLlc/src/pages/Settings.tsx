@@ -41,7 +41,7 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
     <div
       onClick={handleToggle}
       className={`w-12 h-6 flex items-center rounded-full p-0.5 cursor-pointer transition-colors duration-300 ${
-        isEnabled ? "bg-[#8000FF]" : "bg-gray-700"
+        isEnabled ? "bg-[#4426B9]" : "bg-gray-700"
       }`}
     >
       <div
@@ -75,11 +75,11 @@ const RadioButton: React.FC<RadioButtonProps> = ({
       <div className="relative w-6 h-6 mr-3">
         <div
           className={`w-6 h-6 border-2 rounded-full transition-colors duration-200 ${
-            selected ? "border-[#8000FF]" : "border-gray-500"
+            selected ? "border-[#4426B9]" : "border-gray-500"
           }`}
         ></div>
         {selected && (
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-[#8000FF] rounded-full"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-[#4426B9] rounded-full"></div>
         )}
       </div>
       <span className="text-white">{label}</span>
@@ -106,7 +106,7 @@ const SideButton: React.FC<SideButtonProps> = ({
       onClick={onClick}
       className={`flex items-center gap-3 w-full py-3 px-4 rounded-lg transition-colors duration-200 ${
         isActive
-          ? "bg-[#1e293b] border-l-4 border-[#8000FF] pl-3"
+          ? "bg-[#1e293b] border-l-4 border-[#4426B9] pl-3"
           : "bg-[#1e1e24] hover:bg-[#2a2a32]"
       } text-white font-medium`}
     >
@@ -153,7 +153,7 @@ const LanguageDropdown: React.FC<LanguageDropdownProps> = ({
                 setIsOpen(false);
               }}
               className={`px-4 py-2 cursor-pointer hover:bg-[#2a2a32] ${
-                selected === lang ? "text-[#8000FF]" : "text-white"
+                selected === lang ? "text-[#4426B9]" : "text-white"
               }`}
             >
               {lang}
@@ -423,7 +423,7 @@ const Settings: React.FC = () => {
                     href="https://example.com"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[#8000FF] hover:underline"
+                    className="text-[#4426B9] hover:underline"
                   >
                     here
                     <FontAwesomeIcon
@@ -451,7 +451,7 @@ const Settings: React.FC = () => {
                     href="https://example.com/privacy"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[#8000FF] hover:underline"
+                    className="text-[#4426B9] hover:underline"
                   >
                     here
                     <FontAwesomeIcon
@@ -479,7 +479,7 @@ const Settings: React.FC = () => {
                     href="https://example.com/useragreement"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[#8000FF] hover:underline"
+                    className="text-[#4426B9] hover:underline"
                   >
                     here
                     <FontAwesomeIcon

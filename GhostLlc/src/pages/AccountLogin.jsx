@@ -78,7 +78,7 @@ const AccountLogin = () => {
                             {loading ? (
                                 <div className="flex justify-center gap-2">
                                     <p className="self-center">Logging in...</p>
-                                    <span className="loader border-t-2 border-white border-solid rounded-full w-5 h-5 animate-spin self-center"></span>
+                                    <span className="loader border-solid rounded-full animate-spin self-center"></span>
                                 </div>
                             ) : (
                                 <>
