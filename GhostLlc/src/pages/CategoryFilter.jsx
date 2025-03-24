@@ -56,7 +56,7 @@ const CategoryFilter = ({ searchTerm }) => {
   return (
     <div className="p-2 md:p-8">
       {/* Category Buttons */}
-      <div className="flex overflow-x-auto  gap-5 mb-6">
+      <div className="flex overflow-x-auto gap-5 mb-6 no-scrollbar">
         {categories.map((category) => (
           <button
             key={category}

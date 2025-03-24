@@ -1,3 +1,4 @@
+import "../../App.css"
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useParams } from "react-router-dom"
@@ -276,7 +277,7 @@ const ProductDetails = () => {
             <h3 className="text-red-500 text-base font-medium self-center">Other Products</h3>
           </div>
 
-          <div className="flex overflow-x-auto space-x-4 scrollbar-hide">
+          <div className="flex overflow-x-auto space-x-4 no-scrollbar">
             {otherProducts.map((product, id) => (
               <>
                 <Link to={`/product/${product.slug}`} className="cursor-pointer">

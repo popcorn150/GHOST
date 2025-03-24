@@ -136,6 +136,12 @@ import RookiePackage3 from "../assets/imgs/Rookie Package3.jpg"
 import XennaLogo from "../assets/imgs/XenaLogo.png"
 import Xiaomi from "../assets/imgs/Xiaomi Pad6.jpg"
 
+import PhoneCoolers from "../assets/imgs/phone-cooler.png"
+import GamingPC from "../assets/imgs/gaming-pc.png"
+import GamingEquips from "../assets/imgs/gaming-equips.png"
+import Phones from "../assets/imgs/phones.png"
+import GiftProducts from "../assets/imgs/gift-products.png"
+
 
 export const BackGround_ = Background
 export const Title = GhostTitle
@@ -282,3 +288,9 @@ export const RookieGamerPackage3 = RookiePackage3
 
 export const Xenna = XennaLogo
 export const XiaomiPad6 = Xiaomi
+
+export const Phone_Coolers = PhoneCoolers
+export const Gaming_PC = GamingPC
+export const Gaming_Equips = GamingEquips
+export const Gaming_Phones = Phones
+export const Gift_Packages = GiftProducts
