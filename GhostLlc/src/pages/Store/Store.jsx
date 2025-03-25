@@ -2,7 +2,7 @@ import "../../App.css";
 import { Link } from "react-router-dom";
 import { IoSearchOutline } from "react-icons/io5";
 import { TbRectangleVerticalFilled } from "react-icons/tb";
-import { Gaming_Equips, Gaming_PC, Gaming_Phones, Gift_Packages, Phone_Coolers, Xenna } from "../../utils"
+import { Gaming_Equips, Gaming_PC, Gaming_Phones, Gift_Packages, Pes5, Phone_Coolers, Xenna } from "../../utils"
 import flashSalesProducts from "./flashSalesProducts";
 import { useState } from "react";
 import productsData from "./categoryData";
@@ -73,6 +73,18 @@ const Store = () => {
                 </div>
                 <CategoryFilter />
             </div>
+
+            {/* New Arrival Section */}
+            <div className="w-full max-w-7xl mt-10 px-5">
+                <div className="flex justify-start my-2 gap-2">
+                    <TbRectangleVerticalFilled className="text-red-500 self-center w-7 h-7" />
+                    <h3 className="text-red-500 text-base font-medium self-center">Featured</h3>
+                </div>
+                <div className="mb-4">
+                    <h2 className="text-2xl text-white font-bold">New Arrival</h2>
+                </div>
+                <NewArrivals />
+            </div>
         </div>
     )
 }
@@ -88,9 +100,9 @@ const categories = [
 const CategoryFilter = () => {
     const [selectedCategory, setSelectedCategory] = useState("gaming-equipments");
 
-    const filteredProducts = productsData.filter(
-        (stock) => stock.category === selectedCategory
-    );
+    const selectedCategoryData = productsData.find(cat => cat.slug === selectedCategory);
+
+    const filteredProducts = selectedCategoryData ? selectedCategoryData.products : [];
 
     return (
         <>
@@ -116,20 +128,51 @@ const CategoryFilter = () => {
 
             {/* Product Listing */}
             <div className="grid grid-cols-4 gap-4 mt-4">
-                {filteredProducts.map((stock) => (
-                    <div key={stock.id} className="border p-4 rounded-md">
-                        <img src={stock.image} alt={stock.name} className="w-full h-40 object-cover" />
-                        <h3 className="mt-2 text-sm text-white font-medium">{stock.name}</h3>
-                        <div className="max-w-fit my-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
-                            {stock.views} views
+                {filteredProducts.length > 0 ? (
+                    filteredProducts.map((stock) => (
+                        <div key={stock.id} className="border p-4 rounded-lg">
+                            <img src={stock.image} alt={stock.name} className="w-full h-40 object-cover" />
+                            <h3 className="mt-2 text-sm text-white font-medium">{stock.name}</h3>
+                            <div className="max-w-fit my-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
+                                {stock.views} views
+                            </div>
+                            <p className="text-xs text-gray-500">
+                                ⭐ {stock.rating} reviews
+                            </p>
                         </div>
-                        <p className="text-xs text-gray-500">
-                            ⭐ {stock.rating} reviews
-                        </p>
-                    </div>
-                ))}
+                    ))
+                ) : (
+                    <p className="text-white text-center col-span-4">No products found for this category.</p>
+                )}
             </div>
         </>
+    )
+};
+
+const NewArrivals = () => {
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-black">
+            <div className="relative bg-black p-6 rounded-lg flex flex-col justify-end min-h-[300px]">
+                <img
+                    src={Pes5}
+                    alt="Playstation5"
+                    className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div className="relative z-10">
+                    <h2 className="text-xl font-bold text-white">PlayStation 5</h2>
+                    <p className="text-gray-400 text-sm">
+                        Black and White version of the PS5 coming out on sale.
+                    </p>
+                    <a href="#" className="inline-block mt-2 text-white border-b">
+                        Shop Now
+                    </a>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                
+            </div>
+        </div>
     )
 };
 

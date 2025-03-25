@@ -264,3 +264,91 @@ const flashSalesProducts = [
                     ))}
                 </div>
             </div>
+
+{
+        id: 1,
+        slug: "cool-gaming-pc",
+        products: [
+            {
+                id: 101,
+                name: "DAGEL Finger Sleeves",
+                image: DAGEL_Finger_Sleeves,
+                info: "The fantastic integration of a phone grip, a stick-on and Shooting joystick in the world. Mobile Game Controller Finger Sleeves consist of 6 pieces In a pack. It is smooth, thin anti-sweat, breathable Full Touch screen with sensitive Shoot Aim Joystick Set for knives/Rules of Survival - Gray. This product is to measured as 4.92 x 3.31 x 0.2 inches",
+                views: "255K",
+                rating: 88,
+                category: "gaming-pc",
+                screenShots: [
+                    {
+                        id: 1,
+                        img: DAGEL_Finger_Sleeves,
+                    },
+                    {
+                        id: 2,
+                        img: DAGEL_SS2,
+                    },
+                    {
+                        id: 3,
+                        img: DAGEL_SS3,
+                    },
+                    {
+                        id: 4,
+                        img: DAGEL_SS4,
+                    },
+                ]
+            },
+            {
+                id: 102,
+                name: "DAGEL Finger Sleeves",
+                image: DAGEL_Finger_Sleeves,
+                info: "The fantastic integration of a phone grip, a stick-on and Shooting joystick in the world. Mobile Game Controller Finger Sleeves consist of 6 pieces In a pack. It is smooth, thin anti-sweat, breathable Full Touch screen with sensitive Shoot Aim Joystick Set for knives/Rules of Survival - Gray. This product is to measured as 4.92 x 3.31 x 0.2 inches",
+                views: "255K",
+                rating: 88,
+                category: "gaming-pc",
+                screenShots: [
+                    {
+                        id: 1,
+                        img: DAGEL_Finger_Sleeves,
+                    },
+                    {
+                        id: 2,
+                        img: DAGEL_SS2,
+                    },
+                    {
+                        id: 3,
+                        img: DAGEL_SS3,
+                    },
+                    {
+                        id: 4,
+                        img: DAGEL_SS4,
+                    },
+                ]
+            },
+            {
+                id: 103,
+                name: "DAGEL Finger Sleeves",
+                image: DAGEL_Finger_Sleeves,
+                info: "The fantastic integration of a phone grip, a stick-on and Shooting joystick in the world. Mobile Game Controller Finger Sleeves consist of 6 pieces In a pack. It is smooth, thin anti-sweat, breathable Full Touch screen with sensitive Shoot Aim Joystick Set for knives/Rules of Survival - Gray. This product is to measured as 4.92 x 3.31 x 0.2 inches",
+                views: "255K",
+                rating: 88,
+                category: "gaming-pc",
+                screenShots: [
+                    {
+                        id: 1,
+                        img: DAGEL_Finger_Sleeves,
+                    },
+                    {
+                        id: 2,
+                        img: DAGEL_SS2,
+                    },
+                    {
+                        id: 3,
+                        img: DAGEL_SS3,
+                    },
+                    {
+                        id: 4,
+                        img: DAGEL_SS4,
+                    },
+                ]
+            }
+        ]
+    },
