@@ -2,7 +2,7 @@ import "../../App.css";
 import { Link } from "react-router-dom";
 import { IoSearchOutline } from "react-icons/io5";
 import { TbRectangleVerticalFilled } from "react-icons/tb";
-import { Gaming_Equips, Gaming_PC, Gaming_Phones, Gift_Packages, Pes5, Phone_Coolers, Xenna } from "../../utils"
+import { Controller, Echo_Speakers, Gaming_Equips, Gaming_PC, Gaming_Phones, Gift_Packages, i3_Gaming_Laptop, JBL, Pes5Slim, Phone_Coolers, Xenna } from "../../utils"
 import flashSalesProducts from "./flashSalesProducts";
 import { useState } from "react";
 import productsData from "./categoryData";
@@ -72,6 +72,31 @@ const Store = () => {
                     <h2 className="text-2xl text-white font-bold">Browse By Category</h2>
                 </div>
                 <CategoryFilter />
+            </div>
+
+            {/* Unique Section */}
+            <div className="w-full max-w-7xl rounded-md mt-10 px-20 py-10 md:py-16 lg:py-20 bg-[#161B22] text-white">
+                <div className="mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div className="text-center md:text-left">
+                        <p className="text-green-500 text-sm font-semibold">
+                            Premium JBL
+                        </p>
+                        <h2 className="text-3xl md:text-4xl font-bold mt-2">
+                            Enhance Your Listening Experience
+                        </h2>
+                        <button className="mt-6 px-6 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 cursor-pointer">
+                            Buy Now!
+                        </button>
+                    </div>
+                    {/* Right Side */}
+                    <div className="flex justify-center">
+                        <img
+                            src={JBL}
+                            alt="JBL Speaker"
+                            className="max-w-full h-80 rounded-lg"
+                        />
+                    </div>
+                </div>
             </div>
 
             {/* New Arrival Section */}
@@ -151,16 +176,16 @@ const CategoryFilter = () => {
 
 const NewArrivals = () => {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-black">
-            <div className="relative bg-black p-6 rounded-lg flex flex-col justify-end min-h-[300px]">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+            <div className="relative bg-[#161B22] p-6 rounded-lg flex flex-col justify-end min-h-[300px] overflow-hidden">
                 <img
-                    src={Pes5}
-                    alt="Playstation5"
-                    className="absolute inset-0 w-full h-full object-cover"
+                    src={Pes5Slim}
+                    alt="PlayStation 5"
+                    className="absolute inset-0 w-full h-full object-contain"
                 />
                 <div className="relative z-10">
                     <h2 className="text-xl font-bold text-white">PlayStation 5</h2>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-gray-300 text-sm">
                         Black and White version of the PS5 coming out on sale.
                     </p>
                     <a href="#" className="inline-block mt-2 text-white border-b">
@@ -169,8 +194,55 @@ const NewArrivals = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-                
+            <div className="grid grid-rows-2 grid-cols-2 gap-4">
+                <div className="relative bg-[#161B22] p-6 rounded-lg flex flex-col justify-end row-span-2 overflow-hidden">
+                    <img
+                        src={Echo_Speakers}
+                        alt="Echo Speakers"
+                        className="absolute py-5 inset-0 w-full h-full object-contain"
+                    />
+                    <div className="relative z-10">
+                        <h2 className="text-lg text-white font-bold">Echo Speakers</h2>
+                        <p className="text-gray-400 text-sm">
+                            Featured women&apos;s collections that give you another vibe.
+                        </p>
+                        <a href="#" className="inline-block mt-2 text-white border-b">
+                            Shop Now
+                        </a>
+                    </div>
+                </div>
+
+                {/* Speakers */}
+                <div className="relative bg-[#161B22] p-6 rounded-lg flex flex-col justify-end min-h-[150px] overflow-hidden">
+                    <img
+                        src={Controller}
+                        alt="Speakers"
+                        className="absolute py-3 inset-0 w-full h-full object-contain"
+                    />
+                    <div className="relative z-10">
+                        <h2 className="text-lg font-bold text-white">Speakers</h2>
+                        <p className="text-gray-400 text-sm">Amazon wireless speakers.</p>
+                        <a href="#" className="inline-block mt-2 text-white border-b">
+                            Shop Now
+                        </a>
+                    </div>
+                </div>
+
+                {/* Perfume */}
+                <div className="relative bg-[#161B22] p-6 rounded-lg flex flex-col justify-end min-h-[150px] overflow-hidden">
+                    <img
+                        src={i3_Gaming_Laptop}
+                        alt="Perfume"
+                        className="absolute py-3 inset-0 w-full h-full object-contain"
+                    />
+                    <div className="relative z-10">
+                        <h2 className="text-lg font-bold text-white">Perfume</h2>
+                        <p className="text-gray-400 text-sm">GUCCI INTENSE OUD EDP</p>
+                        <a href="#" className="inline-block mt-2 text-white border-b">
+                            Shop Now
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     )

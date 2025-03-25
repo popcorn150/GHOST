@@ -142,6 +142,11 @@ import GamingEquips from "../assets/imgs/gaming-equips.png"
 import Phones from "../assets/imgs/phones.png"
 import GiftProducts from "../assets/imgs/gift-products.png"
 
+import BoomBox from "../assets/imgs/JBL_BOOMBOX.png"
+import IdeaPadGamingLaptop from "../assets/imgs/ideapad-gaming-3i.png"
+import GameController from "../assets/imgs/game-controller.png"
+import Playstation5Slim from "../assets/imgs/ps5-slim.png"
+import MiniSpeakers from "../assets/imgs/speakers.png"
 
 export const BackGround_ = Background
 export const Title = GhostTitle
@@ -294,3 +299,9 @@ export const Gaming_PC = GamingPC
 export const Gaming_Equips = GamingEquips
 export const Gaming_Phones = Phones
 export const Gift_Packages = GiftProducts
+
+export const JBL = BoomBox
+export const i3_Gaming_Laptop = IdeaPadGamingLaptop
+export const Controller = GameController
+export const Pes5Slim = Playstation5Slim
+export const Echo_Speakers = MiniSpeakers
