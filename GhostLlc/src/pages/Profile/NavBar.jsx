@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { signOut } from "firebase/auth";
+import { auth } from "../../database/firebaseConfig";
 import { X, Menu, User, Settings, LogOut } from "lucide-react";
 import { NavLogo, ProfileIcon } from "../../utils";
 import {
@@ -12,6 +14,18 @@ import {
 const NavBar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const navigate = useNavigate();
+
+  // Handle Logout
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setDropdownOpen(false); // Close dropdown
+      navigate("/login"); // Redirect to login page
+    } catch (error) {
+      console.error("Logout failed:", error.message);
+    }
+  };
 
   // Close dropdown when a link is clicked
   const handleLinkClick = () => {
@@ -41,7 +55,7 @@ const NavBar = () => {
           <ul className="space-y-4">
             <li>
               <Link
-                to="/"
+                to="/cart"
                 className="flex gap-2 hover:text-gray-400"
                 onClick={handleLinkClick}
               >
@@ -50,7 +64,7 @@ const NavBar = () => {
             </li>
             <li>
               <Link
-                to="/"
+                to="/store"
                 className="flex gap-2 hover:text-gray-400"
                 onClick={handleLinkClick}
               >
@@ -59,7 +73,7 @@ const NavBar = () => {
             </li>
             <li>
               <Link
-                to="/"
+                to="/community"
                 className="flex gap-2 hover:text-gray-400"
                 onClick={handleLinkClick}
               >
@@ -68,7 +82,7 @@ const NavBar = () => {
             </li>
             <li>
               <Link
-                to="/"
+                to="/withdrawal"
                 className="flex gap-2 hover:text-gray-400"
                 onClick={handleLinkClick}
               >
@@ -112,10 +126,7 @@ const NavBar = () => {
               </li>
               <li className="flex items-center gap-2">
                 <LogOut size={16} />
-                <button
-                  className="hover:cursor-pointer"
-                  onClick={handleLinkClick}
-                >
+                <button className="hover:cursor-pointer" onClick={handleLogout}>
                   Logout
                 </button>
               </li>
