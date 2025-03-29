@@ -66,7 +66,7 @@ const AccountLogin = () => {
 
           <form className="space-y-4" onSubmit={handleLogin}>
             <div>
-              <label className="text-white block mb-1">Email Address</label>
+              <label className="text-white block mb-1">Email</label>
               <input
                 type="email"
                 className="w-full p-2 bg-[#161B22] text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"

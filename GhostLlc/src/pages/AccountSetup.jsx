@@ -173,11 +173,10 @@ const AccountSetup = () => {
               required
             />
             <p
-              className={`text-sm ${
-                passwordStrength === "Strong"
+              className={`text-sm ${passwordStrength === "Strong"
                   ? "text-green-400"
                   : "text-red-400"
-              }`}
+                }`}
             >
               {passwordStrength}
             </p>
@@ -209,11 +208,11 @@ const AccountSetup = () => {
                 onChange={() => setIsChecked(!isChecked)}
               />
               <label htmlFor="terms" className="text-white text-sm">
-                I agree to the{" "}
-                <span className="text-blue-500 cursor-pointer underline">
-                  Terms & Conditions
-                </span>
+                I agree to the
               </label>
+              <a href="/privacy" className="text-blue-500 cursor-pointer underline">
+                Terms & Conditions
+              </a>
             </div>
 
             {errorMessage && (
@@ -223,11 +222,10 @@ const AccountSetup = () => {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full font-semibold p-2 rounded-md transition ${
-                loading
+              className={`w-full font-semibold p-2 rounded-md transition cursor-pointer ${loading
                   ? "bg-gray-600 cursor-not-allowed"
                   : "bg-[#4426B9] text-white"
-              }`}
+                }`}
             >
               {loading ? "Creating Account..." : "Proceed"}
             </button>

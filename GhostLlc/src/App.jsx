@@ -9,6 +9,7 @@ import AccountSetup from "./pages/AccountSetup";
 import AccountLogin from "./pages/AccountLogin";
 import Store from "./pages/Store/Store";
 import ProductDetails from "./pages/Store/ProductDetails";
+import MoreProducts from "./pages/Store/MoreProducts";
 
 const App = () => {
   return (
@@ -21,6 +22,7 @@ const App = () => {
         <Route path="/account" element={<UserProfile />} />
         <Route path="/account/:slug" element={<AccountDetails />} />
         <Route path="/product/:slug" element={<ProductDetails />} />
+        <Route path="/more-product/:slug" element={<MoreProducts />} />
         <Route path="/profile" element={<UserProfile />} />
         <Route path="/store" element={<Store />} />
         <Route path="/settings" element={<Settings />} />
