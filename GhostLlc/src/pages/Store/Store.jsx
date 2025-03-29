@@ -2,7 +2,18 @@ import "../../App.css";
 import { Link } from "react-router-dom";
 import { IoSearchOutline } from "react-icons/io5";
 import { TbRectangleVerticalFilled } from "react-icons/tb";
-import { Controller, Echo_Speakers, Gaming_Equips, Gaming_PC, Gaming_Phones, Gift_Packages, i3_Gaming_Laptop, JBL, Pes5Slim, Phone_Coolers, Xenna } from "../../utils"
+import {
+    Controller,
+    Echo_Speakers,
+    Gaming_Equips,
+    Gaming_PC, 
+    Gaming_Phones, 
+    Gift_Packages, 
+    i3_Gaming_Laptop, JBL,
+    Pes5Slim, 
+    Phone_Coolers,
+    Xenna
+} from "../../utils"
 import flashSalesProducts from "./flashSalesProducts";
 import { useEffect, useState } from "react";
 import productsData from "./categoryData";
