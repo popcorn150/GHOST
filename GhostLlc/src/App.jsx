@@ -10,6 +10,8 @@ import AccountLogin from "./pages/AccountLogin";
 import Store from "./pages/Store/Store";
 import ProductDetails from "./pages/Store/ProductDetails";
 import MoreProducts from "./pages/Store/MoreProducts";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import FAQs from "./pages/FAQs";
 
 const App = () => {
   return (
@@ -24,6 +26,8 @@ const App = () => {
         <Route path="/product/:slug" element={<ProductDetails />} />
         <Route path="/more-product/:slug" element={<MoreProducts />} />
         <Route path="/profile" element={<UserProfile />} />
+        <Route path="/faqs" element={<FAQs />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/store" element={<Store />} />
         <Route path="/settings" element={<Settings />} />
       </Routes>
