@@ -1,25 +1,53 @@
-import "../App.css";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import availableAccounts from "../constants";
+import NavBar from "../components/NavBar";
 import CategoryFilter from "./CategoryFilter";
 import { AdminIcon } from "../utils";
-import { useEffect, useState, useRef } from "react";
-import NavBar from "../components/NavBar";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../database/firebaseConfig";
+import availableAccounts from "../constants";
 
 const Category = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [uploadedAccounts, setUploadedAccounts] = useState([]);
   const carouselRef = useRef(null);
 
-  // Filter the accounts based on the search term.
-  const filteredAccounts = availableAccounts.filter((account) =>
-    account.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Fetch uploaded accounts from Firestore
+  useEffect(() => {
+    const fetchUploadedAccounts = async () => {
+      try {
+        const accountsRef = collection(db, "accounts");
+        const querySnapshot = await getDocs(accountsRef);
+        const accounts = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setUploadedAccounts(accounts);
+      } catch (error) {
+        console.error("Error fetching uploaded accounts:", error);
+      }
+    };
 
-  // Duplicate the filtered accounts so that when the first set finishes scrolling,
-  // the second set is immediately available for a seamless loop.
+    fetchUploadedAccounts();
+  }, []);
+
+  // Combine static available accounts with uploaded accounts
+  const combinedAccounts = [
+    ...availableAccounts, // your existing static accounts
+    ...uploadedAccounts, // user-uploaded accounts from Firestore
+  ];
+
+  // Filter the combined accounts based on the search term.
+  const filteredAccounts = combinedAccounts.filter((account) => {
+    // Check both account.title and account.accountName if available
+    const title = account.title || account.accountName || "";
+    return title.toLowerCase().includes(searchTerm.toLowerCase());
+  });
+
+  // Duplicate the filtered accounts for a seamless carousel effect.
   const duplicatedAccounts = [...filteredAccounts, ...filteredAccounts];
 
-  // Auto-scroll logic using a transform.
+  // Auto-scroll logic for the carousel.
   useEffect(() => {
     let scrollAmount = 0;
     const speed = 1.5; // Adjust scrolling speed as needed
@@ -27,7 +55,7 @@ const Category = () => {
     const scroll = () => {
       if (carouselRef.current) {
         scrollAmount += speed;
-        // Reset when we've scrolled one full set of items (half the total scrollWidth)
+        // Reset scroll when one full set of items is scrolled (half the total scrollWidth)
         if (scrollAmount >= carouselRef.current.scrollWidth / 2) {
           scrollAmount = 0;
         }
@@ -53,7 +81,7 @@ const Category = () => {
           className="w-full p-2 mb-4 bg-[#161B22] text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
         />
 
-        {/* Carousel */}
+        {/* Carousel Section */}
         <h1 className="text-2xl text-white font-semibold mb-4">
           Featured Game Accounts
         </h1>
@@ -70,19 +98,19 @@ const Category = () => {
                 style={{ flexShrink: 0 }}
               >
                 <img
-                  src={account.img}
-                  alt={account.title}
+                  src={account.img || account.accountImage || AdminIcon}
+                  alt={account.title || account.accountName}
                   className="carousel-image"
                 />
-                {/* Title wrapped in container with fixed width and truncate */}
+                {/* Title container with fixed width and truncate */}
                 <div className="w-48">
                   <h2 className="text-lg text-white font-semibold mt-2 truncate">
-                    {account.title}
+                    {account.title || account.accountName}
                   </h2>
                 </div>
                 <span className="flex justify-between items-center">
                   <p className="text-gray-400 my-2">
-                    {account.views} Total Views
+                    {account.views ? account.views : 0} Total Views
                   </p>
                   <img src={AdminIcon} alt="admin" className="w-8 md:w-10" />
                 </span>
@@ -97,13 +125,14 @@ const Category = () => {
           </div>
         </div>
 
-        {/* Category Section */}
+        {/* Category Filter Section */}
         <h1 className="text-2xl text-white font-bold my-4">
           Browse By Category
         </h1>
         <CategoryFilter
           key={searchTerm.trim() === "" ? "default" : "active"}
           searchTerm={searchTerm}
+          combinedAccounts={combinedAccounts} // Pass the combined accounts to CategoryFilter
         />
       </div>
     </>

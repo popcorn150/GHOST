@@ -5,7 +5,7 @@ import categoryAccounts from "../constants/category";
 import { Link } from "react-router-dom";
 import { AdminIcon } from "../utils";
 
-const CategoryFilter = ({ searchTerm }) => {
+const CategoryFilter = ({ searchTerm, combinedAccounts }) => {
   const [activeCategory, setActiveCategory] = useState("All");
   const [loading, setLoading] = useState(true);
 
@@ -20,26 +20,76 @@ const CategoryFilter = ({ searchTerm }) => {
     setTimeout(() => setLoading(false), 2000);
   };
 
-  // Build the list of unique category names.
+  // Process uploaded accounts from Firestore to match the category structure
+  const processUploadedAccounts = () => {
+    if (!combinedAccounts) return [];
+
+    // Create a map to store games by category
+    const categorizedGames = {};
+
+    combinedAccounts.forEach((account) => {
+      const category = account.category || "Other"; // Use "Other" as default category if none exists
+      const gameData = {
+        title: account.title || account.accountName || "Untitled Account",
+        slug: account.slug || account.id || `account-${Date.now()}`,
+        img: account.img || account.accountImage || AdminIcon,
+        views: account.views || 0,
+      };
+
+      if (!categorizedGames[category]) {
+        categorizedGames[category] = [];
+      }
+
+      categorizedGames[category].push(gameData);
+    });
+
+    // Convert the map to the format expected by the component
+    return Object.entries(categorizedGames).map(([name, games]) => ({
+      name,
+      games,
+    }));
+  };
+
+  // Combine static category accounts with processed uploaded accounts
+  const allCategoryAccounts = [
+    ...categoryAccounts,
+    ...processUploadedAccounts(),
+  ];
+
+  // Merge categories with the same name
+  const mergedCategories = allCategoryAccounts.reduce((acc, current) => {
+    const existingCategory = acc.find((cat) => cat.name === current.name);
+    if (existingCategory) {
+      existingCategory.games = [...existingCategory.games, ...current.games];
+    } else {
+      acc.push(current);
+    }
+    return acc;
+  }, []);
+
+  // Build the list of unique category names
   const categories = [
     "All",
-    ...new Set(categoryAccounts.map((cat) => cat.name)),
+    ...new Set(mergedCategories.map((cat) => cat.name)),
   ];
 
   // Normalize search term
   const normalizedSearch = searchTerm.toLowerCase().trim();
 
-  // Filter games based on search term or active category.
+  // Filter games based on search term or active category
   let filteredGames = [];
   if (normalizedSearch !== "") {
-    filteredGames = categoryAccounts
+    filteredGames = mergedCategories
       .flatMap((cat) => cat.games)
-      .filter((game) => game.title.toLowerCase().includes(normalizedSearch));
+      .filter((game) => {
+        const gameTitle = game.title.toLowerCase();
+        return gameTitle.includes(normalizedSearch);
+      });
   } else {
     if (activeCategory === "All") {
-      filteredGames = categoryAccounts.flatMap((cat) => cat.games);
+      filteredGames = mergedCategories.flatMap((cat) => cat.games);
     } else {
-      const category = categoryAccounts.find(
+      const category = mergedCategories.find(
         (cat) => cat.name === activeCategory
       );
       filteredGames = category ? category.games : [];
@@ -62,9 +112,10 @@ const CategoryFilter = ({ searchTerm }) => {
             key={category}
             onClick={() => handleCategoryChange(category)}
             className={`rounded-full cursor-pointer font-semibold 
-              ${activeCategory === category
-                ? "bg-blue-900 text-white"
-                : "bg-gray-200 text-black"
+              ${
+                activeCategory === category
+                  ? "bg-blue-900 text-white"
+                  : "bg-gray-200 text-black"
               }
               px-10 py-3`}
           >
@@ -82,9 +133,9 @@ const CategoryFilter = ({ searchTerm }) => {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredGames.length > 0 ? (
-              filteredGames.map((game) => (
+              filteredGames.map((game, index) => (
                 <div
-                  key={game.slug}
+                  key={`${game.slug || "game"}-${index}`}
                   className="p-2 md:p-2 rounded-lg bg-[#18202D] text-white shadow-lg hover:shadow-xl"
                 >
                   <img

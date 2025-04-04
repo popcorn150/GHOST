@@ -1,4 +1,4 @@
-import "./App.css";
+import { useState } from "react"; // Add this import
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Category from "./pages/Category";
 import AccountDetails from "./pages/AccountDetails";
@@ -13,25 +13,39 @@ import MoreProducts from "./pages/Store/MoreProducts";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import FAQs from "./pages/FAQs";
 import Doc from "./pages/Doc";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 
 const App = () => {
+  const [uploadedAccounts, setUploadedAccounts] = useState([]); // State to hold uploaded accounts
+
   return (
     <Router>
       <Routes>
         <Route index element={<WelcomePage />} />
         <Route path="/sign-up" element={<AccountSetup />} />
         <Route path="/login" element={<AccountLogin />} />
-        <Route path="/categories" element={<Category />} />
-        <Route path="/account" element={<UserProfile />} />
+        <Route
+          path="/categories"
+          element={<Category uploadedAccounts={uploadedAccounts} />}
+        />
+        <Route
+          path="/account"
+          element={<UserProfile setUploadedAccounts={setUploadedAccounts} />}
+        />
         <Route path="/account/:slug" element={<AccountDetails />} />
         <Route path="/product/:slug" element={<ProductDetails />} />
         <Route path="/more-product/:slug" element={<MoreProducts />} />
         <Route path="/profile" element={<UserProfile />} />
         <Route path="/doc" element={<Doc />} />
+        <Route
+          path="/profile"
+          element={<UserProfile setUploadedAccounts={setUploadedAccounts} />}
+        />
         <Route path="/faqs" element={<FAQs />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/store" element={<Store />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       </Routes>
     </Router>
   );
