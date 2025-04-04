@@ -1,11 +1,24 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db, googleProvider } from "../database/firebaseConfig";
-import { signInWithPopup } from "firebase/auth";
+import { signInWithPopup, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { BackGround_, Google, Logo, Title } from "../utils";
 
 const WelcomePage = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null); // Store authenticated user but don't navigate
+
+  // Check if user is authenticated but do NOT navigate
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser); // Store user but do not redirect
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Function to fetch user's country
   const fetchCountry = async () => {
@@ -24,33 +37,46 @@ const WelcomePage = () => {
   const handleGoogleSignIn = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
+      const signedInUser = result.user;
 
-      if (user) {
-        const userRef = doc(db, "users", user.uid);
+      if (signedInUser) {
+        const userRef = doc(db, "users", signedInUser.uid);
         const userSnapshot = await getDoc(userRef);
 
-        if (!userSnapshot.exists()) {
-          // If user does not exist, store their details
+        if (userSnapshot.exists()) {
+          console.log(
+            "Existing Google user detected. Redirecting to /categories..."
+          );
+          navigate("/categories"); // Redirect existing users after clicking
+        } else {
+          console.log("New Google user detected. Creating account...");
           const detectedCountry = await fetchCountry();
           const userData = {
-            uid: user.uid,
-            email: user.email || "",
-            displayName: user.displayName || "",
-            photoURL: user.photoURL || "",
+            uid: signedInUser.uid,
+            email: signedInUser.email || "",
+            displayName: signedInUser.displayName || "",
+            photoURL: signedInUser.photoURL || "",
             createdAt: new Date().toISOString(),
             country: detectedCountry,
             authProvider: "google",
           };
           await setDoc(userRef, userData);
-        }
 
-        navigate("/categories");
+          navigate("/categories"); // Redirect new users after account creation
+        }
       }
     } catch (error) {
       console.error("Sign-in error:", error.message);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#010409]">
+        <p className="text-white text-lg">Checking authentication...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex items-center justify-center min-h-screen bg-[#010409] px-6">
@@ -70,7 +96,7 @@ const WelcomePage = () => {
           <img src={Title} alt="Title" className="w-48 md:w-64 mt-6" />
         </div>
 
-        {/* Sign-In Section (Updated to Navy Blue) */}
+        {/* Sign-In Section */}
         <div className="flex flex-col items-center bg-[#010409] p-10 md:p-14 lg:p-16 rounded-xl w-full max-w-md md:max-w-lg shadow-2xl border border-gray-700">
           <h1 className="text-2xl md:text-3xl lg:text-4xl text-white font-semibold mb-8 text-center">
             Get Started

@@ -5,6 +5,7 @@ import { auth, db } from "../database/firebaseConfig";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
 } from "firebase/auth";
 import { doc, setDoc, Timestamp } from "firebase/firestore";
 
@@ -55,13 +56,43 @@ const AccountSetup = () => {
     }
   };
 
+  // Email Validation: General format and domain check
+  const validateEmail = (email) => {
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailPattern.test(email)) {
+      return "Please enter a valid email address.";
+    }
+
+    const allowedDomains = ["gmail.com", "yahoo.com", "outlook.com"];
+    const domain = email.split("@")[1];
+
+    if (!allowedDomains.includes(domain)) {
+      return "Please enter a valid email domain (e.g., gmail.com, yahoo.com).";
+    }
+
+    return "";
+  };
+
+  // Check if email is already associated with Google account
+  const isGoogleAccount = async (email) => {
+    const methods = await fetchSignInMethodsForEmail(auth, email);
+    return methods.includes("google.com");
+  };
+
   // Handle Form Submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage("");
 
-    if (!email.trim() || !password.trim()) {
-      setErrorMessage("Please enter an email and password.");
+    // Validate the email
+    const emailValidationError = validateEmail(email);
+    if (emailValidationError) {
+      setErrorMessage(emailValidationError);
+      return;
+    }
+
+    if (!password.trim() || !confirmPassword.trim()) {
+      setErrorMessage("Please enter a password and confirm it.");
       return;
     }
 
@@ -85,7 +116,17 @@ const AccountSetup = () => {
     }
 
     setLoading(true);
+
     try {
+      // Check if email is already associated with a Google account
+      const googleAccount = await isGoogleAccount(email);
+      if (googleAccount) {
+        setErrorMessage(
+          "This email is associated with a Google account. Please log in using Google."
+        );
+        return;
+      }
+
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -173,10 +214,11 @@ const AccountSetup = () => {
               required
             />
             <p
-              className={`text-sm ${passwordStrength === "Strong"
+              className={`text-sm ${
+                passwordStrength === "Strong"
                   ? "text-green-400"
                   : "text-red-400"
-                }`}
+              }`}
             >
               {passwordStrength}
             </p>
@@ -210,7 +252,10 @@ const AccountSetup = () => {
               <label htmlFor="terms" className="text-white text-sm">
                 I agree to the
               </label>
-              <a href="/privacy" className="text-blue-500 cursor-pointer underline">
+              <a
+                href="/privacy"
+                className="text-blue-500 cursor-pointer underline"
+              >
                 Terms & Conditions
               </a>
             </div>
@@ -222,10 +267,11 @@ const AccountSetup = () => {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full font-semibold p-2 rounded-md transition cursor-pointer ${loading
+              className={`w-full font-semibold p-2 rounded-md transition cursor-pointer ${
+                loading
                   ? "bg-gray-600 cursor-not-allowed"
                   : "bg-[#4426B9] text-white"
-                }`}
+              }`}
             >
               {loading ? "Creating Account..." : "Proceed"}
             </button>
