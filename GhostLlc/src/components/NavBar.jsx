@@ -3,9 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { X, Menu, User, Settings, LogOut } from "lucide-react";
 import { NavLogo, ProfileIcon } from "../utils";
 import { IoCartOutline } from "react-icons/io5";
-import { IoStorefrontOutline } from "react-icons/io5";
 import { IoGlobeOutline } from "react-icons/io5";
 import { IoWalletOutline } from "react-icons/io5";
+import { MdOutlinePolicy } from "react-icons/md";
+import { HiOutlineFolderOpen } from "react-icons/hi2";
+import { IoStorefrontOutline } from "react-icons/io5";
+import { HiOutlineQuestionMarkCircle } from "react-icons/hi";
 
 
 const NavBar = () => {
@@ -37,6 +40,16 @@ const NavBar = () => {
               </Link>
             </li>
             <li>
+              <Link to="/doc" className="flex gap-2 hover:text-gray-400">
+                Doc <HiOutlineFolderOpen className="self-center w-5 h-5" />
+              </Link>
+            </li>
+            <li>
+              <Link to="/faqs" className="flex gap-2 hover:text-gray-400">
+                FAQs <HiOutlineQuestionMarkCircle className="self-center w-5 h-5" />
+              </Link>
+            </li>
+            <li>
               <Link to="/store" className="flex gap-2 hover:text-gray-400">
                 Store <IoStorefrontOutline className="self-center w-5 h-5" />
               </Link>
@@ -49,6 +62,11 @@ const NavBar = () => {
             <li>
               <Link to="/" className="flex gap-2 hover:text-gray-400">
                 Withdrawal <IoWalletOutline className="self-center w-5 h-5" />
+              </Link>
+            </li>
+            <li>
+              <Link to="/privacy-policy" className="flex gap-2 hover:text-gray-400">
+                Privacy Policy <MdOutlinePolicy className="self-center w-5 h-5" />
               </Link>
             </li>
           </ul>

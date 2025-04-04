@@ -10,6 +10,9 @@ import {
   IoGlobeOutline,
   IoWalletOutline,
 } from "react-icons/io5";
+import { MdOutlinePolicy } from "react-icons/md";
+import { HiOutlineFolderOpen } from "react-icons/hi2";
+import { HiOutlineQuestionMarkCircle } from "react-icons/hi";
 
 const NavBar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -64,6 +67,24 @@ const NavBar = () => {
             </li>
             <li>
               <Link
+                to="/doc"
+                className="flex gap-2 hover:text-gray-400"
+                onClick={handleLinkClick}
+              >
+                Doc <HiOutlineFolderOpen className="self-center w-5 h-5" />
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/faqs"
+                className="flex gap-2 hover:text-gray-400"
+                onClick={handleLinkClick}
+              >
+                FAQs <HiOutlineQuestionMarkCircle className="self-center w-5 h-5" />
+              </Link>
+            </li>
+            <li>
+              <Link
                 to="/store"
                 className="flex gap-2 hover:text-gray-400"
                 onClick={handleLinkClick}
@@ -87,6 +108,15 @@ const NavBar = () => {
                 onClick={handleLinkClick}
               >
                 Withdrawal <IoWalletOutline className="self-center w-5 h-5" />
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/privacy-policy"
+                className="flex gap-2 hover:text-gray-400"
+                onClick={handleLinkClick}
+              >
+                Privacy Policy <MdOutlinePolicy className="self-center w-5 h-5" />
               </Link>
             </li>
           </ul>

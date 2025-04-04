@@ -114,10 +114,7 @@ const WelcomePage = () => {
 
           {/* Terms & Policy */}
           <p className="text-gray-300 text-sm mt-6 text-center">
-            <a href="/privacy-policy" className="text-blue-400 hover:underline">
-              Terms of Service
-            </a>{" "}
-            &{" "}
+            By signing up, you agree to our{" "}
             <a href="/privacy-policy" className="text-blue-400 hover:underline">
               Privacy Policy
             </a>
