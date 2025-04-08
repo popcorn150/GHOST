@@ -15,10 +15,8 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 
-// Import fonts to match Figma design
-import "@fontsource/poppins"; // For headings
-import "@fontsource/inter"; // For body text
-
+import "@fontsource/poppins"; 
+import "@fontsource/inter"; 
 /* Toggle Switch Component */
 interface ToggleSwitchProps {
   enabled?: boolean;
