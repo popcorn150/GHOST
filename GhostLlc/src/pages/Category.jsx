@@ -12,7 +12,6 @@ const Category = () => {
   const [uploadedAccounts, setUploadedAccounts] = useState([]);
   const carouselRef = useRef(null);
 
-  // Fetch uploaded accounts from Firestore
   useEffect(() => {
     const fetchUploadedAccounts = async () => {
       try {
@@ -22,40 +21,38 @@ const Category = () => {
           id: doc.id,
           ...doc.data(),
         }));
+        console.log("Fetched uploaded accounts:", accounts);
         setUploadedAccounts(accounts);
       } catch (error) {
-        console.error("Error fetching uploaded accounts:", error);
+        console.error(
+          "Error fetching uploaded accounts:",
+          error.code,
+          error.message
+        );
+        setUploadedAccounts([]);
       }
     };
 
     fetchUploadedAccounts();
   }, []);
 
-  // Combine static available accounts with uploaded accounts
-  const combinedAccounts = [
-    ...availableAccounts, // your existing static accounts
-    ...uploadedAccounts, // user-uploaded accounts from Firestore
-  ];
+  const combinedAccounts = [...availableAccounts, ...uploadedAccounts];
+  console.log("Combined accounts:", combinedAccounts); // Debug
 
-  // Filter the combined accounts based on the search term.
   const filteredAccounts = combinedAccounts.filter((account) => {
-    // Check both account.title and account.accountName if available
     const title = account.title || account.accountName || "";
     return title.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
-  // Duplicate the filtered accounts for a seamless carousel effect.
   const duplicatedAccounts = [...filteredAccounts, ...filteredAccounts];
 
-  // Auto-scroll logic for the carousel.
   useEffect(() => {
     let scrollAmount = 0;
-    const speed = 1.5; // Adjust scrolling speed as needed
+    const speed = 1.5;
 
     const scroll = () => {
       if (carouselRef.current) {
         scrollAmount += speed;
-        // Reset scroll when one full set of items is scrolled (half the total scrollWidth)
         if (scrollAmount >= carouselRef.current.scrollWidth / 2) {
           scrollAmount = 0;
         }
@@ -72,7 +69,6 @@ const Category = () => {
     <>
       <NavBar />
       <div className="p-5">
-        {/* Search Input */}
         <input
           type="text"
           placeholder="Search for an account..."
@@ -81,7 +77,6 @@ const Category = () => {
           className="w-full p-2 mb-4 bg-[#161B22] text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
         />
 
-        {/* Carousel Section */}
         <h1 className="text-2xl text-white font-semibold mb-4">
           Featured Game Accounts
         </h1>
@@ -91,48 +86,69 @@ const Category = () => {
             className="carousel-track flex"
             style={{ whiteSpace: "nowrap" }}
           >
-            {duplicatedAccounts.map((account, index) => (
-              <div
-                key={index}
-                className="carousel-item inline-block"
-                style={{ flexShrink: 0 }}
-              >
-                <img
-                  src={account.img || account.accountImage || AdminIcon}
-                  alt={account.title || account.accountName}
-                  className="carousel-image"
-                />
-                {/* Title container with fixed width and truncate */}
-                <div className="w-48">
-                  <h2 className="text-lg text-white font-semibold mt-2 truncate">
-                    {account.title || account.accountName}
-                  </h2>
-                </div>
-                <span className="flex justify-between items-center">
-                  <p className="text-gray-400 my-2">
-                    {account.views ? account.views : 0} Total Views
-                  </p>
-                  <img src={AdminIcon} alt="admin" className="w-8 md:w-10" />
-                </span>
-                <Link
-                  to={`/account/${account.slug}`}
-                  className="mt-3 inline-block bg-blue-500 text-white px-4 py-2 rounded-md"
+            {duplicatedAccounts.map((account, index) => {
+              const imageSrc = account.img || account.accountImage || AdminIcon;
+              return (
+                <div
+                  key={index}
+                  className="carousel-item inline-block"
+                  style={{ flexShrink: 0 }}
                 >
-                  View Details
-                </Link>
-              </div>
-            ))}
+                  <img
+                    src={imageSrc}
+                    alt={account.title || account.accountName || "Untitled"}
+                    className="carousel-image"
+                    onError={() =>
+                      console.error(
+                        `Failed to load image for ${
+                          account.title || account.accountName
+                        }, src: ${imageSrc}`
+                      )
+                    }
+                    onLoad={() =>
+                      console.log(
+                        `Loaded image for ${
+                          account.title || account.accountName
+                        }`
+                      )
+                    }
+                  />
+                  <div className="w-48">
+                    <h2 className="text-lg text-white font-semibold mt-2 truncate">
+                      {account.title || account.accountName || "Untitled"}
+                    </h2>
+                    {/* Display username if available */}
+                    <p className="text-gray-400 text-sm">
+                      {account.username
+                        ? `By ${account.username}`
+                        : "By Unknown"}
+                    </p>
+                  </div>
+                  <span className="flex justify-between items-center">
+                    <p className="text-gray-400 my-2">
+                      {account.views || 0} Total Views
+                    </p>
+                    <img src={AdminIcon} alt="admin" className="w-8 md:w-10" />
+                  </span>
+                  <Link
+                    to={`/account/${account.slug || account.id}`}
+                    className="mt-3 inline-block bg-blue-500 text-white px-4 py-2 rounded-md"
+                  >
+                    View Details
+                  </Link>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Category Filter Section */}
         <h1 className="text-2xl text-white font-bold my-4">
           Browse By Category
         </h1>
         <CategoryFilter
           key={searchTerm.trim() === "" ? "default" : "active"}
           searchTerm={searchTerm}
-          combinedAccounts={combinedAccounts} // Pass the combined accounts to CategoryFilter
+          combinedAccounts={combinedAccounts}
         />
       </div>
     </>

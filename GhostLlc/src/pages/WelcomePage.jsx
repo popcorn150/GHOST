@@ -8,65 +8,94 @@ import { BackGround_, Google, Logo, Title } from "../utils";
 const WelcomePage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null); // Store authenticated user but don't navigate
+  const [error, setError] = useState("");
+  const [user, setUser] = useState(null);
 
-  // Check if user is authenticated but do NOT navigate
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser); // Store user but do not redirect
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
       setLoading(false);
+
+      // If user is signed in, check their status
+      if (currentUser) {
+        const userRef = doc(db, "users", currentUser.uid);
+        const userSnapshot = await getDoc(userRef);
+
+        if (
+          userSnapshot.exists() &&
+          userSnapshot.data().setupComplete === true
+        ) {
+          // Existing user with completed setup
+          navigate("/categories");
+        } else if (
+          userSnapshot.exists() &&
+          userSnapshot.data().setupComplete === false
+        ) {
+          // User started but didn't complete setup
+          navigate("/sign-up", { state: userSnapshot.data() });
+        }
+        // New users are handled in handleGoogleSignIn
+      }
     });
-
     return () => unsubscribe();
-  }, []);
+  }, [navigate]);
 
-  // Function to fetch user's country
+  // Get user's country
   const fetchCountry = async () => {
     try {
       const response = await fetch("https://ipapi.co/json/");
-      if (!response.ok) throw new Error("Failed to fetch country");
+      if (!response.ok) throw new Error("Failed to fetch location");
       const data = await response.json();
       return data.country_name || "Unknown";
-    } catch (error) {
-      console.error("Error fetching location:", error);
+    } catch (err) {
+      console.error("Error fetching country:", err.message);
       return "Unknown";
     }
   };
 
-  // Function to handle Google sign-in
   const handleGoogleSignIn = async () => {
+    setError(""); // Reset error
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const signedInUser = result.user;
 
-      if (signedInUser) {
-        const userRef = doc(db, "users", signedInUser.uid);
-        const userSnapshot = await getDoc(userRef);
-
-        if (userSnapshot.exists()) {
-          console.log(
-            "Existing Google user detected. Redirecting to /categories..."
-          );
-          navigate("/categories"); // Redirect existing users after clicking
-        } else {
-          console.log("New Google user detected. Creating account...");
-          const detectedCountry = await fetchCountry();
-          const userData = {
-            uid: signedInUser.uid,
-            email: signedInUser.email || "",
-            displayName: signedInUser.displayName || "",
-            photoURL: signedInUser.photoURL || "",
-            createdAt: new Date().toISOString(),
-            country: detectedCountry,
-            authProvider: "google",
-          };
-          await setDoc(userRef, userData);
-
-          navigate("/categories"); // Redirect new users after account creation
-        }
+      if (!signedInUser) {
+        throw new Error("No user returned from sign-in.");
       }
-    } catch (error) {
-      console.error("Sign-in error:", error.message);
+
+      const userRef = doc(db, "users", signedInUser.uid);
+      const userSnapshot = await getDoc(userRef);
+
+      if (userSnapshot.exists() && userSnapshot.data().setupComplete === true) {
+        // User exists and has completed setup
+        navigate("/categories");
+      } else {
+        // New user OR existing user who hasn't completed setup
+        const detectedCountry = await fetchCountry();
+        const userData = {
+          uid: signedInUser.uid,
+          email: signedInUser.email || "",
+          displayName: signedInUser.displayName || "",
+          photoURL: signedInUser.photoURL || "",
+          country: detectedCountry,
+          authProvider: "google",
+          createdAt: new Date().toISOString(),
+          setupComplete: false, // Mark setup as incomplete
+        };
+
+        // Create or update minimal user document
+        await setDoc(userRef, userData, { merge: true });
+
+        // Redirect to sign-up page for additional info
+        navigate("/sign-up", { state: userData });
+      }
+    } catch (err) {
+      console.error("Sign-in failed:", err.message);
+      setError(
+        err.message.includes("popup")
+          ? "Popup blocked. Please allow popups and try again."
+          : err.message || "Something went wrong during sign-in."
+      );
     }
   };
 
@@ -80,7 +109,7 @@ const WelcomePage = () => {
 
   return (
     <div className="relative flex items-center justify-center min-h-screen bg-[#010409] px-6">
-      {/* Background Image */}
+      {/* Background */}
       <div className="absolute inset-0 opacity-50 z-0">
         <img
           src={BackGround_}
@@ -106,44 +135,47 @@ const WelcomePage = () => {
           <button
             onClick={handleGoogleSignIn}
             className="w-full flex items-center justify-center p-4 
-            bg-white hover:bg-gray-100 text-gray-800 
-            rounded-lg shadow-md transition duration-300 
-            mb-4 cursor-pointer text-base md:text-lg font-medium"
+              bg-white hover:bg-gray-100 text-gray-800 
+              rounded-lg shadow-md transition duration-300 
+              mb-4 cursor-pointer text-base md:text-lg font-medium"
           >
             <img src={Google} alt="Google Logo" className="w-7 h-7 mr-3" />
             <span>Continue with Google</span>
           </button>
 
-          {/* Sign Up with Email */}
+          {/* Error Message */}
+          {error && (
+            <p className="text-red-400 text-sm mb-4 text-center w-full">
+              {error}
+            </p>
+          )}
+
+          {/* Email Sign Up */}
           <button
             onClick={() => navigate("/sign-up")}
             className="w-full flex items-center justify-center p-4 
-            bg-blue-600 hover:bg-blue-700 text-white 
-            rounded-lg shadow-md transition duration-300 
-            mb-4 cursor-pointer text-base md:text-lg font-medium"
+              bg-blue-600 hover:bg-blue-700 text-white 
+              rounded-lg shadow-md transition duration-300 
+              mb-4 cursor-pointer text-base md:text-lg font-medium"
           >
-            <span>Sign Up with Email</span>
+            Sign Up with Email
           </button>
 
-          {/* Login Navigation */}
+          {/* Login */}
           <p className="text-gray-400 text-lg mt-4 mb-2">
             Already have an account?
           </p>
           <button
             onClick={() => navigate("/login")}
             className="w-full text-white border border-gray-500 
-            hover:border-gray-400 text-base font-medium p-3 
-            rounded-lg mt-2 cursor-pointer transition duration-300"
+              hover:border-gray-400 text-base font-medium p-3 
+              rounded-lg mt-2 cursor-pointer transition duration-300"
           >
             Log In
           </button>
 
-          {/* Terms & Policy */}
           <p className="text-gray-300 text-sm mt-6 text-center">
-            <a href="/privacy-policy" className="text-blue-400 hover:underline">
-              Terms of Service
-            </a>{" "}
-            &{" "}
+            By signing up, you agree to our{" "}
             <a href="/privacy-policy" className="text-blue-400 hover:underline">
               Privacy Policy
             </a>

@@ -3,39 +3,104 @@ import { useNavigate, Link } from "react-router-dom";
 import { BackGround_, Logo, Title, Google } from "../utils";
 import { auth, googleProvider } from "../database/firebaseConfig";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  getDoc,
+} from "firebase/firestore";
 import "../App.css";
 
 const AccountLogin = () => {
-  const [email, setEmail] = useState("");
+  const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const db = getFirestore();
 
-  // Email/Password Login Handler
+  // Simple email validation function
+  const validateEmail = (email) => {
+    const regex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+    return regex.test(email);
+  };
+
+  // Email/Username Login Handler
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (!email || !password) {
-      setError("Please fill out the required fields.");
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      setError("Please enter a valid email address.");
+    // Validate inputs
+    if (!emailOrUsername.trim() || !password.trim()) {
+      setError("Please fill out all required fields.");
       return;
     }
 
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      let userEmail = emailOrUsername;
+
+      // If input is not a valid email, treat it as a username
+      if (!validateEmail(emailOrUsername)) {
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("username", "==", emailOrUsername));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+          throw new Error("auth/user-not-found");
+        }
+
+        if (querySnapshot.size > 1) {
+          throw new Error(
+            "Multiple users found with this username. Please contact support."
+          );
+        }
+
+        userEmail = querySnapshot.docs[0].data().email;
+        if (!validateEmail(userEmail)) {
+          throw new Error("Invalid email retrieved from database.");
+        }
+      }
+
+      // Log for debugging
+      console.log("Attempting login with email:", userEmail);
+      console.log("Password length:", password.length);
+
+      // Attempt login
+      await signInWithEmailAndPassword(auth, userEmail, password);
       alert("Login successful!");
       navigate("/categories");
     } catch (error) {
-      setError("Invalid email or password.");
       console.error("Login error:", error.message);
+      switch (error.message) {
+        case "auth/user-not-found":
+          setError("User not found. Check your email or username, or sign up.");
+          break;
+        case "Multiple users found with this username. Please contact support.":
+          setError(error.message);
+          break;
+        case "Invalid email retrieved from database.":
+          setError("Invalid email data. Please contact support.");
+          break;
+        default:
+          if (error.code === "auth/wrong-password") {
+            setError("Incorrect password. Please try again.");
+          } else if (error.code === "auth/invalid-email") {
+            setError("Invalid email format. Please enter a valid email.");
+          } else if (error.code === "auth/invalid-credential") {
+            setError("Invalid credentials. Please check your input.");
+          } else if (error.code === "auth/too-many-requests") {
+            setError("Too many attempts. Please try again later.");
+          } else if (error.code === "auth/user-disabled") {
+            setError("This account has been disabled.");
+          } else {
+            setError("Login failed. Please try again.");
+          }
+      }
     } finally {
       setLoading(false);
     }
@@ -48,20 +113,47 @@ const AccountLogin = () => {
 
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      console.log("Google login successful:", result.user);
-      navigate("/categories");
+      const signedInUser = result.user;
+
+      if (!signedInUser || !signedInUser.email) {
+        throw new Error("No user or email returned from Google sign-in.");
+      }
+
+      // Check if user document exists in Firestore
+      const userRef = doc(db, "users", signedInUser.uid);
+      const userSnapshot = await getDoc(userRef);
+
+      if (userSnapshot.exists()) {
+        // Existing user, proceed to categories
+        navigate("/categories");
+      } else {
+        // New user, throw error and prompt to go back to Welcome page
+        throw new Error(
+          "No account found. Please return to the Welcome page to sign up."
+        );
+      }
     } catch (error) {
-      setError("Google login failed. Please try again.");
-      console.error("Google login error:", error.message);
+      console.error("Google sign-in error:", error.message);
+      if (error.code === "auth/popup-closed-by-user") {
+        setError("Google sign-in was canceled. Please try again.");
+      } else if (error.code === "auth/popup-blocked") {
+        setError("Popup blocked. Please allow popups and try again.");
+      } else if (
+        error.code === "auth/account-exists-with-different-credential"
+      ) {
+        setError(
+          "Account exists with a different sign-in method. Try another method."
+        );
+      } else {
+        // Custom error for new users
+        setError(
+          error.message ||
+            "Google sign-in failed. Please return to the Welcome page."
+        );
+      }
     } finally {
       setLoading(false);
     }
-  };
-
-  // Simple email validation function
-  const validateEmail = (email) => {
-    const regex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
-    return regex.test(email);
   };
 
   return (
@@ -95,14 +187,14 @@ const AccountLogin = () => {
           {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
 
           <form className="space-y-4" onSubmit={handleLogin}>
-            {/* Email Input */}
+            {/* Email/Username Input */}
             <div>
-              <label className="text-white block mb-1">Email</label>
+              <label className="text-white block mb-1">Email or Username</label>
               <input
-                type="email"
+                type="text"
                 className="w-full p-2 bg-[#161B22] text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={emailOrUsername}
+                onChange={(e) => setEmailOrUsername(e.target.value)}
                 autoFocus
               />
             </div>
@@ -167,7 +259,7 @@ const AccountLogin = () => {
 
       {/* Footer */}
       <p className="absolute bottom-5 text-xs text-white text-center">
-        Copyright &copy; {new Date().getFullYear()} All rights reserved.
+        Copyright © {new Date().getFullYear()} All rights reserved.
       </p>
     </div>
   );

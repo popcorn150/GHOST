@@ -13,7 +13,6 @@ import { IoAdd } from "react-icons/io5";
 import { LuUpload } from "react-icons/lu";
 import { AdminIcon } from "../../utils";
 import { useState, useEffect } from "react";
-// Firebase imports
 import { auth, db } from "../../database/firebaseConfig";
 import {
   collection,
@@ -29,20 +28,17 @@ import {
 
 const tabs = ["Uploads", "Bio", "Socials", "Favorites"];
 
-const Layout = ({ activeTab, setActiveTab, children }) => {
-  const [profileImage, setProfileImage] = useState(AdminIcon);
-
-  const handleImageChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setProfileImage(imageUrl);
-    }
-  };
-
+const Layout = ({
+  activeTab,
+  setActiveTab,
+  children,
+  username,
+  profileImage,
+  handleImageChange,
+}) => {
   return (
     <>
-      <NavBar />
+      <NavBar profileImage={profileImage} />
       <div className="flex flex-col items-center justify-center p-3 bg-[#010409]">
         <div className="my-10 relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-[#0576FF]">
           <img
@@ -64,6 +60,9 @@ const Layout = ({ activeTab, setActiveTab, children }) => {
             onChange={handleImageChange}
           />
         </div>
+        <h2 className="text-white text-xl font-semibold mb-4">
+          {username || "User"}
+        </h2>
         <div className="w-full px-4 sm:px-12 md:px-24 mx-auto">
           <div className="flex justify-between border-b relative">
             {tabs.map((tab) => (
@@ -96,8 +95,7 @@ const Layout = ({ activeTab, setActiveTab, children }) => {
   );
 };
 
-const Uploads = () => {
-  // Local states for form fields
+const Uploads = ({ profileImage }) => {
   const [accountImage, setAccountImage] = useState(null);
   const [accountName, setAccountName] = useState("");
   const [accountCredential, setAccountCredential] = useState("");
@@ -106,25 +104,36 @@ const Uploads = () => {
   const [screenshots, setScreenshots] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedAccounts, setUploadedAccounts] = useState([]);
-  const [userCurrency, setUserCurrency] = useState("USD"); // default value
+  const [userCurrency, setUserCurrency] = useState("USD");
+  const [username, setUsername] = useState("");
+  const minScreenshots = 3;
   const maxScreenshots = 5;
+  const maxDescriptionWords = 100;
 
-  // Force fetching user currency from Firestore or ipapi.co
   useEffect(() => {
-    const fetchUserCurrency = async () => {
+    const fetchUserData = async () => {
       if (auth.currentUser) {
         try {
           const userDocRef = doc(db, "users", auth.currentUser.uid);
           const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists() && userDocSnap.data().username) {
+            setUsername(userDocSnap.data().username);
+          } else {
+            setUsername(auth.currentUser.displayName || "Unnamed User");
+            await setDoc(
+              userDocRef,
+              { username: auth.currentUser.displayName || "Unnamed User" },
+              { merge: true }
+            );
+          }
+
           if (userDocSnap.exists() && userDocSnap.data().currency) {
             setUserCurrency(userDocSnap.data().currency);
           } else {
-            // Fallback: call ipapi.co to get currency
             const response = await fetch("https://ipapi.co/json/");
             const data = await response.json();
             if (data.currency) {
               setUserCurrency(data.currency);
-              // Update Firestore for future reference
               await setDoc(
                 userDocRef,
                 { currency: data.currency },
@@ -133,19 +142,22 @@ const Uploads = () => {
             }
           }
         } catch (error) {
-          console.error("Error fetching user currency:", error);
+          console.error("Error fetching user data:", error);
+          setUsername("Unnamed User");
         }
       }
     };
-    fetchUserCurrency();
+    fetchUserData();
   }, []);
 
-  // Handle account image upload (simulate image upload)
   const handleAccountImageUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setAccountImage(imageUrl);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAccountImage(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -153,12 +165,15 @@ const Uploads = () => {
     if (screenshots.length < maxScreenshots) {
       const file = event.target.files[0];
       if (file) {
-        setScreenshots([...screenshots, URL.createObjectURL(file)]);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setScreenshots([...screenshots, reader.result]);
+        };
+        reader.readAsDataURL(file);
       }
     }
   };
 
-  // Fetch accounts uploaded by the current user from Firestore
   const fetchAccounts = async () => {
     if (auth.currentUser) {
       try {
@@ -184,8 +199,11 @@ const Uploads = () => {
     }
   }, []);
 
-  // Handle form submission to upload an account to Firestore
   const handleUpload = async () => {
+    if (!auth.currentUser) {
+      alert("Please log in to upload an account.");
+      return;
+    }
     if (
       !accountName ||
       !accountCredential ||
@@ -195,9 +213,23 @@ const Uploads = () => {
       alert("Please fill out all required fields.");
       return;
     }
+    if (screenshots.length < minScreenshots) {
+      alert(`Please upload at least ${minScreenshots} screenshots.`);
+      return;
+    }
+    const wordCount = accountDescription.trim().split(/\s+/).length;
+    if (wordCount > maxDescriptionWords) {
+      alert(
+        `Description exceeds ${maxDescriptionWords} words (current: ${wordCount}).`
+      );
+      return;
+    }
+
     try {
-      await addDoc(collection(db, "accounts"), {
-        userId: auth.currentUser.uid,
+      const userId = auth.currentUser.uid;
+      const uploadData = {
+        userId,
+        username,
         accountName,
         accountCredential,
         accountWorth,
@@ -205,37 +237,41 @@ const Uploads = () => {
         accountImage,
         screenshots,
         createdAt: new Date(),
-      });
-      // Clear form fields after successful upload
-      setAccountName("");
-      setAccountCredential("");
-      setAccountWorth("");
-      setAccountDescription("");
-      setAccountImage(null);
-      setScreenshots([]);
-      setIsUploading(false);
+        currency: userCurrency,
+      };
+      const docRef = await addDoc(collection(db, "accounts"), uploadData);
+      resetForm();
       fetchAccounts();
       alert("Account uploaded successfully!");
     } catch (err) {
-      console.error("Upload error:", err);
+      console.error("Upload error:", err.code, err.message);
+      alert("Failed to upload account: " + err.message);
     }
   };
 
-  // Handle deletion of an uploaded account
-  const handleDelete = async (accountId) => {
+  const handleDelete = async (account) => {
     try {
-      await deleteDoc(doc(db, "accounts", accountId));
+      await deleteDoc(doc(db, "accounts", account.id));
       fetchAccounts();
       alert("Account deleted successfully!");
     } catch (err) {
       console.error("Delete error:", err);
-      alert("Failed to delete account.");
+      alert("Failed to delete account: " + err.message);
     }
+  };
+
+  const resetForm = () => {
+    setAccountName("");
+    setAccountCredential("");
+    setAccountWorth("");
+    setAccountDescription("");
+    setAccountImage(null);
+    setScreenshots([]);
+    setIsUploading(false);
   };
 
   return (
     <div className="p-3">
-      {/* Upload Form */}
       <div className="flex flex-col mb-5 sm:flex-row justify-between items-center gap-4 sm:gap-10 p-3 my-3 border border-gray-200">
         <h2 className="text-white text-md md:text-lg text-center sm:text-left">
           Upload An Account
@@ -280,7 +316,6 @@ const Uploads = () => {
                   onChange={handleAccountImageUpload}
                 />
               </div>
-
               <input
                 type="text"
                 placeholder="Name of Account"
@@ -306,10 +341,9 @@ const Uploads = () => {
                 required
               />
             </div>
-
             <div className="w-full">
               <textarea
-                placeholder="Full Account Description"
+                placeholder={`Full Account Description (max ${maxDescriptionWords} words)`}
                 value={accountDescription}
                 onChange={(e) => setAccountDescription(e.target.value)}
                 className="w-full h-32 md:h-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
@@ -317,9 +351,11 @@ const Uploads = () => {
               ></textarea>
             </div>
           </div>
-
           <div className="mt-6 border border-gray-300 p-5 rounded-lg">
             <p className="text-white text-lg my-2">Screenshots</p>
+            <p className="text-gray-400 text-sm my-1">
+              Minimum {minScreenshots}, Maximum {maxScreenshots}
+            </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {screenshots.map((src, index) => (
                 <img
@@ -346,24 +382,22 @@ const Uploads = () => {
               onChange={handleScreenshotUpload}
             />
           </div>
-
           <div className="flex flex-col sm:flex-row justify-end my-5 gap-3 sm:gap-5">
-            <button className="flex items-center gap-2 text-white font-medium bg-[#EB3223] px-4 py-2 rounded cursor-pointer w-full sm:w-auto">
-              <FaTrashAlt className="align-middle" />
-              Discard
+            <button
+              onClick={resetForm}
+              className="flex items-center gap-2 text-white font-medium bg-[#EB3223] px-4 py-2 rounded cursor-pointer w-full sm:w-auto"
+            >
+              <FaTrashAlt className="align-middle" /> Discard
             </button>
             <button
               onClick={handleUpload}
               className="flex items-center gap-2 text-white font-medium bg-[#4426B9] px-4 py-2 rounded cursor-pointer w-full sm:w-auto"
             >
-              <LuUpload className="align-middle" />
-              Upload
+              <LuUpload className="align-middle" /> Upload
             </button>
           </div>
         </>
       )}
-
-      {/* Display Uploaded Accounts with full details and Delete option */}
       <div className="flex flex-col p-3 my-3 border border-gray-200">
         <h2 className="text-white text-md md:text-lg mb-2">
           Accounts Uploaded
@@ -374,6 +408,22 @@ const Uploads = () => {
               key={acc.id}
               className="bg-[#161B22] p-4 mb-4 rounded-md shadow-md relative"
             >
+              <div className="flex items-center mb-2">
+                <img
+                  src={profileImage}
+                  alt="User Profile"
+                  className="w-10 h-10 rounded-full mr-2"
+                />
+                <div>
+                  <h3 className="text-white text-xl font-semibold">
+                    {acc.accountName}
+                  </h3>
+                  <p className="text-gray-400">
+                    <span className="font-semibold">Uploaded by:</span>{" "}
+                    {acc.username || "Unknown"}
+                  </p>
+                </div>
+              </div>
               {acc.accountImage && (
                 <img
                   src={acc.accountImage}
@@ -381,16 +431,13 @@ const Uploads = () => {
                   className="w-full h-48 object-cover mb-2 rounded"
                 />
               )}
-              <h3 className="text-white text-xl font-semibold">
-                {acc.accountName}
-              </h3>
               <p className="text-gray-400">
                 <span className="font-semibold">Credential:</span>{" "}
                 {acc.accountCredential}
               </p>
               <p className="text-gray-400">
                 <span className="font-semibold">Worth:</span> {acc.accountWorth}{" "}
-                ({userCurrency})
+                ({acc.currency || userCurrency})
               </p>
               <p className="text-gray-400">
                 <span className="font-semibold">Description:</span>{" "}
@@ -408,9 +455,8 @@ const Uploads = () => {
                   ))}
                 </div>
               )}
-              {/* Delete button */}
               <button
-                onClick={() => handleDelete(acc.id)}
+                onClick={() => handleDelete(acc)}
                 className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700 transition"
               >
                 Delete
@@ -432,15 +478,11 @@ const About = () => {
   const [tempText, setTempText] = useState(aboutText);
   const [isEditing, setIsEditing] = useState(false);
 
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
+  const handleEdit = () => setIsEditing(true);
   const handleDiscard = () => {
     setTempText(aboutText);
     setIsEditing(false);
   };
-
   const handleSave = () => {
     setAboutText(tempText);
     setIsEditing(false);
@@ -492,7 +534,7 @@ const Socials = () => {
   return (
     <div className="p-5">
       <h2 className="flex items-center gap-2 text-white text-md font-semibold md:text-lg my-3">
-        Link Social accounts
+        Link Social accounts{" "}
         <FaLink className="text-gray-300 self-center w-5 h-5" />
       </h2>
       <div className="flex items-center mb-2 gap-3 w-full p-2 rounded-lg bg-[#0E1115] text-white border border-gray-600">
@@ -569,7 +611,7 @@ const Favorites = () => {
     <div className="p-5">
       <div className="flex items-center p-3 my-3 border border-gray-200">
         <h2 className="flex text-white text-md md:text-lg gap-2">
-          Saved Accounts
+          Saved Accounts{" "}
           <FaStar className="text-gray-300 self-center w-5 h-5" />
         </h2>
       </div>
@@ -579,10 +621,51 @@ const Favorites = () => {
 
 const UserProfile = () => {
   const [activeTab, setActiveTab] = useState("Uploads");
+  const [username, setUsername] = useState("");
+  const [profileImage, setProfileImage] = useState(AdminIcon);
+
+  const handleImageChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const imageUrl = URL.createObjectURL(file);
+      setProfileImage(imageUrl);
+    }
+  };
+
+  useEffect(() => {
+    const fetchUsername = async () => {
+      if (auth.currentUser) {
+        try {
+          const userDocRef = doc(db, "users", auth.currentUser.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists() && userDocSnap.data().username) {
+            setUsername(userDocSnap.data().username);
+          } else {
+            setUsername(auth.currentUser.displayName || "Unnamed User");
+            await setDoc(
+              userDocRef,
+              { username: auth.currentUser.displayName || "Unnamed User" },
+              { merge: true }
+            );
+          }
+        } catch (error) {
+          console.error("Error fetching username:", error);
+          setUsername("Unnamed User");
+        }
+      }
+    };
+    fetchUsername();
+  }, []);
 
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
-      {activeTab === "Uploads" && <Uploads />}
+    <Layout
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      username={username}
+      profileImage={profileImage}
+      handleImageChange={handleImageChange}
+    >
+      {activeTab === "Uploads" && <Uploads profileImage={profileImage} />}
       {activeTab === "Bio" && <About />}
       {activeTab === "Socials" && <Socials />}
       {activeTab === "Favorites" && <Favorites />}

@@ -3,15 +3,18 @@ import { Link, useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../../database/firebaseConfig";
 import { X, Menu, User, Settings, LogOut } from "lucide-react";
-import { NavLogo, ProfileIcon } from "../../utils";
+import { NavLogo } from "../../utils";
 import {
   IoCartOutline,
   IoStorefrontOutline,
   IoGlobeOutline,
   IoWalletOutline,
 } from "react-icons/io5";
+import { MdOutlinePolicy } from "react-icons/md";
+import { HiOutlineFolderOpen } from "react-icons/hi2";
+import { HiOutlineQuestionMarkCircle } from "react-icons/hi";
 
-const NavBar = () => {
+const NavBar = ({ profileImage }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
@@ -64,6 +67,25 @@ const NavBar = () => {
             </li>
             <li>
               <Link
+                to="/doc"
+                className="flex gap-2 hover:text-gray-400"
+                onClick={handleLinkClick}
+              >
+                Doc <HiOutlineFolderOpen className="self-center w-5 h-5" />
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/faqs"
+                className="flex gap-2 hover:text-gray-400"
+                onClick={handleLinkClick}
+              >
+                FAQs{" "}
+                <HiOutlineQuestionMarkCircle className="self-center w-5 h-5" />
+              </Link>
+            </li>
+            <li>
+              <Link
                 to="/store"
                 className="flex gap-2 hover:text-gray-400"
                 onClick={handleLinkClick}
@@ -89,6 +111,16 @@ const NavBar = () => {
                 Withdrawal <IoWalletOutline className="self-center w-5 h-5" />
               </Link>
             </li>
+            <li>
+              <Link
+                to="/privacy-policy"
+                className="flex gap-2 hover:text-gray-400"
+                onClick={handleLinkClick}
+              >
+                Privacy Policy{" "}
+                <MdOutlinePolicy className="self-center w-5 h-5" />
+              </Link>
+            </li>
           </ul>
         </div>
       )}
@@ -102,11 +134,13 @@ const NavBar = () => {
           onClick={() => setDropdownOpen(!dropdownOpen)}
           className="hover:cursor-pointer"
         >
-          <img
-            src={ProfileIcon}
-            alt="profile"
-            className="w-14 items-center rounded-lg"
-          />
+          <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#0576FF]">
+            <img
+              src={profileImage}
+              alt="profile"
+              className="w-full h-full object-cover"
+            />
+          </div>
         </button>
 
         {dropdownOpen && (

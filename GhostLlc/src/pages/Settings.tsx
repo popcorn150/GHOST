@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -13,10 +13,23 @@ import {
   faChevronDown,
   faExternalLinkAlt,
 } from "@fortawesome/free-solid-svg-icons";
-import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import { auth, db } from "../database/firebaseConfig";
+import { deleteUser, signOut } from "firebase/auth"; // Added signOut for re-authentication handling
+import {
+  doc,
+  deleteDoc,
+  getDoc,
+  setDoc,
+  query,
+  collection,
+  where,
+  getDocs,
+} from "firebase/firestore";
+import { MdOutlineCameraEnhance } from "react-icons/md";
 
-import "@fontsource/poppins"; 
-import "@fontsource/inter"; 
+import "@fontsource/poppins";
+import "@fontsource/inter";
+
 /* Toggle Switch Component */
 interface ToggleSwitchProps {
   enabled?: boolean;
@@ -85,35 +98,6 @@ const RadioButton: React.FC<RadioButtonProps> = ({
   );
 };
 
-/* Sidebar Button Component */
-interface SideButtonProps {
-  label: string;
-  icon: IconDefinition;
-  isActive?: boolean;
-  onClick?: () => void;
-}
-
-const SideButton: React.FC<SideButtonProps> = ({
-  label,
-  icon,
-  isActive = false,
-  onClick,
-}) => {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-3 w-full py-3 px-4 rounded-lg transition-colors duration-200 ${
-        isActive
-          ? "bg-[#1e293b] border-l-4 border-[#4426B9] pl-3"
-          : "bg-[#1e1e24] hover:bg-[#2a2a32]"
-      } text-white font-medium`}
-    >
-      <FontAwesomeIcon icon={icon} className="text-xl" />
-      <span className="font-poppins">{label}</span>
-    </button>
-  );
-};
-
 /* Language Dropdown Component */
 interface LanguageDropdownProps {
   selected: string;
@@ -168,12 +152,37 @@ const Settings: React.FC = () => {
   const [autoDownload, setAutoDownload] = useState(false);
   const [activeSection, setActiveSection] = useState("check-update");
   const [selectedLanguage, setSelectedLanguage] = useState("English");
-
-  // Feedback state
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const [feedbackType, setFeedbackType] = useState("");
   const [feedbackText, setFeedbackText] = useState("");
 
-  // Handler for submitting feedback
+  // Load profile image from Firestore
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      if (auth.currentUser) {
+        const userDocRef = doc(db, "users", auth.currentUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists() && userDocSnap.data().profileImage) {
+          setProfileImage(userDocSnap.data().profileImage);
+        }
+      }
+    };
+    fetchProfileImage();
+  }, []);
+
+  // Handle profile image upload
+  const handleImageChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (file && auth.currentUser) {
+      const imageUrl = URL.createObjectURL(file);
+      setProfileImage(imageUrl);
+      const userDocRef = doc(db, "users", auth.currentUser.uid);
+      await setDoc(userDocRef, { profileImage: imageUrl }, { merge: true });
+    }
+  };
+
   const handleSubmitFeedback = () => {
     console.log({ feedbackType, feedbackText });
     setFeedbackType("");
@@ -181,15 +190,48 @@ const Settings: React.FC = () => {
     alert("Feedback submitted successfully!");
   };
 
-  // Handler for final "delete account" confirmation
-  const handleFinalDelete = () => {
-    alert("Account deleted. You can add real logic here.");
-    // Perform any actual account deletion logic, API calls, etc.
+  const handleFinalDelete = async () => {
+    if (auth.currentUser) {
+      try {
+        const userId = auth.currentUser.uid;
+
+        // Delete all user's accounts
+        const accountsQuery = query(
+          collection(db, "accounts"),
+          where("userId", "==", userId)
+        );
+        const accountsSnapshot = await getDocs(accountsQuery);
+        const deletePromises = accountsSnapshot.docs.map((doc) =>
+          deleteDoc(doc.ref)
+        );
+        await Promise.all(deletePromises);
+
+        // Delete user document
+        const userDocRef = doc(db, "users", userId);
+        await deleteDoc(userDocRef);
+
+        // Delete authentication user
+        await deleteUser(auth.currentUser);
+
+        navigate("/login");
+      } catch (error) {
+        console.error("Error deleting account:", error);
+        // Added handling for requires-recent-login error
+        if ((error as any).code === "auth/requires-recent-login") {
+          alert(
+            "This operation requires recent authentication. You will be signed out. Please log back in and try deleting your account again."
+          );
+          await signOut(auth);
+          navigate("/login");
+        } else {
+          alert("Failed to delete account: " + (error as Error).message);
+        }
+      }
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#0E0E10] text-white flex flex-col font-inter">
-      {/* Top Bar */}
       <div className="px-4 sm:px-8 py-6 flex items-center">
         <button
           onClick={() => navigate(-1)}
@@ -203,21 +245,28 @@ const Settings: React.FC = () => {
         </h1>
       </div>
 
-      {/* Main Content */}
       <div className="flex flex-col md:flex-row px-4 sm:px-8 py-6 gap-8 items-start">
-        {/* Left Column */}
         <div className="w-full md:w-72 flex flex-col">
           <div className="flex flex-col mb-6">
             <div className="w-28 h-28 rounded-full mb-4 overflow-hidden bg-transparent border-2 border-[#79E2F2] relative">
-              {/* Profile avatar content */}
-              <div className="w-full h-full bg-black flex items-center justify-center">
-                <div className="bg-yellow-400 rounded-full w-16 h-16 flex items-center justify-center">
-                  <div className="flex">
-                    <div className="w-3 h-3 bg-blue-900 rounded-full mx-1"></div>
-                    <div className="w-3 h-3 bg-blue-900 rounded-full mx-1"></div>
-                  </div>
-                </div>
-              </div>
+              <img
+                src={profileImage || ""}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+              <label
+                htmlFor="profile-upload"
+                className="absolute bottom-2 right-2 bg-black/50 p-2 rounded-full cursor-pointer hover:bg-black/70 transition"
+              >
+                <MdOutlineCameraEnhance className="text-white w-5 h-5" />
+              </label>
+              <input
+                id="profile-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageChange}
+              />
             </div>
             <h2 className="text-2xl font-bold font-poppins mb-1">
               Change profile
@@ -228,42 +277,72 @@ const Settings: React.FC = () => {
           </div>
 
           <div className="space-y-3">
-            <SideButton
-              label="Check update"
-              icon={faSyncAlt}
-              isActive={activeSection === "check-update"}
+            <button
               onClick={() => setActiveSection("check-update")}
-            />
-            <SideButton
-              label="Language"
-              icon={faGlobe}
-              isActive={activeSection === "language"}
+              className={`flex items-center gap-3 w-full py-3 px-4 rounded-lg transition-colors duration-200 ${
+                activeSection === "check-update"
+                  ? "bg-[#1e293b] border-l-4 border-[#4426B9] pl-3"
+                  : "bg-[#1e1e24] hover:bg-[#2a2a32]"
+              } text-white font-medium`}
+            >
+              <FontAwesomeIcon icon={faSyncAlt} className="text-xl" />
+              <span className="font-poppins">Check update</span>
+            </button>
+            <button
               onClick={() => setActiveSection("language")}
-            />
-            <SideButton
-              label="Feedback"
-              icon={faCommentAlt}
-              isActive={activeSection === "feedback"}
+              className={`flex items-center gap-3 w-full py-3 px-4 rounded-lg transition-colors duration-200 ${
+                activeSection === "language"
+                  ? "bg-[#1e293b] border-l-4 border-[#4426B9] pl-3"
+                  : "bg-[#1e1e24] hover:bg-[#2a2a32]"
+              } text-white font-medium`}
+            >
+              <FontAwesomeIcon icon={faGlobe} className="text-xl" />
+              <span className="font-poppins">Language</span>
+            </button>
+            <button
               onClick={() => setActiveSection("feedback")}
-            />
-            <SideButton
-              label="About Us"
-              icon={faInfoCircle}
-              isActive={activeSection === "about-us"}
+              className={`flex items-center gap-3 w-full py-3 px-4 rounded-lg transition-colors duration-200 ${
+                activeSection === "feedback"
+                  ? "bg-[#1e293b] border-l-4 border-[#4426B9] pl-3"
+                  : "bg-[#1e1e24] hover:bg-[#2a2a32]"
+              } text-white font-medium`}
+            >
+              <FontAwesomeIcon icon={faCommentAlt} className="text-xl" />
+              <span className="font-poppins">Feedback</span>
+            </button>
+            <button
               onClick={() => setActiveSection("about-us")}
-            />
-            <SideButton
-              label="Privacy Policy"
-              icon={faShieldAlt}
-              isActive={activeSection === "privacy-policy"}
+              className={`flex items-center gap-3 w-full py-3 px-4 rounded-lg transition-colors duration-200 ${
+                activeSection === "about-us"
+                  ? "bg-[#1e293b] border-l-4 border-[#4426B9] pl-3"
+                  : "bg-[#1e1e24] hover:bg-[#2a2a32]"
+              } text-white font-medium`}
+            >
+              <FontAwesomeIcon icon={faInfoCircle} className="text-xl" />
+              <span className="font-poppins">About Us</span>
+            </button>
+            <button
               onClick={() => setActiveSection("privacy-policy")}
-            />
-            <SideButton
-              label="User Agreement"
-              icon={faHandshake}
-              isActive={activeSection === "user-agreement"}
+              className={`flex items-center gap-3 w-full py-3 px-4 rounded-lg transition-colors duration-200 ${
+                activeSection === "privacy-policy"
+                  ? "bg-[#1e293b] border-l-4 border-[#4426B9] pl-3"
+                  : "bg-[#1e1e24] hover:bg-[#2a2a32]"
+              } text-white font-medium`}
+            >
+              <FontAwesomeIcon icon={faShieldAlt} className="text-xl" />
+              <span className="font-poppins">Privacy Policy</span>
+            </button>
+            <button
               onClick={() => setActiveSection("user-agreement")}
-            />
+              className={`flex items-center gap-3 w-full py-3 px-4 rounded-lg transition-colors duration-200 ${
+                activeSection === "user-agreement"
+                  ? "bg-[#1e293b] border-l-4 border-[#4426B9] pl-3"
+                  : "bg-[#1e1e24] hover:bg-[#2a2a32]"
+              } text-white font-medium`}
+            >
+              <FontAwesomeIcon icon={faHandshake} className="text-xl" />
+              <span className="font-poppins">User Agreement</span>
+            </button>
           </div>
 
           <div className="flex-grow" />
@@ -278,7 +357,6 @@ const Settings: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column */}
         <div className="w-full md:flex-1">
           {activeSection === "check-update" && (
             <>
@@ -499,14 +577,12 @@ const Settings: React.FC = () => {
                 <div className="border-t border-white my-4"></div>
               </div>
 
-              {/* Warning Box */}
               <div className="bg-[#3d2222] border-l-4 border-red-600 p-4 mb-6 rounded-lg">
                 <p className="text-red-400 font-semibold">
                   Unexpected bad things may happen if you don't read this!
                 </p>
               </div>
 
-              {/* Consequences List */}
               <ul className="list-disc list-outside ml-6 text-gray-300 space-y-2 mb-8">
                 <li>
                   Your account would be removed from our database completely.
@@ -522,7 +598,6 @@ const Settings: React.FC = () => {
                 </li>
               </ul>
 
-              {/* Final Confirmation Button */}
               <button
                 onClick={handleFinalDelete}
                 className="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-8 rounded-lg"

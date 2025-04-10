@@ -1,4 +1,4 @@
-import React, { useState } from "react"; // Add this import
+import { useState } from "react"; // Add this import
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Category from "./pages/Category";
 import AccountDetails from "./pages/AccountDetails";
@@ -12,6 +12,7 @@ import ProductDetails from "./pages/Store/ProductDetails";
 import MoreProducts from "./pages/Store/MoreProducts";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import FAQs from "./pages/FAQs";
+import Doc from "./pages/Doc";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 
 const App = () => {
@@ -34,6 +35,8 @@ const App = () => {
         <Route path="/account/:slug" element={<AccountDetails />} />
         <Route path="/product/:slug" element={<ProductDetails />} />
         <Route path="/more-product/:slug" element={<MoreProducts />} />
+        <Route path="/profile" element={<UserProfile />} />
+        <Route path="/doc" element={<Doc />} />
         <Route
           path="/profile"
           element={<UserProfile setUploadedAccounts={setUploadedAccounts} />}
