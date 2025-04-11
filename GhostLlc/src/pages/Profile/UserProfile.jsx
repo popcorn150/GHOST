@@ -239,7 +239,7 @@ const Uploads = ({ profileImage }) => {
         createdAt: new Date(),
         currency: userCurrency,
       };
-      const docRef = await addDoc(collection(db, "accounts"), uploadData);
+      await addDoc(collection(db, "accounts"), uploadData);
       resetForm();
       fetchAccounts();
       alert("Account uploaded successfully!");

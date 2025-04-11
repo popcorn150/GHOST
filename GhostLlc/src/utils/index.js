@@ -107,6 +107,10 @@ import Street_Fighter_1 from "../assets/imgs/StreetFighter-Ss1.jpg"
 import Street_Fighter_2 from "../assets/imgs/StreetFighter-Ss2.png"
 import Street_Fighter_3 from "../assets/imgs/StreetFighter-Ss3.jpg"
 
+import Instagram from "../assets/imgs/instagram-icon.svg"
+import Twitter from "../assets/imgs/twitter-icon.svg"
+import Youtube from "../assets/imgs/youtube-icon.svg"
+
 import Stickers from "../assets/imgs/Anime stickers.jpg"
 import CX05 from "../assets/imgs/CX05 magnetic cooler.jpg"
 import CX07 from "../assets/imgs/CX07 magnetic cooler.jpg"
@@ -256,6 +260,10 @@ export const StreetFighter_Thumbnail = StreetFighterVI
 export const Street_Fighter_Screenshot_1 = Street_Fighter_1
 export const Street_Fighter_Screenshot_2 = Street_Fighter_2
 export const Street_Fighter_Screenshot_3 = Street_Fighter_3
+
+export const InstagramIcon = Instagram
+export const TwitterIcon = Twitter
+export const YoutubeIcon = Youtube
 
 export const AnimeStickers = Stickers
 

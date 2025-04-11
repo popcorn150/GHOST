@@ -14,6 +14,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import FAQs from "./pages/FAQs";
 import Doc from "./pages/Doc";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import Community from "./pages/Community";
 
 const App = () => {
   const [uploadedAccounts, setUploadedAccounts] = useState([]); // State to hold uploaded accounts
@@ -42,6 +43,7 @@ const App = () => {
           element={<UserProfile setUploadedAccounts={setUploadedAccounts} />}
         />
         <Route path="/faqs" element={<FAQs />} />
+        <Route path="/community" element={<Community />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/store" element={<Store />} />
         <Route path="/settings" element={<Settings />} />

@@ -6,9 +6,10 @@ import emailjs from "@emailjs/browser";
 const Doc = () => {
     const [search, setSearch] = useState("");
 
-    const filteredDocs = gameDoc.filter((Doc) =>
-        Doc.game.toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredDocs = Array.isArray(gameDoc)
+        ? gameDoc.filter((Doc) =>
+            Doc.game.toLowerCase().includes(search.toLowerCase())
+        ) : [];
 
     return (
         <>
@@ -98,7 +99,7 @@ const Doc = () => {
 }
 
 const GuideUploadForm = () => {
-    const formRef = useRef < HTMLFormElement > (null);
+    const formRef = useRef(null);
 
     const handleSubmit = (e) => {
         e.preventDefault();
