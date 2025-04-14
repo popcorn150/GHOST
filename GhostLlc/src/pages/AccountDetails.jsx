@@ -201,43 +201,6 @@ const AccountDetails = () => {
                     />
                   </Link>
                 </span>
-                {/* Add Purchase and Add to Cart buttons */}
-                <div className="flex gap-4 mt-4">
-                  <button
-                    onClick={handlePurchase}
-                    className={`text-white px-4 py-2 rounded-md transition ${
-                      isPurchased
-                        ? "bg-gray-500 cursor-not-allowed"
-                        : "bg-green-500 hover:bg-green-600"
-                    }`}
-                    disabled={isPurchased}
-                  >
-                    {isPurchased ? "Purchased" : "Purchase"}
-                  </button>
-                  <button
-                    onClick={handleAddToCart}
-                    className={`text-white px-4 py-2 rounded-md transition ${
-                      cart.some(
-                        (item) =>
-                          (item.slug || item.id) ===
-                          (account.slug || account.id)
-                      )
-                        ? "bg-gray-500 cursor-not-allowed"
-                        : "bg-yellow-500 hover:bg-yellow-600"
-                    }`}
-                    disabled={cart.some(
-                      (item) =>
-                        (item.slug || item.id) === (account.slug || account.id)
-                    )}
-                  >
-                    {cart.some(
-                      (item) =>
-                        (item.slug || item.id) === (account.slug || account.id)
-                    )
-                      ? "In Cart"
-                      : "Add to Cart"}
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -340,8 +303,58 @@ const AccountDetails = () => {
           </button>
         </div>
       )}
+      {/* Add Back, Purchase and Add to Cart buttons */}
+                <div class="flex justify-between mx-15">
+                <button class="flex text-white px-4 py-2 rounded-md transition-colors 
+                bg-gray-400 hover:bg-gray-500 border border-transparent 
+                hover:border-blue-500 hover:border-solid hover:rounded-none">
+              <span class="flex w-6 h-6 bg-gray-600  
+             rounded-full justify-center items-center mx-3">
+                &lt;
+              </span>
+               BACK
+              </button>
+                    <div className="flex gap-4 mt-4"> 
+                    <button
+                      onClick={handlePurchase}
+                      className={`text-white px-4 py-2 rounded-md hover:border border-blue-500 transition ${
+                        isPurchased
+                          ? "bg-gray-500 cursor-not-allowed"
+                          : "bg-green-500 hover:bg-green-600"
+                      }`}
+                      disabled={isPurchased}
+                    >
+                      {isPurchased ? "Purchased" : "Purchase"}
+                    </button>
+                    <button
+                      onClick={handleAddToCart}
+                      className={`text-white px-4 py-2 rounded-md transition ${
+                        cart.some(
+                          (item) =>
+                            (item.slug || item.id) ===
+                            (account.slug || account.id)
+                        )
+                          ? "bg-gray-500 cursor-not-allowed"
+                          : "bg-yellow-500 hover:bg-yellow-600"
+                      }`}
+                      disabled={cart.some(
+                        (item) =>
+                          (item.slug || item.id) === (account.slug || account.id)
+                      )}
+                    >
+                      {cart.some(
+                        (item) =>
+                          (item.slug || item.id) === (account.slug || account.id)
+                      )
+                        ? "In Cart"
+                        : "Add to Cart"}
+                    </button>
+                  </div>
+                </div>
     </>
+    
   );
+
 };
 
 export default AccountDetails;
