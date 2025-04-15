@@ -275,73 +275,73 @@ const AccountDetails = () => {
             </p>
           </div>
         )}
-      </div>
 
-      {selectedImage !== null && account.screenShots?.length > 0 && (
-        <div className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-50">
-          <button
-            onClick={() => setSelectedImage(null)}
-            className="absolute top-5 right-5 text-white text-3xl cursor-pointer"
-          >
-            <GiCancel className="w-8 h-8 md:w-10 md:h-10" />
-          </button>
-          <button
-            onClick={handlePrev}
-            className="absolute left-5 text-white text-3xl cursor-pointer"
-          >
-            <FaArrowLeft className="w-8 h-8 md:w-10 md:h-10" />
-          </button>
-          <img
-            src={account.screenShots[selectedImage].img}
-            alt="Screenshot"
-            className="max-w-[90%] max-h-[80vh] rounded-lg"
-          />
-          <button
-            onClick={handleNext}
-            className="absolute right-5 text-white text-3xl cursor-pointer"
-          >
-            <FaArrowRight className="w-8 h-8 md:w-10 md:h-10" />
+
+        {selectedImage !== null && account.screenShots?.length > 0 && (
+          <div className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-50">
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute top-5 right-5 text-white text-3xl cursor-pointer"
+            >
+              <GiCancel className="w-8 h-8 md:w-10 md:h-10" />
+            </button>
+            <button
+              onClick={handlePrev}
+              className="absolute left-5 text-white text-3xl cursor-pointer"
+            >
+              <FaArrowLeft className="w-8 h-8 md:w-10 md:h-10" />
+            </button>
+            <img
+              src={account.screenShots[selectedImage].img}
+              alt="Screenshot"
+              className="max-w-[90%] max-h-[80vh] rounded-lg"
+            />
+            <button
+              onClick={handleNext}
+              className="absolute right-5 text-white text-3xl cursor-pointer"
+            >
+              <FaArrowRight className="w-8 h-8 md:w-10 md:h-10" />
+            </button>
+          </div>
+        )}
+        <div className="block md:hidden px-4">
+          <button className="cursor-pointer">
+            <h2 className="text-white">Banana</h2>
           </button>
         </div>
-      )}
-      <div className="flex justify-between items-center px-4 py-6">
-        <div className="flex gap-4 mt-4">
-          <button
-            onClick={handlePurchase}
-            className={`text-white px-4 py-2 rounded-md 
-                    hover:border-2 hover:border-blue-500 hover:border-solid 
-                    hover:rounded-none transition ${isPurchased
-                ? "bg-gray-500 cursor-not-allowed"
-                : "bg-green-500 hover:bg-green-600"
-              }`}
-            disabled={isPurchased}
-          >
-            {isPurchased ? "Purchased" : "Purchase"}
-          </button>
-          <button
-            onClick={handleAddToCart}
-            className={`text-white px-4 py-2 rounded-md 
-                    hover:border-2 hover:border-blue-500 
-                    hover:border-solid hover:rounded-none transition ${cart.some(
-              (item) =>
-                (item.slug || item.id) ===
-                (account.slug || account.id)
-            )
+
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center px-4 py-6 gap-4">
+          <div className="hidden md:block">
+            <button className="cursor-pointer bg-gray-500 p-3 rounded-md">
+              <h2 className="text-white">BackToBanana</h2>
+            </button>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4">
+            <button
+              onClick={handleAddToCart}
+              className={`text-white px-4 py-2 rounded-md transition cursor-pointer ${cart.some((item) => (item.slug || item.id) === (account.slug || account.id))
                 ? "bg-gray-500 cursor-not-allowed"
                 : "bg-yellow-500 hover:bg-yellow-600"
-              }`}
-            disabled={cart.some(
-              (item) =>
-                (item.slug || item.id) === (account.slug || account.id)
-            )}
-          >
-            {cart.some(
-              (item) =>
-                (item.slug || item.id) === (account.slug || account.id)
-            )
-              ? "In Cart"
-              : "Add to Cart"}
-          </button>
+                }`}
+              disabled={cart.some((item) => (item.slug || item.id) === (account.slug || account.id))}
+            >
+              {cart.some((item) => (item.slug || item.id) === (account.slug || account.id))
+                ? "In Cart"
+                : "Add to Cart"}
+            </button>
+
+            <button
+              onClick={handlePurchase}
+              className={`text-white px-4 py-2 rounded-md transition cursor-pointer ${isPurchased
+                ? "bg-gray-500 cursor-not-allowed"
+                : "bg-green-500 hover:bg-green-600"
+                }`}
+              disabled={isPurchased}
+            >
+              {isPurchased ? "Purchased" : "Purchase"}
+            </button>
+          </div>
         </div>
       </div>
     </>
