@@ -68,12 +68,12 @@ const AccountDetails = () => {
               accountWorth: firestoreAccount.accountWorth,
               accountCredential: firestoreAccount.accountCredential,
               createdAt: firestoreAccount.createdAt,
-              username: firestoreAccount.username || "Unknown",
+              username: firestoreAccount.username || "Ghost",
               screenShots: Array.isArray(firestoreAccount.screenshots)
                 ? firestoreAccount.screenshots.map((url, index) => ({
-                    id: `screenshot-${index}`,
-                    img: url,
-                  }))
+                  id: `screenshot-${index}`,
+                  img: url,
+                }))
                 : [],
             };
             console.log(
@@ -188,7 +188,7 @@ const AccountDetails = () => {
                   {account.title}
                 </h1>
                 <p className="text-gray-400 text-sm mt-1">
-                  Uploaded by: {account.username || "Unknown"}
+                  Uploaded by: {account.username || "Ghost"}
                 </p>
                 <span className="flex justify-between items-center mt-2">
                   <p className="text-gray-400 mr-44">
@@ -238,27 +238,27 @@ const AccountDetails = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 cursor-pointer">
               {loadingImages
                 ? Array.from({ length: account.screenShots.length }).map(
-                    (_, index) => (
-                      <div
-                        key={index}
-                        className="w-full h-40 bg-gray-300 animate-pulse rounded-md flex items-center justify-center"
-                      >
-                        <div className="category-loader w-10 h-10 rounded-full animate-spin"></div>
-                      </div>
-                    )
+                  (_, index) => (
+                    <div
+                      key={index}
+                      className="w-full h-40 bg-gray-300 animate-pulse rounded-md flex items-center justify-center"
+                    >
+                      <div className="category-loader w-10 h-10 rounded-full animate-spin"></div>
+                    </div>
                   )
+                )
                 : account.screenShots.map((shot, index) => (
-                    <img
-                      key={shot.id || `shot-${index}`}
-                      src={shot.img}
-                      alt={`Screenshot ${index + 1}`}
-                      className="w-full h-40 object-cover rounded-md"
-                      onClick={() => handleImageClick(index)}
-                      onError={() =>
-                        console.error(`Failed to load screenshot ${index + 1}`)
-                      }
-                    />
-                  ))}
+                  <img
+                    key={shot.id || `shot-${index}`}
+                    src={shot.img}
+                    alt={`Screenshot ${index + 1}`}
+                    className="w-full h-40 object-cover rounded-md"
+                    onClick={() => handleImageClick(index)}
+                    onError={() =>
+                      console.error(`Failed to load screenshot ${index + 1}`)
+                    }
+                  />
+                ))}
             </div>
           </div>
         )}
@@ -304,63 +304,48 @@ const AccountDetails = () => {
           </button>
         </div>
       )}
-        {/* Add Back, Purchase and Add to Cart buttons */}
-        <div className="flex justify-between items-center px-4 py-6">
-                        <button 
-                          onClick={() => navigate(-1)}
-                          class="flex items-center text-white px-3 sm:px-6 py-2 rounded-md transition-all 
-                        bg-gray-400 hover:bg-gray-500 border border-transparent 
-                        hover:border-2 hover:border-blue-500 hover:border-solid 
-                        hover:rounded-none text-base font-normal">
-                        <span class="flex w-4 h-4 bg-gray-600  
-                                rounded-full justify-center items-center mr-2 font-medium font-poppins">
-                          &lt;
-                        </span>
-                        BACK
-                    </button>
-                <div className="flex gap-4 mt-4"> 
-                <button
-                  onClick={handlePurchase}
-                  className={`text-white px-4 py-2 rounded-md hover:border 
+      <div className="flex justify-between items-center px-4 py-6">
+        <div className="flex gap-4 mt-4">
+          <button
+            onClick={handlePurchase}
+            className={`text-white px-4 py-2 rounded-md 
                     hover:border-2 hover:border-blue-500 hover:border-solid 
-                    hover:rounded-none transition ${
-                    isPurchased
-                      ? "bg-gray-500 cursor-not-allowed"
-                      : "bg-green-500 hover:bg-green-600"
-                  }`}
-                  disabled={isPurchased}
-                >
-                  {isPurchased ? "Purchased" : "Purchase"}
-                </button>
-                <button
-                  onClick={handleAddToCart}
-                  className={`text-white px-4 py-2 rounded-md 
+                    hover:rounded-none transition ${isPurchased
+                ? "bg-gray-500 cursor-not-allowed"
+                : "bg-green-500 hover:bg-green-600"
+              }`}
+            disabled={isPurchased}
+          >
+            {isPurchased ? "Purchased" : "Purchase"}
+          </button>
+          <button
+            onClick={handleAddToCart}
+            className={`text-white px-4 py-2 rounded-md 
                     hover:border-2 hover:border-blue-500 
-                    hover:border-solid hover:rounded-none transition ${
-                    cart.some(
-                      (item) =>
-                        (item.slug || item.id) ===
-                        (account.slug || account.id)
-                    )
-                      ? "bg-gray-500 cursor-not-allowed"
-                      : "bg-yellow-500 hover:bg-yellow-600"
-                  }`}
-                  disabled={cart.some(
-                    (item) =>
-                      (item.slug || item.id) === (account.slug || account.id)
-                  )}
-                >
-                  {cart.some(
-                    (item) =>
-                      (item.slug || item.id) === (account.slug || account.id)
-                  )
-                    ? "In Cart"
-                    : "Add to Cart"}
-                </button>
-              </div>
-            </div>
+                    hover:border-solid hover:rounded-none transition ${cart.some(
+              (item) =>
+                (item.slug || item.id) ===
+                (account.slug || account.id)
+            )
+                ? "bg-gray-500 cursor-not-allowed"
+                : "bg-yellow-500 hover:bg-yellow-600"
+              }`}
+            disabled={cart.some(
+              (item) =>
+                (item.slug || item.id) === (account.slug || account.id)
+            )}
+          >
+            {cart.some(
+              (item) =>
+                (item.slug || item.id) === (account.slug || account.id)
+            )
+              ? "In Cart"
+              : "Add to Cart"}
+          </button>
+        </div>
+      </div>
     </>
-    
+
   );
 
 };
