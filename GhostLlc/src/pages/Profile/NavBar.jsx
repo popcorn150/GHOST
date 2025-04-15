@@ -37,7 +37,7 @@ const NavBar = ({ profileImage }) => {
   };
 
   return (
-    <nav className="bg-[#0E1115] text-white flex items-center justify-between p-4 relative">
+    <nav className="sticky top-0 bg-[#0E1115] text-white flex items-center justify-between p-4 shadow-md z-50">
       {/* Mobile Menu Button */}
       <button
         onClick={() => setMenuOpen(!menuOpen)}

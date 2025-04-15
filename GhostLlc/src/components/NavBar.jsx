@@ -17,7 +17,7 @@ const NavBar = () => {
   const navigate = useNavigate(); // Hook for navigation
 
   return (
-    <nav className="bg-[#0E1115] text-white flex items-center justify-between p-4 relative">
+    <nav className="sticky top-0 bg-[#0E1115] text-white flex items-center justify-between p-4 shadow-md z-50">
       <button
         onClick={() => setMenuOpen(!menuOpen)}
         className="hover:cursor-pointer"

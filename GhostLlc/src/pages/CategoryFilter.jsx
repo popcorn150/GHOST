@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import categoryAccounts from "../constants/category";
 import { Link } from "react-router-dom";
 import { AdminIcon } from "../utils";
+import { FaHeart } from "react-icons/fa6";
 
 const CategoryFilter = ({ searchTerm, combinedAccounts }) => {
   const [activeCategory, setActiveCategory] = useState("All");
@@ -112,10 +113,9 @@ const CategoryFilter = ({ searchTerm, combinedAccounts }) => {
             key={category}
             onClick={() => handleCategoryChange(category)}
             className={`rounded-full cursor-pointer font-semibold 
-              ${
-                activeCategory === category
-                  ? "bg-blue-900 text-white"
-                  : "bg-gray-200 text-black"
+              ${activeCategory === category
+                ? "bg-blue-900 text-white"
+                : "bg-gray-200 text-black"
               }
               px-10 py-3`}
           >
@@ -152,12 +152,18 @@ const CategoryFilter = ({ searchTerm, combinedAccounts }) => {
                     </p>
                     <img src={AdminIcon} alt="admin" className="w-6 md:w-8" />
                   </span>
-                  <Link
-                    to={`/account/${game.slug}`}
-                    className="mt-2 inline-block bg-blue-500 text-white px-2 py-1 md:px-4 md:py-2 rounded-md text-xs md:text-sm"
-                  >
-                    View Details
-                  </Link>
+                  <div className="flex justify-between items-center mt-2">
+                    <Link
+                      to={`/account/${game.slug}`}
+                      className="inline-block bg-blue-500 text-white px-2 py-1 md:px-4 md:py-2 rounded-md text-xs md:text-sm"
+                    >
+                      View Details
+                    </Link>
+
+                    <button className="cursor-pointer self-center bg-blue-500 text-white px-2 py-1 rounded-md text-xs md:text-sm flex items-center gap-1">
+                      <FaHeart className="self-center text-white text-2xl" />
+                    </button>
+                  </div>
                 </div>
               ))
             ) : (

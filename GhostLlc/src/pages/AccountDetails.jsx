@@ -7,6 +7,10 @@ import NavBar from "../components/NavBar";
 import { AdminIcon } from "../utils";
 import { useEffect, useState } from "react";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
+import { BsCartPlusFill } from "react-icons/bs";
+import { BsFillCartCheckFill } from "react-icons/bs";
+import { PiShoppingBagOpenFill } from "react-icons/pi";
+import { PiShoppingBagFill } from "react-icons/pi";
 import { GiCancel } from "react-icons/gi";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../database/firebaseConfig";
@@ -320,26 +324,46 @@ const AccountDetails = () => {
           <div className="flex flex-col sm:flex-row gap-4">
             <button
               onClick={handleAddToCart}
-              className={`text-white px-4 py-2 rounded-md transition cursor-pointer ${cart.some((item) => (item.slug || item.id) === (account.slug || account.id))
-                ? "bg-gray-500 cursor-not-allowed"
-                : "bg-yellow-500 hover:bg-yellow-600"
+              className={`flex text-white px-4 py-2 gap-2 rounded-md transition cursor-pointer ${cart.some((item) => (item.slug || item.id) === (account.slug || account.id))
+                ? "bg-[#4B5564] cursor-not-allowed"
+                : "bg-[#1C275E]"
                 }`}
               disabled={cart.some((item) => (item.slug || item.id) === (account.slug || account.id))}
             >
               {cart.some((item) => (item.slug || item.id) === (account.slug || account.id))
-                ? "In Cart"
-                : "Add to Cart"}
+                ?
+                <>
+                  <span className="text-gray-300">In Cart</span>
+                  <BsFillCartCheckFill className="self-center" />
+                </>
+                :
+                <>
+                  <span className="text-white">Add to Cart</span>
+                  <BsCartPlusFill className="self-center" />
+                </>
+              }
             </button>
 
             <button
               onClick={handlePurchase}
-              className={`text-white px-4 py-2 rounded-md transition cursor-pointer ${isPurchased
-                ? "bg-gray-500 cursor-not-allowed"
-                : "bg-green-500 hover:bg-green-600"
+              className={`flex text-white px-4 py-2 gap-2 rounded-md transition cursor-pointer ${isPurchased
+                ? "bg-[#A299C4] cursor-not-allowed"
+                : "bg-[#4426B9]"
                 }`}
               disabled={isPurchased}
             >
-              {isPurchased ? "Purchased" : "Purchase"}
+              {isPurchased
+                ?
+                <>
+                  <span className="text-gray-300">Purchased</span>
+                  <PiShoppingBagOpenFill className="self-center" />
+                </>
+                :
+                <>
+                  <span className="text-white">Purchase</span>
+                  <PiShoppingBagFill className="self-center" />
+                </>
+              }
             </button>
           </div>
         </div>
