@@ -13,7 +13,7 @@ import { IoAdd } from "react-icons/io5";
 import { LuUpload } from "react-icons/lu";
 import { AdminIcon } from "../../utils";
 import { useState, useEffect } from "react";
-import { auth, db } from "../../database/firebaseConfig";
+import { auth, db,  } from "../../database/firebaseConfig"; // Make sure to import storage
 import {
   collection,
   addDoc,
@@ -24,7 +24,13 @@ import {
   doc,
   getDoc,
   setDoc,
+  updateDoc,
 } from "firebase/firestore";
+import {
+  ref,
+  uploadString,
+  getDownloadURL,
+} from "firebase/storage"; // Import storage functions
 
 const tabs = ["Uploads", "Bio", "Socials", "Favorites"];
 
@@ -483,16 +489,47 @@ const About = () => {
     setTempText(aboutText);
     setIsEditing(false);
   };
-  const handleSave = () => {
+  const handleSave = async () => {
     setAboutText(tempText);
     setIsEditing(false);
+    
+    // Save bio to Firestore
+    if (auth.currentUser) {
+      try {
+        const userDocRef = doc(db, "users", auth.currentUser.uid);
+        await updateDoc(userDocRef, {
+          bio: tempText
+        });
+      } catch (error) {
+        console.error("Error saving bio:", error);
+      }
+    }
   };
+
+  // Load bio from Firestore
+  useEffect(() => {
+    const fetchBio = async () => {
+      if (auth.currentUser) {
+        try {
+          const userDocRef = doc(db, "users", auth.currentUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists() && userDoc.data().bio) {
+            setAboutText(userDoc.data().bio);
+            setTempText(userDoc.data().bio);
+          }
+        } catch (error) {
+          console.error("Error fetching bio:", error);
+        }
+      }
+    };
+    fetchBio();
+  }, []);
 
   return (
     <div className="p-5">
       <textarea
         className="w-full h-60 p-3 border border-gray-600 rounded-md bg-[#0E1115] text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#0576FF]"
-        placeholder={tempText}
+        value={tempText}
         onChange={(e) => setTempText(e.target.value)}
         readOnly={!isEditing}
       ></textarea>
@@ -526,10 +563,64 @@ const About = () => {
 };
 
 const Socials = () => {
+  const [socials, setSocials] = useState({
+    facebook: "",
+    instagram: "",
+    tiktok: "",
+    twitter: ""
+  });
+  const [tempSocials, setTempSocials] = useState({...socials});
   const [isEditing, setIsEditing] = useState(false);
+  
   const handleEdit = () => setIsEditing(true);
-  const handleDiscard = () => setIsEditing(false);
-  const handleSave = () => setIsEditing(false);
+  
+  const handleDiscard = () => {
+    setTempSocials({...socials});
+    setIsEditing(false);
+  };
+  
+  const handleSave = async () => {
+    setSocials({...tempSocials});
+    setIsEditing(false);
+    
+    // Save socials to Firestore
+    if (auth.currentUser) {
+      try {
+        const userDocRef = doc(db, "users", auth.currentUser.uid);
+        await updateDoc(userDocRef, {
+          socials: tempSocials
+        });
+      } catch (error) {
+        console.error("Error saving social links:", error);
+      }
+    }
+  };
+
+  const handleChange = (platform, value) => {
+    setTempSocials(prev => ({
+      ...prev,
+      [platform]: value
+    }));
+  };
+
+  // Load socials from Firestore
+  useEffect(() => {
+    const fetchSocials = async () => {
+      if (auth.currentUser) {
+        try {
+          const userDocRef = doc(db, "users", auth.currentUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists() && userDoc.data().socials) {
+            setSocials(userDoc.data().socials);
+            setTempSocials(userDoc.data().socials);
+          }
+        } catch (error) {
+          console.error("Error fetching social links:", error);
+        }
+      }
+    };
+    fetchSocials();
+  }, []);
 
   return (
     <div className="p-5">
@@ -542,8 +633,9 @@ const Socials = () => {
         <input
           type="text"
           placeholder="Link your facebook account"
-          className="w-full outline-none"
-          required
+          className="w-full outline-none bg-transparent"
+          value={tempSocials.facebook}
+          onChange={(e) => handleChange("facebook", e.target.value)}
           readOnly={!isEditing}
         />
       </div>
@@ -552,8 +644,9 @@ const Socials = () => {
         <input
           type="text"
           placeholder="Link your instagram account"
-          className="w-full outline-none"
-          required
+          className="w-full outline-none bg-transparent"
+          value={tempSocials.instagram}
+          onChange={(e) => handleChange("instagram", e.target.value)}
           readOnly={!isEditing}
         />
       </div>
@@ -562,8 +655,9 @@ const Socials = () => {
         <input
           type="text"
           placeholder="Link your tiktok account"
-          className="w-full outline-none"
-          required
+          className="w-full outline-none bg-transparent"
+          value={tempSocials.tiktok}
+          onChange={(e) => handleChange("tiktok", e.target.value)}
           readOnly={!isEditing}
         />
       </div>
@@ -572,8 +666,9 @@ const Socials = () => {
         <input
           type="text"
           placeholder="Link your twitter account"
-          className="w-full outline-none"
-          required
+          className="w-full outline-none bg-transparent"
+          value={tempSocials.twitter}
+          onChange={(e) => handleChange("twitter", e.target.value)}
           readOnly={!isEditing}
         />
       </div>
@@ -623,39 +718,93 @@ const UserProfile = () => {
   const [activeTab, setActiveTab] = useState("Uploads");
   const [username, setUsername] = useState("");
   const [profileImage, setProfileImage] = useState(AdminIcon);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleImageChange = (event) => {
+  // Function to handle profile image upload
+  const handleImageChange = async (event) => {
     const file = event.target.files[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setProfileImage(imageUrl);
+    if (file && auth.currentUser) {
+      try {
+        // Show loading state
+        setIsLoading(true);
+
+        // Convert file to base64 string
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+
+        reader.onloadend = async () => {
+          const base64String = reader.result;
+
+          // Store the base64 string directly in Firestore
+          const userRef = doc(db, "users", auth.currentUser.uid);
+          await updateDoc(userRef, {
+            profileImage: base64String,
+          });
+
+          // Update state
+          setProfileImage(base64String);
+          setIsLoading(false);
+        };
+      } catch (error) {
+        console.error("Error uploading profile image:", error);
+        setIsLoading(false);
+        alert("Failed to upload profile image. Please try again.");
+      }
     }
   };
 
+  // Fetch user data including profile image when component mounts
   useEffect(() => {
-    const fetchUsername = async () => {
+    const fetchUserData = async () => {
       if (auth.currentUser) {
         try {
           const userDocRef = doc(db, "users", auth.currentUser.uid);
           const userDocSnap = await getDoc(userDocRef);
-          if (userDocSnap.exists() && userDocSnap.data().username) {
-            setUsername(userDocSnap.data().username);
+
+          if (userDocSnap.exists()) {
+            // Set username
+            if (userDocSnap.data().username) {
+              setUsername(userDocSnap.data().username);
+            } else {
+              const defaultUsername =
+                auth.currentUser.displayName || "Unnamed User";
+              setUsername(defaultUsername);
+              await updateDoc(userDocRef, { username: defaultUsername });
+            }
+
+            // Set profile image if exists
+            if (userDocSnap.data().profileImage) {
+              setProfileImage(userDocSnap.data().profileImage);
+            }
           } else {
-            setUsername(auth.currentUser.displayName || "Unnamed User");
-            await setDoc(
-              userDocRef,
-              { username: auth.currentUser.displayName || "Unnamed User" },
-              { merge: true }
-            );
+            // Create new user document if it doesn't exist
+            const defaultUsername =
+              auth.currentUser.displayName || "Unnamed User";
+            await setDoc(userDocRef, {
+              username: defaultUsername,
+              profileImage: AdminIcon,
+              createdAt: new Date(),
+            });
+            setUsername(defaultUsername);
           }
         } catch (error) {
-          console.error("Error fetching username:", error);
-          setUsername("Unnamed User");
+          console.error("Error fetching user data:", error);
+        } finally {
+          setIsLoading(false);
         }
       }
     };
-    fetchUsername();
+
+    fetchUserData();
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#010409]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0576FF]"></div>
+      </div>
+    );
+  }
 
   return (
     <Layout

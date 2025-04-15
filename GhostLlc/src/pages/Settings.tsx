@@ -14,7 +14,7 @@ import {
   faExternalLinkAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import { auth, db } from "../database/firebaseConfig";
-import { deleteUser, signOut } from "firebase/auth"; // Added signOut for re-authentication handling
+import { deleteUser, signOut } from "firebase/auth";
 import {
   doc,
   deleteDoc,
@@ -24,6 +24,7 @@ import {
   collection,
   where,
   getDocs,
+  onSnapshot,
 } from "firebase/firestore";
 import { MdOutlineCameraEnhance } from "react-icons/md";
 
@@ -156,18 +157,21 @@ const Settings: React.FC = () => {
   const [feedbackType, setFeedbackType] = useState("");
   const [feedbackText, setFeedbackText] = useState("");
 
-  // Load profile image from Firestore
+  // Load profile image from Firestore using real-time subscription
   useEffect(() => {
-    const fetchProfileImage = async () => {
-      if (auth.currentUser) {
-        const userDocRef = doc(db, "users", auth.currentUser.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists() && userDocSnap.data().profileImage) {
-          setProfileImage(userDocSnap.data().profileImage);
-        }
+    if (!auth.currentUser) return;
+    
+    const userDocRef = doc(db, "users", auth.currentUser.uid);
+    
+    // Set up real-time listener for profile image updates
+    const unsubscribe = onSnapshot(userDocRef, (doc) => {
+      if (doc.exists() && doc.data().profileImage) {
+        setProfileImage(doc.data().profileImage);
       }
-    };
-    fetchProfileImage();
+    });
+    
+    // Cleanup listener on component unmount
+    return () => unsubscribe();
   }, []);
 
   // Handle profile image upload
@@ -175,11 +179,23 @@ const Settings: React.FC = () => {
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
-    if (file && auth.currentUser) {
+    if (!file || !auth.currentUser) return;
+    
+    try {
+      // Create a URL for the file
       const imageUrl = URL.createObjectURL(file);
+      
+      // Update local state
       setProfileImage(imageUrl);
+      
+      // Update in Firestore (this will trigger the onSnapshot listener in UserProfile component)
       const userDocRef = doc(db, "users", auth.currentUser.uid);
       await setDoc(userDocRef, { profileImage: imageUrl }, { merge: true });
+      
+      // Show success message
+      console.log("Profile image updated successfully");
+    } catch (error) {
+      console.error("Error updating profile image:", error);
     }
   };
 
@@ -249,11 +265,17 @@ const Settings: React.FC = () => {
         <div className="w-full md:w-72 flex flex-col">
           <div className="flex flex-col mb-6">
             <div className="w-28 h-28 rounded-full mb-4 overflow-hidden bg-transparent border-2 border-[#79E2F2] relative">
-              <img
-                src={profileImage || ""}
-                alt="Profile"
-                className="w-full h-full object-cover"
-              />
+              {profileImage ? (
+                <img
+                  src={profileImage}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                  <span className="text-gray-400 text-4xl">?</span>
+                </div>
+              )}
               <label
                 htmlFor="profile-upload"
                 className="absolute bottom-2 right-2 bg-black/50 p-2 rounded-full cursor-pointer hover:bg-black/70 transition"
@@ -589,7 +611,7 @@ const Settings: React.FC = () => {
                 </li>
                 <li>You would no longer have access to any of our features.</li>
                 <li>
-                  All your achievements would be lost and you won’t get them
+                  All your achievements would be lost and you won't get them
                   back after signing up again.
                 </li>
                 <li>

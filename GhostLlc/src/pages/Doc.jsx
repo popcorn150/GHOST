@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import NavBar from "../components/NavBar";
 import gameDoc from "./gameDoc";
-import emailjs from "@emailjs/browser";
+// import emailjs from "@emailjs/browser";
 
 const Doc = () => {
     const [search, setSearch] = useState("");
