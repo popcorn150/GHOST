@@ -11,6 +11,7 @@ import { GiCancel } from "react-icons/gi";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../database/firebaseConfig";
 
+
 const AccountDetails = () => {
   const { slug } = useParams();
   const [loadingImages, setLoadingImages] = useState(true);
@@ -303,54 +304,61 @@ const AccountDetails = () => {
           </button>
         </div>
       )}
-      {/* Add Back, Purchase and Add to Cart buttons */}
-                <div class="flex justify-between mx-15">
-                <button class="flex text-white px-4 py-2 rounded-md transition-colors 
-                bg-gray-400 hover:bg-gray-500 border border-transparent 
-                hover:border-blue-500 hover:border-solid hover:rounded-none">
-              <span class="flex w-6 h-6 bg-gray-600  
-             rounded-full justify-center items-center mx-3">
-                &lt;
-              </span>
-               BACK
-              </button>
-                    <div className="flex gap-4 mt-4"> 
-                    <button
-                      onClick={handlePurchase}
-                      className={`text-white px-4 py-2 rounded-md hover:border border-blue-500 transition ${
-                        isPurchased
-                          ? "bg-gray-500 cursor-not-allowed"
-                          : "bg-green-500 hover:bg-green-600"
-                      }`}
-                      disabled={isPurchased}
-                    >
-                      {isPurchased ? "Purchased" : "Purchase"}
+        {/* Add Back, Purchase and Add to Cart buttons */}
+        <div className="flex justify-between items-center px-4 py-6">
+                        <button 
+                          onClick={() => navigate(-1)}
+                          class="flex items-center text-white px-3 sm:px-6 py-2 rounded-md transition-all 
+                        bg-gray-400 hover:bg-gray-500 border border-transparent 
+                        hover:border-2 hover:border-blue-500 hover:border-solid 
+                        hover:rounded-none text-base font-normal">
+                        <span class="flex w-4 h-4 bg-gray-600  
+                                rounded-full justify-center items-center mr-2 font-medium font-poppins">
+                          &lt;
+                        </span>
+                        BACK
                     </button>
-                    <button
-                      onClick={handleAddToCart}
-                      className={`text-white px-4 py-2 rounded-md transition ${
-                        cart.some(
-                          (item) =>
-                            (item.slug || item.id) ===
-                            (account.slug || account.id)
-                        )
-                          ? "bg-gray-500 cursor-not-allowed"
-                          : "bg-yellow-500 hover:bg-yellow-600"
-                      }`}
-                      disabled={cart.some(
-                        (item) =>
-                          (item.slug || item.id) === (account.slug || account.id)
-                      )}
-                    >
-                      {cart.some(
-                        (item) =>
-                          (item.slug || item.id) === (account.slug || account.id)
-                      )
-                        ? "In Cart"
-                        : "Add to Cart"}
-                    </button>
-                  </div>
-                </div>
+                <div className="flex gap-4 mt-4"> 
+                <button
+                  onClick={handlePurchase}
+                  className={`text-white px-4 py-2 rounded-md hover:border 
+                    hover:border-2 hover:border-blue-500 hover:border-solid 
+                    hover:rounded-none transition ${
+                    isPurchased
+                      ? "bg-gray-500 cursor-not-allowed"
+                      : "bg-green-500 hover:bg-green-600"
+                  }`}
+                  disabled={isPurchased}
+                >
+                  {isPurchased ? "Purchased" : "Purchase"}
+                </button>
+                <button
+                  onClick={handleAddToCart}
+                  className={`text-white px-4 py-2 rounded-md 
+                    hover:border-2 hover:border-blue-500 
+                    hover:border-solid hover:rounded-none transition ${
+                    cart.some(
+                      (item) =>
+                        (item.slug || item.id) ===
+                        (account.slug || account.id)
+                    )
+                      ? "bg-gray-500 cursor-not-allowed"
+                      : "bg-yellow-500 hover:bg-yellow-600"
+                  }`}
+                  disabled={cart.some(
+                    (item) =>
+                      (item.slug || item.id) === (account.slug || account.id)
+                  )}
+                >
+                  {cart.some(
+                    (item) =>
+                      (item.slug || item.id) === (account.slug || account.id)
+                  )
+                    ? "In Cart"
+                    : "Add to Cart"}
+                </button>
+              </div>
+            </div>
     </>
     
   );
