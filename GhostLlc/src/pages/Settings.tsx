@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faArrowLeft,
   faSyncAlt,
   faGlobe,
   faCommentAlt,
@@ -27,11 +25,11 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 import { MdOutlineCameraEnhance } from "react-icons/md";
+import BackButton from "../components/BackButton"; 
 
 import "@fontsource/poppins";
 import "@fontsource/inter";
 
-/* Toggle Switch Component */
 interface ToggleSwitchProps {
   enabled?: boolean;
   onToggle: (val: boolean) => void;
@@ -65,7 +63,6 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   );
 };
 
-/* Radio Button Component */
 interface RadioButtonProps {
   id: string;
   label: string;
@@ -99,7 +96,6 @@ const RadioButton: React.FC<RadioButtonProps> = ({
   );
 };
 
-/* Language Dropdown Component */
 interface LanguageDropdownProps {
   selected: string;
   onChange: (value: string) => void;
@@ -149,7 +145,6 @@ const LanguageDropdown: React.FC<LanguageDropdownProps> = ({
 };
 
 const Settings: React.FC = () => {
-  const navigate = useNavigate();
   const [autoDownload, setAutoDownload] = useState(false);
   const [activeSection, setActiveSection] = useState("check-update");
   const [selectedLanguage, setSelectedLanguage] = useState("English");
@@ -157,42 +152,33 @@ const Settings: React.FC = () => {
   const [feedbackType, setFeedbackType] = useState("");
   const [feedbackText, setFeedbackText] = useState("");
 
-  // Load profile image from Firestore using real-time subscription
   useEffect(() => {
     if (!auth.currentUser) return;
-    
+
     const userDocRef = doc(db, "users", auth.currentUser.uid);
-    
-    // Set up real-time listener for profile image updates
+
     const unsubscribe = onSnapshot(userDocRef, (doc) => {
       if (doc.exists() && doc.data().profileImage) {
         setProfileImage(doc.data().profileImage);
       }
     });
-    
-    // Cleanup listener on component unmount
+
     return () => unsubscribe();
   }, []);
 
-  // Handle profile image upload
   const handleImageChange = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
     if (!file || !auth.currentUser) return;
-    
+
     try {
-      // Create a URL for the file
       const imageUrl = URL.createObjectURL(file);
-      
-      // Update local state
       setProfileImage(imageUrl);
-      
-      // Update in Firestore (this will trigger the onSnapshot listener in UserProfile component)
+
       const userDocRef = doc(db, "users", auth.currentUser.uid);
       await setDoc(userDocRef, { profileImage: imageUrl }, { merge: true });
-      
-      // Show success message
+
       console.log("Profile image updated successfully");
     } catch (error) {
       console.error("Error updating profile image:", error);
@@ -211,7 +197,6 @@ const Settings: React.FC = () => {
       try {
         const userId = auth.currentUser.uid;
 
-        // Delete all user's accounts
         const accountsQuery = query(
           collection(db, "accounts"),
           where("userId", "==", userId)
@@ -222,17 +207,14 @@ const Settings: React.FC = () => {
         );
         await Promise.all(deletePromises);
 
-        // Delete user document
         const userDocRef = doc(db, "users", userId);
         await deleteDoc(userDocRef);
 
-        // Delete authentication user
         await deleteUser(auth.currentUser);
 
         navigate("/login");
       } catch (error) {
         console.error("Error deleting account:", error);
-        // Added handling for requires-recent-login error
         if ((error as any).code === "auth/requires-recent-login") {
           alert(
             "This operation requires recent authentication. You will be signed out. Please log back in and try deleting your account again."
@@ -249,15 +231,9 @@ const Settings: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#0E0E10] text-white flex flex-col font-inter">
       <div className="px-4 sm:px-8 py-6 flex items-center">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 bg-[#1e1e24] rounded-lg py-2 px-4 hover:bg-[#2a2a32] transition-colors duration-200"
-        >
-          <FontAwesomeIcon icon={faArrowLeft} className="w-4 h-4" />
-          <span className="font-medium font-poppins">Back</span>
-        </button>
+        <BackButton />
         <h1 className="text-3xl font-bold font-poppins text-center flex-grow mr-24">
-          Settings
+          Settings 
         </h1>
       </div>
 
@@ -467,14 +443,12 @@ const Settings: React.FC = () => {
                   selected={feedbackType === "viewing"}
                   onChange={() => setFeedbackType("viewing")}
                 />
-
                 <RadioButton
                   id="navigation"
                   label="Navigation system"
                   selected={feedbackType === "navigation"}
                   onChange={() => setFeedbackType("navigation")}
                 />
-
                 <RadioButton
                   id="uploading"
                   label="Uploading"
