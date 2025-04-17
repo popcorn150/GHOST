@@ -1,6 +1,7 @@
 import { useState } from "react";
 import NavBar from "../components/NavBar";
 import faqsData from "./faqData";
+import BackButton from "../components/BackButton";
 
 const FAQs = () => {
     const [search, setSearch] = useState("");
@@ -14,6 +15,7 @@ const FAQs = () => {
         <>
             <NavBar />
             <div className="container mx-auto px-4 py-5">
+            <BackButton />
                 <h1 className="text-white text-xl text-center font-bold mb-4">FAQs</h1>
 
                 <div>

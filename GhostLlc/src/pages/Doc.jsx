@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import NavBar from "../components/NavBar";
+import BackButton from "../components/BackButton";
 import gameDoc from "./gameDoc";
 // import emailjs from "@emailjs/browser";
 
@@ -15,6 +16,7 @@ const Doc = () => {
         <>
             <NavBar />
             <div className="container mx-auto px-4 py-5">
+                <BackButton />
                 <h1 className="text-white text-xl text-center font-bold mb-4">Ghost Account Ownership Transfer Guide</h1>
 
                 <div>

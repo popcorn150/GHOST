@@ -18,6 +18,8 @@ import flashSalesProducts from "./flashSalesProducts";
 import { useEffect, useState } from "react";
 import productsData from "./categoryData";
 import NavBar from "../Profile/NavBar";
+import BackButton from "../../components/BackButton";
+
 
 
 const Store = () => {
@@ -38,7 +40,7 @@ const Store = () => {
                         <IoSearchOutline className="absolute right-3 top-3 text-gray-400" />
                     </div>
                 </div>
-
+                <BackButton className="mr-370 mt-2"/>
                 {/* Carousel Section */}
                 <div className="w-full max-w-7xl mt-10 px-5">
                     <Carousel />
