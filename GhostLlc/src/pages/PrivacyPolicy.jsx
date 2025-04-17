@@ -1,12 +1,12 @@
 import NavBar from "./Profile/NavBar"
-
+import BackButton from "../components/BackButton"
 const PrivacyPolicy = () => {
     return (
         <>
             <NavBar />
-
             <div className="mx-auto mt-10 grid justify-center items-center">
-                <h2 className="text-white font-semibold text-xl">Privacy Policy for Ghost</h2>
+            <BackButton className="mr-360"/>
+                <h2 className="text-white font-semibold text-xl ml-160">Privacy Policy for Ghost</h2>
                 <h5 className="text-white text-center mt-3">Effective Date: 3/29/2025</h5>
             </div>
 
