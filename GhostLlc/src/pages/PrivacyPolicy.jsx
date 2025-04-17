@@ -4,13 +4,14 @@ const PrivacyPolicy = () => {
     return (
         <>
             <NavBar />
+
             <div className="mx-auto mt-10 grid justify-center items-center">
-            <BackButton className="mr-360"/>
-                <h2 className="text-white font-semibold text-xl ml-160">Privacy Policy for Ghost</h2>
+                <h2 className="text-white font-semibold text-xl">Privacy Policy for Ghost</h2>
                 <h5 className="text-white text-center mt-3">Effective Date: 3/29/2025</h5>
             </div>
 
             <div className="mx-15 my-7">
+                <BackButton className="my-5" />
                 <div className="py-5 border-b-5 border-gray-700">
                     <h3 className="text-white text-start text-lg/7">Welcome to Ghost! Your privacy and security are important to us.
                         This Privacy Policy explains how we collect, use, and protect your information when using our platform.
@@ -101,8 +102,8 @@ const PrivacyPolicy = () => {
                         </ul>
                     </div>
 
-                    <div className="py-5 px-7">
-                        <h4 className="text-white text-sm text-center"><b>Ghost - Secure Gaming Account Marketplace.</b></h4>
+                    <div className="py-5 px-2">
+                        <h4 className="text-white text-xs font-medium md:text-sm text-center"><b>Ghost - Secure Gaming Account Marketplace.</b></h4>
                     </div>
                 </ol>
             </div>

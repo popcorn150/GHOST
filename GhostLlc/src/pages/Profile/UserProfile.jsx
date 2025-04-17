@@ -531,7 +531,7 @@ const About = () => {
   return (
     <div className="p-5">
       <textarea
-        className="w-full h-60 p-3 border border-gray-600 rounded-md bg-[#0E1115] text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#0576FF]"
+        className="w-full h-60 p-3 border border-gray-600 rounded-md bg-[#0E1115] text-sm text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0576FF]"
         value={tempText}
         onChange={(e) => setTempText(e.target.value)}
         readOnly={!isEditing}
