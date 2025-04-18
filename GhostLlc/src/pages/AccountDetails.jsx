@@ -198,7 +198,7 @@ const AccountDetails = () => {
                   <p className="text-gray-400 mr-44">
                     {account.views || 0} Total Views
                   </p>
-                  <Link to={"/profile"}>
+                  <Link to={"/profilevisit"}>
                     <img
                       src={AdminIcon}
                       alt="admin"
