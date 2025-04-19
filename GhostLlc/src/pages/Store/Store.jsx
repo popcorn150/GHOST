@@ -40,7 +40,10 @@ const Store = () => {
                         <IoSearchOutline className="absolute right-3 top-3 text-gray-400" />
                     </div>
                 </div>
-                <BackButton className="mr-370 mt-2"/>
+                <div className="w-full flex justify-start mt-10">
+                  <BackButton className="ml-4" />
+                </div>
+
                 {/* Carousel Section */}
                 <div className="w-full max-w-7xl mt-10 px-5">
                     <Carousel />
