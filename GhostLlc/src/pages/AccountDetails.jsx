@@ -14,6 +14,7 @@ import { PiShoppingBagFill } from "react-icons/pi";
 import { GiCancel } from "react-icons/gi";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../database/firebaseConfig";
+import BackButton from "../components/BackButton";
 
 
 const AccountDetails = () => {
@@ -173,7 +174,11 @@ const AccountDetails = () => {
   return (
     <>
       <NavBar />
-      <div className="p-5 bg-gray-900 min-h-screen text-white">
+      <div className="p-5 min-h-screen text-white">
+        <div className="px-4 mt-4 md:hidden">
+          <BackButton />
+        </div>
+
         <div className="flex flex-col md:flex-row justify-between gap-7 mt-5">
           <div className="max-w-4xl">
             <div className="flex flex-col items-start md:items-start gap-4">
@@ -308,20 +313,13 @@ const AccountDetails = () => {
             </button>
           </div>
         )}
-        <div className="block md:hidden px-4">
-          <button className="cursor-pointer">
-            <h2 className="text-white">Banana</h2>
-          </button>
-        </div>
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center px-4 py-6 gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-end md:items-center px-4 py-6 gap-4">
           <div className="hidden md:block">
-            <button className="cursor-pointer bg-gray-500 p-3 rounded-md">
-              <h2 className="text-white">BackToBanana</h2>
-            </button>
+            <BackButton />
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-row gap-4 justify-end w-full">
             <button
               onClick={handleAddToCart}
               className={`flex text-white px-4 py-2 gap-2 rounded-md transition cursor-pointer ${cart.some((item) => (item.slug || item.id) === (account.slug || account.id))

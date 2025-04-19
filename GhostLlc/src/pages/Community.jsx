@@ -2,7 +2,6 @@ import NavBar from "../components/NavBar"
 import BackButton from "../components/BackButton";
 import { Link } from "react-router-dom";
 import { InstagramIcon, TwitterIcon, YoutubeIcon } from "../utils"
-import { Import } from "lucide-react";
 
 const InstagramPage = 'https://cdn-icons-png.flaticon.com/512/87/87390.png'
 const TwitterPage = 'https://cdn-icons-png.flaticon.com/512/733/733579.png'
@@ -14,9 +13,9 @@ const Community = () => {
             <NavBar />
             <div className="container mx-auto px-4 py-5">
                 <BackButton />
-                <h1 className="text-xl text-white text-center font-bold my-20 mb-10">Connect With Us Live On Our Socials</h1>
+                <h1 className="text-lg md:text-xl text-white text-center font-bold my-20 mb-10">Connect With Us Live On Our Socials</h1>
 
-                <div className="flex flex-wrap justify-center gap-10 mx-50 p-10 bg-gray-900 rounded-xl">
+                <div className="flex flex-wrap justify-center gap-10 mx-10 my-5 p-10 bg-gray-900 rounded-xl">
                     {[
                         { icon: InstagramIcon, link: InstagramPage, alt: "Instagram" },
                         { icon: TwitterIcon, link: TwitterPage, alt: "Twitter" },
@@ -29,7 +28,11 @@ const Community = () => {
                                 <img src={icon} alt={alt} className="md:w-20 md:h-20 sm:w-10 sm:h-10" />
                             </button>
                         </Link>
-                    ))}
+                    ))} 
+                </div>
+
+                <div className="py-5 px-2">
+                    <h4 className="text-white text-sm font-medium md:text-[#010409] text-center"><b>Ghost - Secure Gaming Account Marketplace.</b></h4>
                 </div>
             </div>
         </>

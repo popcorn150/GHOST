@@ -22,7 +22,7 @@ const BackButton: React.FC<BackButtonProps> = ({ className = "", to }) => {
   return (
     <button
       onClick={handleClick}
-      className={`flex items-center gap-2 bg-[#1e1e24] rounded-lg py-2 px-4 hover:bg-[#2a2a32] transition-colors duration-200 font-poppins font-medium text-white ${className}`}
+      className={`flex items-center cursor-pointer gap-2 bg-[#2C2F33] rounded-lg py-2 px-4 hover:bg-[#2a2a32] transition-colors duration-200 font-medium text-white ${className}`}
     >
       <FontAwesomeIcon icon={faArrowLeft} className="w-4 h-4" />
       <span>Back</span>

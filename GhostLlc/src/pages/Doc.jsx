@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import NavBar from "../components/NavBar";
 import BackButton from "../components/BackButton";
 import gameDoc from "./gameDoc";
-// import emailjs from "@emailjs/browser";
+import emailjs from "@emailjs/browser";
 
 const Doc = () => {
     const [search, setSearch] = useState("");
@@ -16,7 +16,7 @@ const Doc = () => {
         <>
             <NavBar />
             <div className="container mx-auto px-4 py-5">
-                <BackButton />
+                <BackButton className="my-5" />
                 <h1 className="text-white text-xl text-center font-bold mb-4">Ghost Account Ownership Transfer Guide</h1>
 
                 <div>
@@ -94,7 +94,7 @@ const Doc = () => {
             </div>
 
             <div className="relative bottom-0 pb-3 px-7">
-                <h4 className="text-white text-sm text-center"><b>Ghost - Secure Gaming Account Marketplace.</b></h4>
+                <h4 className="text-white text-xs font-mdium md:text-sm text-center"><b>Ghost - Secure Gaming Account Marketplace.</b></h4>
             </div>
         </>
     );
