@@ -15,11 +15,14 @@ import FAQs from "./pages/FAQs";
 import Doc from "./pages/Doc";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import Community from "./pages/Community";
+import { CartProvider } from './context/CartContext';
+import CartPageWrapper from './pages/CartPageWrapper'; 
 
 const App = () => {
   const [uploadedAccounts, setUploadedAccounts] = useState([]); // State to hold uploaded accounts
 
   return (
+    <CartProvider>
     <Router>
       <Routes>
         <Route index element={<WelcomePage />} />
@@ -43,14 +46,18 @@ const App = () => {
           element={<UserProfile setUploadedAccounts={setUploadedAccounts} />}
         />
         <Route path="/faqs" element={<FAQs />} />
+        
         <Route path="/community" element={<Community />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/store" element={<Store />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/cart" element={<CartPageWrapper />} />
       </Routes>
     </Router>
+    </CartProvider>
   );
 };
+
 
 export default App;
