@@ -110,10 +110,14 @@ const CartPage = ({ cartItems, setCartItems }) => {
                 <p className="text-white text-xl mb-4">Your cart is empty</p>
                 <Link
                   to="/"
-                  className="inline-block bg-blue-500 text-white px-6 py-3 rounded-md text-sm md:text-base"
-                >
-                  Browse Accounts
-                </Link>
+                  className="inline-block bg-blue-500 text-white px-6 py-3 rounded-md text-sm md:text-base 
+                            hover:bg-green-500 hover:scale-105 
+                            transition-all duration-300 
+                            active:opacity-75 active:scale-95
+                            transform shadow-md hover:shadow-lg"
+              >
+                Browse Accounts
+              </Link>
               </div>
             )}
           </div>
