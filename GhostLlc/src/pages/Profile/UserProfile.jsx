@@ -48,7 +48,9 @@ const Layout = ({
     <>
       <NavBar profileImage={profileImage} />
       <div className="flex flex-col items-center justify-center p-3 bg-[#010409]">
-        <BackButton className="mr-360" />
+          <div className="w-full flex justify-start">
+    <BackButton />
+  </div>
         <div className="my-10 relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-[#0576FF]">
           <img
             src={profileImage}

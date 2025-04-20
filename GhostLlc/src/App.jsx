@@ -4,6 +4,7 @@ import Category from "./pages/Category";
 import AccountDetails from "./pages/AccountDetails";
 import Settings from "./pages/Settings";
 import UserProfile from "./pages/Profile/UserProfile";
+import ProfileVisit from "./pages/Profile/Profilevisit";
 import WelcomePage from "./pages/WelcomePage";
 import AccountSetup from "./pages/AccountSetup";
 import AccountLogin from "./pages/AccountLogin";
@@ -59,6 +60,7 @@ const App = () => {
         <Route path="/product/:slug" element={<ProductDetails />} />
         <Route path="/more-product/:slug" element={<MoreProducts />} />
         <Route path="/profile" element={<UserProfile />} />
+        <Route path="/profilevisit" element={<ProfileVisit />} />
         <Route path="/doc" element={<Doc />} />
         <Route
           path="/profile"
