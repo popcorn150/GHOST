@@ -14,6 +14,7 @@ import { PiShoppingBagFill } from "react-icons/pi";
 import { GiCancel } from "react-icons/gi";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../database/firebaseConfig";
+import { useCart } from '../context/CartContext';
 import BackButton from "../components/BackButton";
 import { Toaster, toast } from 'sonner';
 
@@ -25,6 +26,7 @@ const AccountDetails = () => {
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState([]);
   const [isPurchased, setIsPurchased] = useState(false);
+  const { addToCart, cartItems } = useCart();
 
   useEffect(() => {
     const fetchAccountData = async () => {
@@ -121,7 +123,7 @@ const AccountDetails = () => {
 
   const handleAddToCart = () => {
     if (
-      cart.some(
+      cartItems.some(
         (item) => (item.slug || item.id) === (account.slug || account.id)
       )
     ) {
@@ -129,6 +131,9 @@ const AccountDetails = () => {
     } else {
       setCart([...cart, account]);
       toast.success(`${account.title} added to cart!`);
+      addToCart(account);
+      alert(`${account.title} added to cart!`);
+      console.log("Cart updated:", [...cartItems, account]);
     }
   };
 
@@ -168,7 +173,7 @@ const AccountDetails = () => {
             Account not found
           </div>
           <Link
-            to="/category"
+            to="/categories"
             className="bg-blue-500 text-white px-4 py-2 rounded-md"
           >
             Return to Browse
@@ -334,9 +339,9 @@ const AccountDetails = () => {
                   ? "bg-[#4B5564] cursor-not-allowed"
                   : "bg-[#1C275E]"
                 }`}
-              disabled={cart.some((item) => (item.slug || item.id) === (account.slug || account.id))}
+              disabled={cartItems.some((item) => (item.slug || item.id) === (account.slug || account.id))}
             >
-              {cart.some((item) => (item.slug || item.id) === (account.slug || account.id))
+              {cartItems.some((item) => (item.slug || item.id) === (account.slug || account.id))
                 ?
                 <>
                   <span className="text-gray-300">In Cart</span>
