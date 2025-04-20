@@ -1,7 +1,9 @@
 import React from "react";
-import NavBar from "../../components/NavBar";
+import NavBar from "./NavBar";
 import BackButton from "../../components/BackButton";
 import ProfileTab from "../../components/ProfileTab";
+import { BellIcon, BookmarkIcon } from "@heroicons/react/24/outline"; // if using heroicons
+
 
 
 
@@ -33,7 +35,17 @@ const ProfileVisit = ({profileImage, username,}) => {
           {username || "UnnamedUser"} 
         </h2>
 </div>
+<div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mt-6">
+  <button className="flex items-center justify-center gap-2 px-4 py-2 border border-cyan-500 text-cyan-500 rounded-md hover:bg-cyan-500 hover:text-white transition-all text-sm">
+    <BellIcon className="h-5 w-5" />
+    Turn on Notification
+  </button>
 
+  <button className="flex items-center justify-center gap-2 px-4 py-2 border border-purple-500 text-purple-500 rounded-md hover:bg-purple-500 hover:text-white transition-all text-sm w-51">
+    <BookmarkIcon className="h-5 w-5" />
+    Add to Favorite
+  </button>
+</div>
 
       <div className="mx-auto mt-8 flex justify-center gap-4">
       <ProfileTab />

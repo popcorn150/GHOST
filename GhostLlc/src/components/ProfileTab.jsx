@@ -1,9 +1,20 @@
 import React, { useState } from "react";
+import {
+  UploadCloud,
+  User,
+  Heart,
+  Trophy,
+} from "lucide-react"; // Make sure these are valid Lucide icons
 
 const ProfileTabs = () => {
   const [activeTab, setActiveTab] = useState("About");
 
-  const tabs = ["Uploads", "About", "Wishlist", "Achievements"];
+  const tabs = [
+    { name: "Uploads", icon: UploadCloud },
+    { name: "About", icon: User },
+    { name: "Wishlist", icon: Heart },
+    { name: "Achievements", icon: Trophy },
+  ];
 
   const renderContent = () => {
     switch (activeTab) {
@@ -21,36 +32,42 @@ const ProfileTabs = () => {
   };
 
   return (
-      <>
-          <div className="w-full px-4 sm:px-12 md:px-24 mx-auto">
-            <div className="flex justify-between border-b relative">
-              {tabs.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`py-2 flex-1 text-center relative cursor-pointer ${
-                    activeTab === tab
-                      ? "text-white font-semibold"
-                      : "text-gray-400"
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-            <div className="relative w-full h-1 bg-[#0E1115] border-none">
-              <div
-                className="h-full bg-purple-500 transition-all duration-300"
-                style={{
-                  width: "20%",
-                  transform: `translateX(${tabs.indexOf(activeTab) * 135}%)`,
-                }}
-              ></div>
-            </div>
-            <div className="w-full">{renderContent()}</div>
-          </div>
-      </>
-    );
-  };
+    <div className="w-full px-4 sm:px-12 md:px-24 mx-auto">
+      <div className="flex justify-between border-b relative">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.name}
+              onClick={() => setActiveTab(tab.name)}
+              className={`py-2 flex-1 text-center cursor-pointer flex items-center justify-center gap-1 ${
+                activeTab === tab.name
+                  ? "text-white font-semibold"
+                  : "text-gray-400"
+              }`}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="hidden sm:inline text-sm">{tab.name}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="relative w-full h-1 bg-[#0E1115] border-none">
+        <div
+          className="h-full bg-purple-500 transition-all duration-300"
+          style={{
+            width: "20%",
+            transform: `translateX(${
+              tabs.findIndex((tab) => tab.name === activeTab) * 135
+            }%)`,
+          }}
+        ></div>
+      </div>
+
+      <div className="w-full">{renderContent()}</div>
+    </div>
+  );
+};
 
 export default ProfileTabs;
