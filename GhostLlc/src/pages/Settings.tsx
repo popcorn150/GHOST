@@ -229,10 +229,10 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0E0E10] text-white flex flex-col font-inter">
+    <div className="min-h-screen text-white flex flex-col font-inter">
       <div className="px-4 sm:px-8 py-6 flex items-center">
         <BackButton />
-        <h1 className="text-3xl font-bold font-poppins text-center flex-grow mr-24">
+        <h1 className="text-2xl font-bold text-center flex-grow mr-20">
           Settings 
         </h1>
       </div>

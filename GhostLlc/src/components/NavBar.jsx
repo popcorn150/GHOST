@@ -65,7 +65,7 @@ const NavBar = () => {
               </Link>
             </li>
             <li>
-              <Link to="/" className="flex gap-2 hover:text-gray-400">
+              <Link to="/withdraw" className="flex gap-2 hover:text-gray-400">
                 Withdrawal <IoWalletOutline className="self-center w-5 h-5" />
               </Link>
             </li>

@@ -10,7 +10,7 @@ const PrivacyPolicy = () => {
                 <h5 className="text-white text-center mt-3">Effective Date: 3/29/2025</h5>
             </div>
 
-            <div className="mx-15 my-7">
+            <div className="mx-5">
                 <BackButton className="my-5" />
                 <div className="py-5 border-b-5 border-gray-700">
                     <h3 className="text-white text-start text-lg/7">Welcome to Ghost! Your privacy and security are important to us.

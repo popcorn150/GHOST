@@ -113,7 +113,7 @@ const NavBar = ({ profileImage }) => {
             </li>
             <li>
               <Link
-                to="/withdrawal"
+                to="/withdraw"
                 className="flex gap-2 hover:text-gray-400"
                 onClick={handleLinkClick}
               >
