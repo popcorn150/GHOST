@@ -15,7 +15,7 @@ import { GiCancel } from "react-icons/gi";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../database/firebaseConfig";
 import BackButton from "../components/BackButton";
-
+import { Toaster, toast } from 'sonner';
 
 const AccountDetails = () => {
   const { slug } = useParams();
@@ -23,8 +23,8 @@ const AccountDetails = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [account, setAccount] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [cart, setCart] = useState([]); // State to track cart items
-  const [isPurchased, setIsPurchased] = useState(false); // State to track purchase status
+  const [cart, setCart] = useState([]);
+  const [isPurchased, setIsPurchased] = useState(false);
 
   useEffect(() => {
     const fetchAccountData = async () => {
@@ -119,26 +119,33 @@ const AccountDetails = () => {
         (prev - 1 + account.screenShots.length) % account.screenShots.length
     );
 
-  // Handle adding to cart
   const handleAddToCart = () => {
     if (
       cart.some(
         (item) => (item.slug || item.id) === (account.slug || account.id)
       )
     ) {
-      alert(`${account.title} is already in your cart!`);
+      toast.warning(`${account.title} is already in your cart!`);
     } else {
       setCart([...cart, account]);
-      alert(`${account.title} added to cart!`);
-      console.log("Cart updated:", [...cart, account]);
+      toast.success(`${account.title} added to cart!`);
     }
   };
 
-  // Handle purchase
   const handlePurchase = () => {
-    setIsPurchased(true);
-    alert(`Purchased ${account.title} successfully!`);
-    console.log("Purchased account:", account);
+    toast.promise(
+      new Promise((resolve) => {
+        setTimeout(() => {
+          setIsPurchased(true);
+          resolve();
+        }, 2000);
+      }),
+      {
+        loading: `Processing purchase for ${account.title}...`,
+        success: `${account.title} purchased successfully!`,
+        error: `Failed to purchase ${account.title}`,
+      }
+    );
   };
 
   if (loading) {
@@ -320,11 +327,12 @@ const AccountDetails = () => {
           </div>
 
           <div className="flex flex-row gap-4 justify-end w-full">
+            <Toaster richColors position="top-center" closeIcon={false} />
             <button
               onClick={handleAddToCart}
               className={`flex text-white px-4 py-2 gap-2 rounded-md transition cursor-pointer ${cart.some((item) => (item.slug || item.id) === (account.slug || account.id))
-                ? "bg-[#4B5564] cursor-not-allowed"
-                : "bg-[#1C275E]"
+                  ? "bg-[#4B5564] cursor-not-allowed"
+                  : "bg-[#1C275E]"
                 }`}
               disabled={cart.some((item) => (item.slug || item.id) === (account.slug || account.id))}
             >
