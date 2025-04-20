@@ -15,6 +15,7 @@ import FAQs from "./pages/FAQs";
 import Doc from "./pages/Doc";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import Community from "./pages/Community";
+import Withdrawal from "./pages/Withdrawal";
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import CartPageWrapper from './pages/CartPageWrapper'; 
@@ -70,6 +71,7 @@ const App = () => {
         <Route path="/store" element={<Store />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/withdraw" element={<Withdrawal />} />
         <Route path="/cart" element={
               <ProtectedRoute>
                 <CartPageWrapper />

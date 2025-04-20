@@ -6,7 +6,7 @@ import { X, Menu, User, Settings, LogOut } from "lucide-react";
 import { NavLogo } from "../../utils";
 import {
   IoCartOutline,
-  IoStorefrontOutline,
+  IoHomeOutline, 
   IoGlobeOutline,
   IoWalletOutline,
 } from "react-icons/io5";
@@ -58,14 +58,22 @@ const NavBar = ({ profileImage }) => {
           </button>
           <ul className="space-y-4">
             <li>
-            <Link
-              to="/cart"
-              className="flex gap-2 hover:text-gray-400"
-              onClick={handleLinkClick}
-              state={{ from: location.pathname }}
-            >
-              Cart <IoCartOutline className="self-center w-5 h-5" />
-            </Link>
+              <Link
+                to="/categories"
+                className="flex gap-2 hover:text-gray-400"
+                onClick={handleLinkClick}
+              >
+                Home <IoHomeOutline  className="self-center w-5 h-5" />
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/cart"
+                className="flex gap-2 hover:text-gray-400"
+                onClick={handleLinkClick}
+              >
+                Cart <IoCartOutline className="self-center w-5 h-5" />
+              </Link>
             </li>
             <li>
               <Link
@@ -86,7 +94,7 @@ const NavBar = ({ profileImage }) => {
                 <HiOutlineQuestionMarkCircle className="self-center w-5 h-5" />
               </Link>
             </li>
-            <li>
+            {/* <li>
               <Link
                 to="/store"
                 className="flex gap-2 hover:text-gray-400"
@@ -94,7 +102,7 @@ const NavBar = ({ profileImage }) => {
               >
                 Store <IoStorefrontOutline className="self-center w-5 h-5" />
               </Link>
-            </li>
+            </li> */}
             <li>
               <Link
                 to="/community"
@@ -106,7 +114,7 @@ const NavBar = ({ profileImage }) => {
             </li>
             <li>
               <Link
-                to="/withdrawal"
+                to="/withdraw"
                 className="flex gap-2 hover:text-gray-400"
                 onClick={handleLinkClick}
               >

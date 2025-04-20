@@ -118,7 +118,7 @@ const WelcomePage = () => {
         />
       </div>
 
-      <div className="relative z-10 flex flex-col items-center gap-12 md:flex-row md:gap-24 w-full max-w-5xl">
+      <div className="relative my-5 z-10 flex flex-col items-center gap-12 md:flex-row md:gap-24 w-full max-w-5xl">
         {/* Logo & Title */}
         <div className="flex flex-col items-center text-center">
           <img src={Logo} alt="Ghost Logo" className="w-32 md:w-44 lg:w-52" />
@@ -184,9 +184,11 @@ const WelcomePage = () => {
       </div>
 
       {/* Footer */}
-      <p className="absolute bottom-5 w-full text-center text-sm text-gray-300">
-        Copyright © {new Date().getFullYear()}. All rights reserved.
-      </p>
+      <div className="absolute bottom-0 pt-3 px-7">
+        <h4 className="text-sm text-center text-gray-300">
+          Copyright © {new Date().getFullYear()}. All rights reserved.
+        </h4>
+      </div>
     </div>
   );
 };

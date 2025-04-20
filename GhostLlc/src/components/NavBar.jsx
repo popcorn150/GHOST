@@ -7,7 +7,7 @@ import { IoGlobeOutline } from "react-icons/io5";
 import { IoWalletOutline } from "react-icons/io5";
 import { MdOutlinePolicy } from "react-icons/md";
 import { HiOutlineFolderOpen } from "react-icons/hi2";
-import { IoStorefrontOutline } from "react-icons/io5";
+import { IoHomeOutline  } from "react-icons/io5";
 import { HiOutlineQuestionMarkCircle } from "react-icons/hi";
 
 
@@ -34,6 +34,11 @@ const NavBar = () => {
             <X size={24} />
           </button>
           <ul className="space-y-4">
+          <li>
+              <Link to="/categories" className="flex gap-2 hover:text-gray-400">
+                Home <IoHomeOutline  className="self-center w-5 h-5" />
+              </Link>
+            </li>
             <li>
               <Link to="/" className="flex gap-2 hover:text-gray-400">
                 Cart <IoCartOutline className="self-center w-5 h-5" />
@@ -49,18 +54,18 @@ const NavBar = () => {
                 FAQs <HiOutlineQuestionMarkCircle className="self-center w-5 h-5" />
               </Link>
             </li>
-            <li>
+            {/* <li>
               <Link to="/store" className="flex gap-2 hover:text-gray-400">
                 Store <IoStorefrontOutline className="self-center w-5 h-5" />
               </Link>
-            </li>
+            </li> */}
             <li>
               <Link to="/community" className="flex gap-2 hover:text-gray-400">
                 Community <IoGlobeOutline className="self-center w-5 h-5" />
               </Link>
             </li>
             <li>
-              <Link to="/" className="flex gap-2 hover:text-gray-400">
+              <Link to="/withdraw" className="flex gap-2 hover:text-gray-400">
                 Withdrawal <IoWalletOutline className="self-center w-5 h-5" />
               </Link>
             </li>

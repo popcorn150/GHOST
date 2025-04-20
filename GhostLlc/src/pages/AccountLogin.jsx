@@ -171,7 +171,7 @@ const AccountLogin = () => {
         />
       </div>
 
-      <div className="absolute flex flex-col items-center gap-8 px-6 md:flex-row md:gap-30">
+      <div className="relative my-5 flex flex-col items-center gap-8 px-6 md:flex-row md:gap-30">
         {/* Logo and Title */}
         <div className="flex flex-row gap-3 md:flex-col items-center">
           <img
@@ -230,7 +230,7 @@ const AccountLogin = () => {
               </Link>
             </p>
 
-            <h5 className="text-white text-sm text-center">
+            <h5 className="text-white text-xs text-center">
               Join Ghost and discover thousands of gaming accounts for sale at
               your fingertips.
             </h5>
@@ -260,11 +260,6 @@ const AccountLogin = () => {
           </div>
         </div>
       </div>
-
-      {/* Footer */}
-      <p className="absolute bottom-5 text-xs text-white text-center">
-        Copyright © {new Date().getFullYear()} All rights reserved.
-      </p>
     </div>
   );
 };
