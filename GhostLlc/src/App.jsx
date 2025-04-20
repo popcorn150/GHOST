@@ -1,5 +1,5 @@
 import { useState } from "react"; // Add this import
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Category from "./pages/Category";
 import AccountDetails from "./pages/AccountDetails";
 import Settings from "./pages/Settings";
@@ -15,14 +15,32 @@ import FAQs from "./pages/FAQs";
 import Doc from "./pages/Doc";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import Community from "./pages/Community";
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import CartPageWrapper from './pages/CartPageWrapper'; 
+
+// Add a ProtectedRoute component
+const ProtectedRoute = ({ children }) => {
+  const { currentUser, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <div>Checking authentication...</div>;
+  }
+
+  return currentUser ? (
+    children
+  ) : (
+    <Navigate to="/login" state={{ from: location.pathname }} replace />
+  );
+};
 
 const App = () => {
   const [uploadedAccounts, setUploadedAccounts] = useState([]); // State to hold uploaded accounts
 
   return (
-    <CartProvider>
+    <AuthProvider>
+      <CartProvider>
     <Router>
       <Routes>
         <Route index element={<WelcomePage />} />
@@ -52,10 +70,15 @@ const App = () => {
         <Route path="/store" element={<Store />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/Cart" element={<CartPageWrapper />} />
+        <Route path="/cart" element={
+              <ProtectedRoute>
+                <CartPageWrapper />
+              </ProtectedRoute>
+            }/>
       </Routes>
     </Router>
     </CartProvider>
+    </AuthProvider>
   );
 };
 

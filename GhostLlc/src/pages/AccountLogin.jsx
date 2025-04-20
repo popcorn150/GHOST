@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { BackGround_, Logo, Title, Google } from "../utils";
 import { auth, googleProvider } from "../database/firebaseConfig";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
@@ -20,6 +20,7 @@ const AccountLogin = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const db = getFirestore();
 
   // Simple email validation function
@@ -28,11 +29,12 @@ const AccountLogin = () => {
     return regex.test(email);
   };
 
-  // Email/Username Login Handler
+    //Email/Username Login Handler
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
+    
     // Validate inputs
     if (!emailOrUsername.trim() || !password.trim()) {
       setError("Please fill out all required fields.");
@@ -74,6 +76,8 @@ const AccountLogin = () => {
       await signInWithEmailAndPassword(auth, userEmail, password);
       alert("Login successful!");
       navigate("/categories");
+      const from = location.state?.from || '/store';
+      navigate(from, { replace: true });
     } catch (error) {
       console.error("Login error:", error.message);
       switch (error.message) {

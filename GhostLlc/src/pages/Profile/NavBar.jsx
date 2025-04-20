@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../../database/firebaseConfig";
 import { X, Menu, User, Settings, LogOut } from "lucide-react";
@@ -18,6 +18,7 @@ const NavBar = ({ profileImage }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Handle Logout
   const handleLogout = async () => {
@@ -57,13 +58,14 @@ const NavBar = ({ profileImage }) => {
           </button>
           <ul className="space-y-4">
             <li>
-              <Link
-                to="/cart"
-                className="flex gap-2 hover:text-gray-400"
-                onClick={handleLinkClick}
-              >
-                Cart <IoCartOutline className="self-center w-5 h-5" />
-              </Link>
+            <Link
+              to="/cart"
+              className="flex gap-2 hover:text-gray-400"
+              onClick={handleLinkClick}
+              state={{ from: location.pathname }}
+            >
+              Cart <IoCartOutline className="self-center w-5 h-5" />
+            </Link>
             </li>
             <li>
               <Link

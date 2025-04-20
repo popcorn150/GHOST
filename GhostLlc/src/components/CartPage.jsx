@@ -134,7 +134,7 @@ const CartPage = ({ cartItems, setCartItems }) => {
               </p>
               <div className="flex flex-col md:flex-row gap-4">
                 <Link
-                  to="/"
+                  to="/store"
                   className="bg-gray-700 text-white px-6 py-3 rounded-md text-center flex-grow"
                 >
                   Continue Shopping
