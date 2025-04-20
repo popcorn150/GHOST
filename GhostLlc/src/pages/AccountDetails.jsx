@@ -14,6 +14,7 @@ import { PiShoppingBagFill } from "react-icons/pi";
 import { GiCancel } from "react-icons/gi";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../database/firebaseConfig";
+import { useCart } from '../context/CartContext';
 import BackButton from "../components/BackButton";
 
 
@@ -23,8 +24,8 @@ const AccountDetails = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [account, setAccount] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [cart, setCart] = useState([]); // State to track cart items
   const [isPurchased, setIsPurchased] = useState(false); // State to track purchase status
+  const { addToCart, cartItems } = useCart();
 
   useEffect(() => {
     const fetchAccountData = async () => {
@@ -122,15 +123,15 @@ const AccountDetails = () => {
   // Handle adding to cart
   const handleAddToCart = () => {
     if (
-      cart.some(
+      cartItems.some(
         (item) => (item.slug || item.id) === (account.slug || account.id)
       )
     ) {
       alert(`${account.title} is already in your cart!`);
     } else {
-      setCart([...cart, account]);
+      addToCart(account);
       alert(`${account.title} added to cart!`);
-      console.log("Cart updated:", [...cart, account]);
+      console.log("Cart updated:", [...cartItems, account]);
     }
   };
 
@@ -161,7 +162,7 @@ const AccountDetails = () => {
             Account not found
           </div>
           <Link
-            to="/category"
+            to="/categories"
             className="bg-blue-500 text-white px-4 py-2 rounded-md"
           >
             Return to Browse
@@ -322,13 +323,13 @@ const AccountDetails = () => {
           <div className="flex flex-row gap-4 justify-end w-full">
             <button
               onClick={handleAddToCart}
-              className={`flex text-white px-4 py-2 gap-2 rounded-md transition cursor-pointer ${cart.some((item) => (item.slug || item.id) === (account.slug || account.id))
+              className={`flex text-white px-4 py-2 gap-2 rounded-md transition cursor-pointer ${cartItems.some((item) => (item.slug || item.id) === (account.slug || account.id))
                 ? "bg-[#4B5564] cursor-not-allowed"
                 : "bg-[#1C275E]"
                 }`}
-              disabled={cart.some((item) => (item.slug || item.id) === (account.slug || account.id))}
+              disabled={cartItems.some((item) => (item.slug || item.id) === (account.slug || account.id))}
             >
-              {cart.some((item) => (item.slug || item.id) === (account.slug || account.id))
+              {cartItems.some((item) => (item.slug || item.id) === (account.slug || account.id))
                 ?
                 <>
                   <span className="text-gray-300">In Cart</span>
