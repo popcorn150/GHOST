@@ -15,6 +15,7 @@ import FAQs from "./pages/FAQs";
 import Doc from "./pages/Doc";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import Community from "./pages/Community";
+import Withdrawal from "./pages/Withdrawal";
 
 const App = () => {
   const [uploadedAccounts, setUploadedAccounts] = useState([]); // State to hold uploaded accounts
@@ -48,6 +49,7 @@ const App = () => {
         <Route path="/store" element={<Store />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/withdraw" element={<Withdrawal />} />
       </Routes>
     </Router>
   );
