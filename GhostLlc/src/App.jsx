@@ -19,7 +19,7 @@ import Community from "./pages/Community";
 import Withdrawal from "./pages/Withdrawal";
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
-import CartPageWrapper from './pages/CartPageWrapper'; 
+import CartPageWrapper from './pages/CartPageWrapper';
 
 // Add a ProtectedRoute component
 const ProtectedRoute = ({ children }) => {
@@ -43,45 +43,45 @@ const App = () => {
   return (
     <AuthProvider>
       <CartProvider>
-    <Router>
-      <Routes>
-        <Route index element={<WelcomePage />} />
-        <Route path="/sign-up" element={<AccountSetup />} />
-        <Route path="/login" element={<AccountLogin />} />
-        <Route
-          path="/categories"
-          element={<Category uploadedAccounts={uploadedAccounts} />}
-        />
-        <Route
-          path="/account"
-          element={<UserProfile setUploadedAccounts={setUploadedAccounts} />}
-        />
-        <Route path="/account/:slug" element={<AccountDetails />} />
-        <Route path="/product/:slug" element={<ProductDetails />} />
-        <Route path="/more-product/:slug" element={<MoreProducts />} />
-        <Route path="/profile" element={<UserProfile />} />
-        <Route path="/profilevisit" element={<ProfileVisit />} />
-        <Route path="/doc" element={<Doc />} />
-        <Route
-          path="/profile"
-          element={<UserProfile setUploadedAccounts={setUploadedAccounts} />}
-        />
-        <Route path="/faqs" element={<FAQs />} />
-        
-        <Route path="/community" element={<Community />} />
-        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-        <Route path="/store" element={<Store />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/withdraw" element={<Withdrawal />} />
-        <Route path="/cart" element={
+        <Router>
+          <Routes>
+            <Route index element={<WelcomePage />} />
+            <Route path="/sign-up" element={<AccountSetup />} />
+            <Route path="/login" element={<AccountLogin />} />
+            <Route
+              path="/categories"
+              element={<Category uploadedAccounts={uploadedAccounts} />}
+            />
+            <Route
+              path="/account"
+              element={<UserProfile setUploadedAccounts={setUploadedAccounts} />}
+            />
+            <Route path="/account/:slug" element={<AccountDetails />} />
+            <Route path="/product/:slug" element={<ProductDetails />} />
+            <Route path="/more-product/:slug" element={<MoreProducts />} />
+            <Route path="/profile" element={<UserProfile />} />
+            <Route path="/profilevisit" element={<ProfileVisit />} />
+            <Route path="/doc" element={<Doc />} />
+            <Route
+              path="/profile"
+              element={<UserProfile setUploadedAccounts={setUploadedAccounts} />}
+            />
+            <Route path="/faqs" element={<FAQs />} />
+
+            <Route path="/community" element={<Community />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/store" element={<Store />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/withdraw" element={<Withdrawal />} />
+            <Route path="/cart" element={
               <ProtectedRoute>
                 <CartPageWrapper />
               </ProtectedRoute>
-            }/>
-      </Routes>
-    </Router>
-    </CartProvider>
+            } />
+          </Routes>
+        </Router>
+      </CartProvider>
     </AuthProvider>
   );
 };

@@ -132,7 +132,6 @@ const AccountDetails = () => {
       setCart([...cart, account]);
       toast.success(`${account.title} added to cart!`);
       addToCart(account);
-      alert(`${account.title} added to cart!`);
       console.log("Cart updated:", [...cartItems, account]);
     }
   };

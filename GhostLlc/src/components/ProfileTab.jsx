@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   UploadCloud,
   User,
   Heart,
   Trophy,
-} from "lucide-react"; // Make sure these are valid Lucide icons
+} from "lucide-react";
 
 const ProfileTabs = () => {
   const [activeTab, setActiveTab] = useState("About");
@@ -19,13 +19,13 @@ const ProfileTabs = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "Uploads":
-        return <p className="text-white">// Uploads content goes here</p>;
+        return <p className="text-white">Uploads content goes here</p>;
       case "About":
-        return <p className="text-white">// About content goes here</p>;
+        return <p className="text-white">About content goes here</p>;
       case "Wishlist":
-        return <p className="text-white">// Wishlist content goes here</p>;
+        return <p className="text-white">Wishlist content goes here</p>;
       case "Achievements":
-        return <p className="text-white">// Achievements content goes here</p>;
+        return <p className="text-white">Achievements content goes here</p>;
       default:
         return null;
     }
@@ -65,7 +65,7 @@ const ProfileTabs = () => {
         ></div>
       </div>
 
-      <div className="w-full">{renderContent()}</div>
+      <div className="w-full p-5">{renderContent()}</div>
     </div>
   );
 };
