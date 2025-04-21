@@ -1,5 +1,5 @@
 import { useState } from "react"; // Add this import
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Category from "./pages/Category";
 import AccountDetails from "./pages/AccountDetails";
 import Settings from "./pages/Settings";
@@ -17,32 +17,11 @@ import Doc from "./pages/Doc";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import Community from "./pages/Community";
 import Withdrawal from "./pages/Withdrawal";
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { CartProvider } from './context/CartContext';
-import CartPageWrapper from './pages/CartPageWrapper';
-
-// Add a ProtectedRoute component
-const ProtectedRoute = ({ children }) => {
-  const { currentUser, loading } = useAuth();
-  const location = useLocation();
-
-  if (loading) {
-    return <div>Checking authentication...</div>;
-  }
-
-  return currentUser ? (
-    children
-  ) : (
-    <Navigate to="/login" state={{ from: location.pathname }} replace />
-  );
-};
 
 const App = () => {
   const [uploadedAccounts, setUploadedAccounts] = useState([]); // State to hold uploaded accounts
 
   return (
-    <AuthProvider>
-      <CartProvider>
         <Router>
           <Routes>
             <Route index element={<WelcomePage />} />
@@ -67,22 +46,14 @@ const App = () => {
               element={<UserProfile setUploadedAccounts={setUploadedAccounts} />}
             />
             <Route path="/faqs" element={<FAQs />} />
-
             <Route path="/community" element={<Community />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/store" element={<Store />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/withdraw" element={<Withdrawal />} />
-            <Route path="/cart" element={
-              <ProtectedRoute>
-                <CartPageWrapper />
-              </ProtectedRoute>
-            } />
           </Routes>
         </Router>
-      </CartProvider>
-    </AuthProvider>
   );
 };
 
