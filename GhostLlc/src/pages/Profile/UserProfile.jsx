@@ -14,7 +14,7 @@ import { IoAdd } from "react-icons/io5";
 import { LuUpload } from "react-icons/lu";
 import { AdminIcon } from "../../utils";
 import { useState, useEffect } from "react";
-import { auth, db,  } from "../../database/firebaseConfig"; // Make sure to import storage
+import { auth, db, } from "../../database/firebaseConfig"; // Make sure to import storage
 import {
   collection,
   addDoc,
@@ -48,9 +48,9 @@ const Layout = ({
     <>
       <NavBar profileImage={profileImage} />
       <div className="flex flex-col items-center justify-center p-3 bg-[#010409]">
-          <div className="w-full flex justify-start">
-    <BackButton />
-  </div>
+        <div className="w-full flex justify-start">
+          <BackButton />
+        </div>
         <div className="my-10 relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-[#0576FF]">
           <img
             src={profileImage}
@@ -80,11 +80,10 @@ const Layout = ({
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`py-2 flex-1 text-center relative cursor-pointer ${
-                  activeTab === tab
-                    ? "text-white font-semibold"
-                    : "text-gray-400"
-                }`}
+                className={`py-2 flex-1 text-center relative cursor-pointer ${activeTab === tab
+                  ? "text-white font-semibold"
+                  : "text-gray-400"
+                  }`}
               >
                 {tab}
               </button>
@@ -426,10 +425,10 @@ const Uploads = ({ profileImage }) => {
                   className="w-10 h-10 rounded-full mr-2"
                 />
                 <div>
-                  <h3 className="text-white text-xl font-semibold">
+                  <h3 className="text-white text-lg font-semibold">
                     {acc.accountName}
                   </h3>
-                  <p className="text-gray-400">
+                  <p className="text-gray-400 text-sm">
                     <span className="font-semibold">Uploaded by:</span>{" "}
                     {acc.username || "Unknown"}
                   </p>
@@ -439,39 +438,44 @@ const Uploads = ({ profileImage }) => {
                 <img
                   src={acc.accountImage}
                   alt={acc.accountName}
-                  className="w-full h-48 object-cover mb-2 rounded"
+                  className="w-full h-48 object-cover mb-2 rounded-md"
                 />
               )}
-              <p className="text-gray-400">
+              <p className="text-gray-400 text-sm">
                 <span className="font-semibold">Credential:</span>{" "}
                 {acc.accountCredential}
               </p>
-              <p className="text-gray-400">
+              <p className="text-gray-400 text-sm">
                 <span className="font-semibold">Worth:</span> {acc.accountWorth}{" "}
                 ({acc.currency || userCurrency})
               </p>
-              <p className="text-gray-400">
+              <p className="text-gray-400 text-sm">
                 <span className="font-semibold">Description:</span>{" "}
                 {acc.accountDescription}
               </p>
               {acc.screenshots && acc.screenshots.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
                   {acc.screenshots.map((shot, index) => (
                     <img
                       key={index}
                       src={shot}
                       alt={`Screenshot ${index + 1}`}
-                      className="w-full h-24 object-cover rounded"
+                      className="w-full h-24 object-cover rounded-md"
                     />
                   ))}
                 </div>
               )}
-              <button
-                onClick={() => handleDelete(acc)}
-                className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700 transition"
-              >
-                Delete
-              </button>
+              <div className="flex gap-2 justify-end">
+                {/* <button className="text-white bg-gray-200">
+                  I
+                </button> */}
+                <button
+                  onClick={() => handleDelete(acc)}
+                  className="absolute bottom-0 right-2 bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700 transition"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))
         ) : (
@@ -497,7 +501,7 @@ const About = () => {
   const handleSave = async () => {
     setAboutText(tempText);
     setIsEditing(false);
-    
+
     // Save bio to Firestore
     if (auth.currentUser) {
       try {
@@ -574,20 +578,20 @@ const Socials = () => {
     tiktok: "",
     twitter: ""
   });
-  const [tempSocials, setTempSocials] = useState({...socials});
+  const [tempSocials, setTempSocials] = useState({ ...socials });
   const [isEditing, setIsEditing] = useState(false);
-  
+
   const handleEdit = () => setIsEditing(true);
-  
+
   const handleDiscard = () => {
-    setTempSocials({...socials});
+    setTempSocials({ ...socials });
     setIsEditing(false);
   };
-  
+
   const handleSave = async () => {
-    setSocials({...tempSocials});
+    setSocials({ ...tempSocials });
     setIsEditing(false);
-    
+
     // Save socials to Firestore
     if (auth.currentUser) {
       try {
