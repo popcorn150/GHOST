@@ -348,10 +348,10 @@ const AccountLogin = () => {
               </Link>
             </p>
 
-            <h5 className="text-white text-xs text-center">
+            <h6 className="text-white text-xs text-center">
               Join Ghost and discover thousands of gaming accounts for sale at
               your fingertips.
-            </h5>
+            </h6>
 
             {/* Create Account Button */}
             <Link to="/">

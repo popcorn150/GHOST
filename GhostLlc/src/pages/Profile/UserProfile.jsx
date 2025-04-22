@@ -13,7 +13,7 @@ import {
 import { FaSquareFacebook, FaXTwitter } from "react-icons/fa6";
 import { IoAdd } from "react-icons/io5";
 import { LuUpload } from "react-icons/lu";
-import { AdminIcon } from "../../utils";
+// import { AdminIcon } from "../../utils";
 import { useState, useEffect, useRef } from "react";
 import { auth, db } from "../../database/firebaseConfig";
 import {
@@ -28,7 +28,7 @@ import {
   setDoc,
   updateDoc,
 } from "firebase/firestore";
-import imageCompression from "browser-image-compression";
+// import imageCompression from "browser-image-compression";
 
 const tabs = ["Uploads", "Bio", "Socials", "Favorites"];
 
