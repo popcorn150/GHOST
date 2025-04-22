@@ -4,7 +4,7 @@ import Category from "./pages/Category";
 import AccountDetails from "./pages/AccountDetails";
 import Settings from "./pages/Settings";
 import UserProfile from "./pages/Profile/UserProfile";
-import ProfileVisit from "./pages/Profile/Profilevisit";
+import ProfileVisit from "./pages/Profile/ProfileVisit";
 import WelcomePage from "./pages/WelcomePage";
 import AccountSetup from "./pages/AccountSetup";
 import AccountLogin from "./pages/AccountLogin";
