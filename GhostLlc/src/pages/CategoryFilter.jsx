@@ -110,6 +110,7 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
           userProfilePic: account.userProfilePic || null,
           username: account.username || "Unknown",
           category: category, // Store the mapped category with the game data
+          isFromFirestore: account.isFromFirestore || false, // Pass through whether this account was uploaded by the user
         };
 
         categorizedGames[category].push(gameData);
@@ -133,7 +134,10 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
       .map((cat) => ({
         // Convert "Fighter" to "Fighting" in the result
         name: cat.category === "Fighter" ? "Fighting" : cat.category,
-        games: cat.games,
+        games: cat.games.map((game) => ({
+          ...game,
+          isFromFirestore: false, // Mark static accounts as not user-uploaded
+        })),
       }));
 
     // Dynamic categories from uploaded accounts
@@ -270,12 +274,17 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
                     </p>
                   </span>
                   <div className="flex justify-between items-center mt-2">
-                    <Link
-                      to={`/account/${game.slug}`}
-                      className="inline-block bg-blue-500 text-white px-2 py-1 md:px-4 md:py-2 rounded-md text-xs md:text-sm"
-                    >
-                      View Details
-                    </Link>
+                    {/* Only show View Details button for user-uploaded accounts */}
+                    {game.isFromFirestore ? (
+                      <Link
+                        to={`/account/${game.slug}`}
+                        className="inline-block bg-blue-500 text-white px-2 py-1 md:px-4 md:py-2 rounded-md text-xs md:text-sm"
+                      >
+                        View Details
+                      </Link>
+                    ) : (
+                      <div></div> // Empty div to maintain spacing
+                    )}
                     <button className="cursor-pointer self-center bg-blue-500 text-white px-2 py-1 rounded-md text-xs md:text-sm flex items-center gap-1">
                       <FaHeart className="text-white text-2xl" />
                     </button>

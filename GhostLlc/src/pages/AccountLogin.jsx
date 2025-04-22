@@ -2,11 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { BackGround_, Logo, Title, Google } from "../utils";
 import { auth, googleProvider } from "../database/firebaseConfig";
-import {
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-} from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import {
   getFirestore,
   collection,
@@ -26,25 +22,20 @@ const AccountLogin = () => {
   const navigate = useNavigate();
   const db = getFirestore();
 
-  // REMOVED the automatic sign-out to allow authenticated users to stay signed in
-  // Now we just check if a user is already signed in
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         console.log(`User already signed in: ${user.uid}`);
-        // User is already signed in, but we don't redirect them
       }
     });
     return () => unsubscribe();
   }, []);
 
-  // Simple email validation function
   const validateEmail = (email) => {
     const regex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
     return regex.test(email);
   };
 
-  // Check if user exists in Firestore with error handling
   const checkUserExists = async (uid) => {
     try {
       const userRef = doc(db, "users", uid);
@@ -53,39 +44,25 @@ const AccountLogin = () => {
       return userDoc.exists();
     } catch (error) {
       console.error(`Error checking user existence for UID=${uid}:`, error);
-      // If we get a permission error, we can't check if user exists
-      // Instead of failing, we'll assume the user exists (auth passed)
-      if (
-        error.code === "permission-denied" ||
-        error.message.includes("permissions")
-      ) {
-        console.log(
-          "Permission error when checking user, assuming user exists"
-        );
-        return true;
-      }
-      return false;
+      console.log("Assuming user exists due to error");
+      return true; // Assume exists to allow login
     }
   };
 
-  // Email/Username Login Handler
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
-    // Validate inputs
     if (!emailOrUsername.trim() || !password.trim()) {
       setError("Please fill out all required fields.");
       return;
     }
 
     setLoading(true);
-
     try {
       let userEmail = emailOrUsername;
       let userExists = false;
 
-      // If input is not a valid email, treat it as a username
       if (!validateEmail(emailOrUsername)) {
         try {
           const usersRef = collection(db, "users");
@@ -109,10 +86,8 @@ const AccountLogin = () => {
             throw new Error("Invalid email retrieved from database.");
           }
 
-          // User exists in Firestore since we found them by username
           userExists = true;
         } catch (firestoreError) {
-          // If we got a permission error looking up by username, try direct login instead
           if (
             firestoreError.code === "permission-denied" ||
             firestoreError.message.includes("permissions")
@@ -126,38 +101,21 @@ const AccountLogin = () => {
         }
       }
 
-      // Attempt login with Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(
         auth,
         userEmail,
         password
       );
 
-      // If we didn't verify existence by username, check if they exist in Firestore
-      // Skip this check if we already know they exist or if we can't check due to permissions
       if (!userExists) {
-        try {
-          userExists = await checkUserExists(userCredential.user.uid);
-          if (!userExists) {
-            // User is authenticated but not in our database
-            // We'll let them proceed anyway since auth was successful
-            console.log("User authenticated but not found in Firestore");
-          }
-        } catch (checkError) {
-          // If we can't check due to permissions, we'll assume the user exists
-          console.log(
-            "Error checking if user exists, proceeding anyway",
-            checkError
-          );
-        }
+        userExists = await checkUserExists(userCredential.user.uid);
+        console.log(`Post-login userExists: ${userExists}`);
       }
 
       alert("Login successful!");
-      // No automatic redirect - user stays on current page
+      navigate("/categories"); // Explicit navigation
     } catch (error) {
       console.error("Login error:", error);
-
-      // Handle specific Firebase auth errors
       if (error.code) {
         switch (error.code) {
           case "auth/user-not-found":
@@ -187,7 +145,6 @@ const AccountLogin = () => {
             setError("Login failed. Please try again.");
         }
       } else {
-        // Handle custom errors
         switch (error.message) {
           case "auth/user-not-found":
             setError(
@@ -200,9 +157,6 @@ const AccountLogin = () => {
           case "Invalid email retrieved from database.":
             setError("Invalid email data. Please contact support.");
             break;
-          case "Account not registered in our system. Please sign up first.":
-            setError(error.message);
-            break;
           default:
             setError("Login failed. Please try again.");
         }
@@ -212,7 +166,6 @@ const AccountLogin = () => {
     }
   };
 
-  // Google Sign-In Handler
   const handleGoogleSignIn = async () => {
     setError("");
     setLoading(true);
@@ -225,28 +178,13 @@ const AccountLogin = () => {
         throw new Error("No user or email returned from Google sign-in.");
       }
 
-      try {
-        // Check if user document exists in Firestore
-        const userExists = await checkUserExists(signedInUser.uid);
+      const userExists = await checkUserExists(signedInUser.uid);
+      console.log(`Google sign-in userExists: ${userExists}`);
 
-        if (userExists) {
-          alert("Google sign-in successful!");
-          // No automatic redirect - user stays on current page
-        } else {
-          // We'll still let them stay signed in even if they don't exist in Firestore
-          alert("Google sign-in successful!");
-        }
-      } catch (checkError) {
-        // If we can't check due to permissions, assume user is OK
-        console.log(
-          "Error checking if Google user exists, proceeding anyway",
-          checkError
-        );
-        alert("Google sign-in successful!");
-      }
+      alert("Google sign-in successful!");
+      navigate("/categories"); // Explicit navigation
     } catch (error) {
       console.error("Google sign-in error:", error);
-
       if (error.code) {
         switch (error.code) {
           case "auth/popup-closed-by-user":
@@ -270,7 +208,6 @@ const AccountLogin = () => {
             setError("Google sign-in failed. Please try again.");
         }
       } else {
-        // Custom error message or messages from thrown errors
         setError(error.message || "Google sign-in failed. Please try again.");
       }
     } finally {
@@ -280,7 +217,6 @@ const AccountLogin = () => {
 
   return (
     <div className="relative flex items-center justify-center bg-[#010409] w-full h-screen overflow-hidden">
-      {/* Background Image */}
       <div className="absolute inset-0 opacity-50">
         <img
           src={BackGround_}
@@ -290,7 +226,6 @@ const AccountLogin = () => {
       </div>
 
       <div className="relative my-5 flex flex-col items-center gap-8 px-6 md:flex-row md:gap-30">
-        {/* Logo and Title */}
         <div className="flex flex-row gap-3 md:flex-col items-center">
           <img
             src={Logo}
@@ -300,7 +235,6 @@ const AccountLogin = () => {
           <img src={Title} alt="Title" className="w-34 md:w-56" />
         </div>
 
-        {/* Login Form */}
         <div className="flex flex-col items-center bg-[#010409] p-7 md:p-14 rounded-xl w-full max-w-md">
           <h1 className="text-white text-xl lg:text-2xl font-semibold mb-4">
             Login
@@ -309,7 +243,6 @@ const AccountLogin = () => {
           {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
 
           <form className="space-y-4" onSubmit={handleLogin}>
-            {/* Email/Username Input */}
             <div>
               <label className="text-white block mb-1">Email or Username</label>
               <input
@@ -321,7 +254,6 @@ const AccountLogin = () => {
               />
             </div>
 
-            {/* Password Input */}
             <div>
               <label className="text-white block mb-1">Password</label>
               <input
@@ -332,7 +264,6 @@ const AccountLogin = () => {
               />
             </div>
 
-            {/* Login Button */}
             <button
               type="submit"
               className="w-full bg-[#4426B9] hover:bg-[#341d8c] text-white font-semibold p-2 rounded-md transition duration-200"
@@ -341,7 +272,6 @@ const AccountLogin = () => {
               {loading ? "Loading..." : "Log In"}
             </button>
 
-            {/* Forgot Password Link */}
             <p className="text-gray-400 text-center text-xs">
               <Link to="/forgot-password" className="underline text-blue-400">
                 Forgotten Password?
@@ -353,7 +283,6 @@ const AccountLogin = () => {
               your fingertips.
             </h5>
 
-            {/* Create Account Button */}
             <Link to="/">
               <button
                 type="button"
@@ -364,7 +293,6 @@ const AccountLogin = () => {
             </Link>
           </form>
 
-          {/* Google Login Button */}
           <div className="flex flex-col items-center mt-6 w-full">
             <p className="text-white text-sm mb-2">OR</p>
             <button

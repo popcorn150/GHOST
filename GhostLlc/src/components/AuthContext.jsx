@@ -22,7 +22,6 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Check if the user exists in Firestore - memoized
   const checkUserExists = useCallback(async (uid) => {
     try {
       const userRef = doc(db, "users", uid);
@@ -30,9 +29,7 @@ export const AuthProvider = ({ children }) => {
       console.log(
         `AuthContext checkUserExists: UID=${uid}, Exists=${userDoc.exists()}`
       );
-
       if (userDoc.exists()) {
-        // Store user details if they exist
         setUserDetails(userDoc.data());
         return true;
       }
@@ -42,11 +39,10 @@ export const AuthProvider = ({ children }) => {
         `AuthContext checkUserExists failed for UID=${uid}:`,
         error
       );
-      return false;
+      return true; // Assume exists to allow navigation
     }
   }, []);
 
-  // Create user document in Firestore - memoized
   const createUserDocument = useCallback(async (user, userData = null) => {
     try {
       const userRef = doc(db, "users", user.uid);
@@ -59,15 +55,11 @@ export const AuthProvider = ({ children }) => {
         setupComplete: false,
       };
 
-      // Use provided userData if available, otherwise use defaults
       const finalUserData = userData || defaultUserData;
-
       await setDoc(userRef, finalUserData, { merge: true });
       console.log(
         `AuthContext: User document created/updated for UID: ${user.uid}`
       );
-
-      // Update local user details
       setUserDetails(finalUserData);
       return true;
     } catch (error) {
@@ -79,7 +71,6 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // Complete user setup - for use during sign-up
   const completeUserSetup = useCallback(
     async (userData) => {
       if (!currentUser) {
@@ -87,14 +78,12 @@ export const AuthProvider = ({ children }) => {
         return false;
       }
 
-      // Update the user document with setup data
       const success = await createUserDocument(currentUser, {
         ...userData,
         setupComplete: true,
       });
 
       if (success) {
-        // Redirect to home/dashboard after successful setup
         navigate("/categories");
         return true;
       }
@@ -103,54 +92,41 @@ export const AuthProvider = ({ children }) => {
     [currentUser, createUserDocument, navigate]
   );
 
-  // Logout function - memoized
   const logout = useCallback(async () => {
     try {
       console.log("AuthContext: Logging out user");
-
-      // Clear timeout first
       if (userTimeout) {
         clearTimeout(userTimeout);
         setUserTimeout(null);
       }
-
-      // Then clear user state
       setCurrentUser(null);
       setUserDetails(null);
-
-      // Finally sign out - this will trigger the auth state change
+      setLastProcessedUid(null); // Clear to allow reprocessing
       await signOut(auth);
-
-      // Navigate to login page
       navigate("/login");
     } catch (error) {
       console.error("Logout error:", error);
     }
   }, [navigate, userTimeout]);
 
-  // Session timeout handling - Auto logout after 1 hour of inactivity
   const resetInactivityTimer = useCallback(() => {
     if (userTimeout) {
       clearTimeout(userTimeout);
     }
 
-    // Only set the timer if a user is logged in
     if (currentUser) {
       const timer = setTimeout(() => {
         console.log("Session timeout - logging out");
         logout();
-      }, 60 * 60 * 1000); // 1 hour
-
+      }, 60 * 60 * 1000);
       setUserTimeout(timer);
     }
   }, [currentUser, logout, userTimeout]);
 
-  // Handle auth state changes - memoized with a tracker to prevent looping
   const [lastProcessedUid, setLastProcessedUid] = useState(null);
 
   const handleAuthStateChange = useCallback(
     async (user) => {
-      // Prevent multiple processing of the same auth state
       if (user?.uid === lastProcessedUid && !loading) {
         return;
       }
@@ -162,39 +138,30 @@ export const AuthProvider = ({ children }) => {
       );
 
       if (user) {
-        // Update last processed UID to prevent loops
         setLastProcessedUid(user.uid);
+        setCurrentUser(user);
 
-        try {
-          // Update current user state
-          setCurrentUser(user);
+        const userExists = await checkUserExists(user.uid);
+        console.log(
+          `Navigation check: userExists=${userExists}, setupComplete=${userDetails?.setupComplete}, path=${location.pathname}`
+        );
 
-          // Check if user exists in Firestore
-          const userExists = await checkUserExists(user.uid);
-
-          // For new users who aren't on the sign-up page yet, direct them there
-          if (!userExists && location.pathname !== "/sign-up") {
-            navigate("/sign-up");
-          } else if (
-            userExists &&
-            (location.pathname === "/login" || location.pathname === "/")
-          ) {
-            // If user exists and is on login or landing page, redirect to categories
-            navigate("/categories");
-          }
-
-          // Initialize activity monitoring
-          resetInactivityTimer();
-        } catch (error) {
-          console.error("Auth state change error:", error);
+        if (!userExists && location.pathname !== "/sign-up") {
+          navigate("/sign-up");
+        } else if (
+          userExists &&
+          userDetails?.setupComplete &&
+          (location.pathname === "/login" || location.pathname === "/")
+        ) {
+          navigate("/categories");
+        } else if (userExists && !userDetails?.setupComplete) {
+          navigate("/sign-up");
         }
       } else {
-        // User logged out, clear states
         setCurrentUser(null);
         setUserDetails(null);
         setLastProcessedUid(null);
 
-        // Redirect to login only if not already on login or landing page
         if (location.pathname !== "/login" && location.pathname !== "/") {
           navigate("/login");
         }
@@ -209,10 +176,10 @@ export const AuthProvider = ({ children }) => {
       location.pathname,
       loading,
       lastProcessedUid,
+      userDetails,
     ]
   );
 
-  // Setup event listeners for user activity
   useEffect(() => {
     const setupActivityListeners = () => {
       const events = [
@@ -238,13 +205,11 @@ export const AuthProvider = ({ children }) => {
     return cleanup;
   }, [resetInactivityTimer]);
 
-  // Monitor auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, handleAuthStateChange);
     return unsubscribe;
   }, [handleAuthStateChange]);
 
-  // Clear timeout on unmount
   useEffect(() => {
     return () => {
       if (userTimeout) {

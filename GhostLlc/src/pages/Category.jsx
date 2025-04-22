@@ -65,7 +65,7 @@ const Category = () => {
               id: `screenshot-${index}-${idx}`,
               img: img || AdminIcon,
             })),
-            isFromFirestore: true,
+            isFromFirestore: true, // Mark as user-uploaded
             category: account.category || "Other",
           }));
           setAccounts(mappedAccounts);
@@ -83,7 +83,13 @@ const Category = () => {
     fetchUploadedAccounts();
   }, [user]);
 
-  const combinedAccounts = [...availableAccounts, ...accounts];
+  // Add isFromFirestore:false to each available account
+  const modifiedAvailableAccounts = availableAccounts.map((account) => ({
+    ...account,
+    isFromFirestore: false, // Mark as not user-uploaded
+  }));
+
+  const combinedAccounts = [...modifiedAvailableAccounts, ...accounts];
   const filteredAccounts = combinedAccounts.filter((account) => {
     const title = account.title || account.accountName || "";
     return title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -177,12 +183,15 @@ const Category = () => {
                           className="w-8 h-8 rounded-full object-cover border border-gray-700"
                         />
                       </div>
-                      <Link
-                        to={`/account/${account.slug || account.id}`}
-                        className="inline-block w-full text-center bg-gradient-to-r from-[#4426B9] to-[#6C5DD3] text-white py-2 px-4 rounded-lg font-semibold hover:opacity-90 transition"
-                      >
-                        View Details
-                      </Link>
+                      {/* Only show View Details button for user-uploaded accounts */}
+                      {account.isFromFirestore ? (
+                        <Link
+                          to={`/account/${account.slug || account.id}`}
+                          className="inline-block w-full text-center bg-gradient-to-r from-[#4426B9] to-[#6C5DD3] text-white py-2 px-4 rounded-lg font-semibold hover:opacity-90 transition"
+                        >
+                          View Details
+                        </Link>
+                      ) : null}
                     </div>
                   </div>
                 );
@@ -199,6 +208,7 @@ const Category = () => {
           key={searchTerm.trim() === "" ? "default" : "active"}
           searchTerm={searchTerm}
           combinedAccounts={combinedAccounts}
+          loading={loading}
         />
       </div>
     </>

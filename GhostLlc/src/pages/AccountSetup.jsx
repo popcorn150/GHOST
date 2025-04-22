@@ -1,20 +1,19 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { BackGround_, Logo, Title } from "../utils";
-import { useAuth } from "../components/AuthContext"; // Update this path
+import { useAuth } from "../components/AuthContext";
 import { auth, db } from "../database/firebaseConfig";
 import {
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
   fetchSignInMethodsForEmail,
 } from "firebase/auth";
-import { doc, setDoc, Timestamp, collection, getDoc } from "firebase/firestore";
+import { doc, setDoc, Timestamp, getDoc } from "firebase/firestore";
 
 const AccountSetup = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { state } = location;
-  const { completeUserSetup } = useAuth(); // Use auth context for setup
+  const { completeUserSetup } = useAuth();
 
   const [email, setEmail] = useState(state?.email || "");
   const [username, setUsername] = useState("");
@@ -30,11 +29,30 @@ const AccountSetup = () => {
   const [usernameAvailable, setUsernameAvailable] = useState(null);
   const [checkingUsername, setCheckingUsername] = useState(false);
 
-  // Fetch user location - with better error handling and caching
+  // Sync email with auth.currentUser.email and handle Google auth
+  useEffect(() => {
+    console.log("AccountSetup state:", state);
+    console.log("auth.currentUser:", auth.currentUser);
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user && user.email) {
+        console.log("Setting email from auth.currentUser:", user.email);
+        setEmail(user.email);
+      } else if (state?.googleAuth && state?.email) {
+        console.log("Setting email from state:", state.email);
+        setEmail(state.email);
+      } else {
+        console.log("No valid email, redirecting to /login");
+        setErrorMessage("Authentication incomplete. Please sign in again.");
+        setTimeout(() => navigate("/login"), 2000);
+      }
+    });
+    return () => unsubscribe();
+  }, [state, navigate]);
+
+  // Fetch user location
   useEffect(() => {
     const fetchLocation = async () => {
       try {
-        // Try to use cached location first
         const cachedLocation = localStorage.getItem("userLocation");
         if (cachedLocation) {
           const locationData = JSON.parse(cachedLocation);
@@ -43,45 +61,29 @@ const AccountSetup = () => {
           return;
         }
 
-        // If no cache, make API request with proper error handling
-        const response = await fetch("https://api.ipregistry.co/?key=tryout", {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Status: ${response.status}`);
-        }
-
+        const response = await fetch("https://api.ipregistry.co/?key=tryout");
+        if (!response.ok) throw new Error(`Status: ${response.status}`);
         const data = await response.json();
 
-        // Set country and currency based on the API response
         const countryName = data.location?.country?.name || "United States";
         const currencyCode = data.currency?.code || "USD";
-
         setCountry(countryName);
         setCurrency(currencyCode);
 
-        // Cache the result
         localStorage.setItem(
           "userLocation",
-          JSON.stringify({
-            country: countryName,
-            currency: currencyCode,
-          })
+          JSON.stringify({ country: countryName, currency: currencyCode })
         );
       } catch (error) {
         console.error("Error fetching location, using defaults:", error);
-        // Fallback to defaults
         setCountry("United States");
         setCurrency("USD");
       }
     };
-
     fetchLocation();
   }, []);
 
-  // Check username availability after user stops typing
+  // Check username availability
   useEffect(() => {
     const timer = setTimeout(() => {
       if (username.trim().length >= 3) {
@@ -90,17 +92,14 @@ const AccountSetup = () => {
         setUsernameAvailable(null);
       }
     }, 600);
-
     return () => clearTimeout(timer);
   }, [username]);
 
-  // Username validation with feedback
   const validateUsername = async (username) => {
     if (!username.trim() || username.length < 3) {
       setUsernameAvailable(null);
       return;
     }
-
     setCheckingUsername(true);
     try {
       const isAvailable = await checkUsernameAvailability(username);
@@ -113,7 +112,6 @@ const AccountSetup = () => {
     }
   };
 
-  // Password validation
   const validatePassword = (pwd) => {
     setPassword(pwd);
     if (!pwd || pwd.length < 8) {
@@ -129,21 +127,30 @@ const AccountSetup = () => {
     }
   };
 
-  // Email validation
   const validateEmailFormat = (email) => {
+    console.log("Validating email:", email);
     const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!email || !emailPattern.test(email)) {
+      console.log("Email validation failed: Invalid format");
       return "Please enter a valid email address.";
     }
-    const allowedDomains = ["gmail.com", "yahoo.com", "outlook.com"];
-    const domain = email.split("@")[1];
-    if (!allowedDomains.includes(domain)) {
-      return "Please use a supported email domain (e.g., gmail.com, yahoo.com).";
-    }
+    console.log("Email validation passed");
     return "";
   };
 
-  // Check if email is linked to a Google account
+  const checkUsernameAvailability = async (username) => {
+    try {
+      console.log(`Checking username availability: ${username}`);
+      const usernameRef = doc(db, "usernames", username.trim());
+      const usernameSnap = await getDoc(usernameRef);
+      console.log(`Username ${username} exists: ${usernameSnap.exists()}`);
+      return !usernameSnap.exists();
+    } catch (error) {
+      console.error("Error checking username:", error);
+      throw new Error("Failed to check username availability");
+    }
+  };
+
   const isGoogleAccount = async (email) => {
     try {
       const methods = await fetchSignInMethodsForEmail(auth, email);
@@ -151,19 +158,6 @@ const AccountSetup = () => {
     } catch (error) {
       console.error("Error checking sign-in methods:", error.message);
       return false;
-    }
-  };
-
-  // Function to check username availability
-  const checkUsernameAvailability = async (username) => {
-    try {
-      const usernameRef = doc(db, "usernames", username.trim());
-      const usernameSnap = await getDoc(usernameRef);
-      return !usernameSnap.exists(); // Return true if username is available
-    } catch (error) {
-      console.error("Error checking username:", error);
-      // This is an actual Firebase error, not just a non-existent username
-      throw new Error("Failed to check username availability");
     }
   };
 
@@ -178,30 +172,31 @@ const AccountSetup = () => {
       return;
     }
 
-    // Final username availability check
     if (usernameAvailable === false) {
       setErrorMessage("Username is already taken. Please choose another.");
       return;
     }
 
-    // Validate email
-    const emailValidationError = validateEmailFormat(email);
-    if (emailValidationError) {
-      setErrorMessage(emailValidationError);
-      return;
+    // Skip email validation for Google users
+    if (state?.googleAuth || auth.currentUser) {
+      console.log("Skipping email validation for Google user, email:", email);
+    } else {
+      const emailValidationError = validateEmailFormat(email);
+      if (emailValidationError) {
+        setErrorMessage(emailValidationError);
+        return;
+      }
     }
 
-    // Handle Google-authenticated user
-    if (state?.email && auth.currentUser) {
+    // Google-authenticated user
+    if (state?.googleAuth || auth.currentUser) {
       if (!isChecked) {
         setErrorMessage("You must agree to the terms and conditions.");
         return;
       }
 
       setLoading(true);
-
       try {
-        // Final check if username is available
         const isUsernameAvailable = await checkUsernameAvailability(username);
         if (!isUsernameAvailable) {
           setErrorMessage("Username is already taken. Please choose another.");
@@ -209,10 +204,9 @@ const AccountSetup = () => {
           return;
         }
 
-        // Prepare user data
         const userDoc = {
           uid: auth.currentUser.uid,
-          email,
+          email: email || auth.currentUser.email,
           username: username.trim(),
           country,
           currency,
@@ -220,18 +214,14 @@ const AccountSetup = () => {
           setupComplete: true,
         };
 
-        // First create the username reservation
         await setDoc(doc(db, "usernames", username.trim()), {
           uid: auth.currentUser.uid,
         });
 
-        // Then update the user document using our auth context
         const success = await completeUserSetup(userDoc);
-
         if (success) {
           localStorage.setItem("currency", currency);
           alert("Account created successfully!");
-          // Auth context will handle navigation
         } else {
           throw new Error("Failed to complete user setup");
         }
@@ -275,9 +265,7 @@ const AccountSetup = () => {
     }
 
     setLoading(true);
-
     try {
-      // Check if email is linked to a Google account
       const googleAccount = await isGoogleAccount(email);
       if (googleAccount) {
         setErrorMessage(
@@ -287,7 +275,6 @@ const AccountSetup = () => {
         return;
       }
 
-      // Final check if username is available
       const isUsernameAvailable = await checkUsernameAvailability(username);
       if (!isUsernameAvailable) {
         setErrorMessage("Username is already taken. Please choose another.");
@@ -295,7 +282,6 @@ const AccountSetup = () => {
         return;
       }
 
-      // Create new user
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -303,7 +289,6 @@ const AccountSetup = () => {
       );
       const user = userCredential.user;
 
-      // Save user data to Firestore
       const userDoc = {
         uid: user.uid,
         email,
@@ -314,15 +299,11 @@ const AccountSetup = () => {
         setupComplete: true,
       };
 
-      // First create the username reservation
       await setDoc(doc(db, "usernames", username.trim()), { uid: user.uid });
-
-      // Then create the user document
       await completeUserSetup(userDoc);
 
       localStorage.setItem("currency", currency);
       alert("Account created successfully!");
-      // Auth context will handle navigation
     } catch (error) {
       console.error("Sign-up error:", error.message);
       switch (error.code) {
@@ -410,7 +391,7 @@ const AccountSetup = () => {
               )}
             </div>
 
-            {!state?.email && (
+            {!(state?.googleAuth || auth.currentUser) && (
               <input
                 type="email"
                 placeholder="Email"
@@ -427,32 +408,33 @@ const AccountSetup = () => {
               value={password}
               onChange={(e) => validatePassword(e.target.value)}
               className={`w-full p-2 bg-[#161B22] text-white rounded-md border border-gray-600 ${
-                state?.email ? "opacity-50" : ""
+                state?.googleAuth || auth.currentUser ? "opacity-50" : ""
               }`}
-              required={!state?.email}
-              disabled={state?.email}
+              required={!(state?.googleAuth || auth.currentUser)}
+              disabled={state?.googleAuth || auth.currentUser}
             />
             <p
               className={`text-sm ${
                 passwordStrength === "Strong"
                   ? "text-green-400"
                   : "text-red-400"
-              } ${state?.email ? "opacity-50" : ""}`}
+              } ${state?.googleAuth || auth.currentUser ? "opacity-50" : ""}`}
             >
               {passwordStrength ||
-                (state?.email ? "Not required for Google accounts" : "")}
+                (state?.googleAuth || auth.currentUser
+                  ? "Not required for Google accounts"
+                  : "")}
             </p>
-
             <input
               type="password"
               placeholder="Confirm Password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className={`w-full p-2 bg-[#161B22] text-white rounded-md border border-gray-600 ${
-                state?.email ? "opacity-50" : ""
+                state?.googleAuth || auth.currentUser ? "opacity-50" : ""
               }`}
-              required={!state?.email}
-              disabled={state?.email}
+              required={!(state?.googleAuth || auth.currentUser)}
+              disabled={state?.googleAuth || auth.currentUser}
             />
             {passwordError && (
               <p className="text-red-500 text-sm">Passwords do not match.</p>
