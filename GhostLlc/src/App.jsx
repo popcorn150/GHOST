@@ -8,7 +8,6 @@ import ProfileVisit from "./pages/Profile/ProfileVisit";
 import WelcomePage from "./pages/WelcomePage";
 import AccountSetup from "./pages/AccountSetup";
 import AccountLogin from "./pages/AccountLogin";
-import Store from "./pages/Store/Store";
 import ProductDetails from "./pages/Store/ProductDetails";
 import MoreProducts from "./pages/Store/MoreProducts";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -50,7 +49,6 @@ const App = () => {
             <Route path="/faqs" element={<FAQs />} />
             <Route path="/community" element={<Community />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/store" element={<Store />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/withdraw" element={<Withdrawal />} />
