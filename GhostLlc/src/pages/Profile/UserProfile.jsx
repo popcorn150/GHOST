@@ -9,6 +9,7 @@ import {
   FaInstagram,
   FaTiktok,
   FaImage,
+  FaShareAlt,
 } from "react-icons/fa";
 import { FaSquareFacebook, FaXTwitter } from "react-icons/fa6";
 import { IoAdd } from "react-icons/io5";
@@ -88,7 +89,7 @@ const Layout = ({
           {isProcessingProfileImage && (
             <button
               onClick={handleCancelProfileImage}
-              className="absolute bottom-2 left-2 bg-[#EB3223] p-2 rounded-full cursor-pointer hover:bg-[#B71C1C] transition"
+              className="absolute bottom-2 ultras2 left-2 bg-[#EB3223] p-2 rounded-full cursor-pointer hover:bg-[#B71C1C] transition"
               aria-label="Cancel profile image upload"
             >
               <FaTrashAlt className="text-white w-5 h-5" />
@@ -144,6 +145,7 @@ const Uploads = ({ profileImage }) => {
   const [username, setUsername] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [editingAccount, setEditingAccount] = useState(null); // State for editing
   const minScreenshots = 3;
   const maxScreenshots = 5;
   const maxDescriptionWords = 100;
@@ -296,11 +298,25 @@ const Uploads = ({ profileImage }) => {
     }
   }, []);
 
-  const handleUpload = async () => {
-    if (!auth.currentUser) {
-      alert("Please log in to upload an account.");
-      return;
-    }
+  const handleEdit = (account) => {
+    setEditingAccount(account);
+    setAccountName(account.accountName);
+    setAccountCredential(account.accountCredential);
+    setAccountWorth(account.accountWorth);
+    setAccountDescription(account.accountDescription);
+    setAccountImage(account.images?.accountImage || null);
+    setScreenshots(
+      Object.keys(account.images || {})
+        .filter((key) => key.startsWith("screenshot"))
+        .map((key) => account.images[key])
+        .filter(Boolean)
+    );
+    setIsUploading(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!auth.currentUser || !editingAccount) return;
+
     if (
       !accountName ||
       !accountCredential ||
@@ -324,26 +340,26 @@ const Uploads = ({ profileImage }) => {
 
     try {
       setIsProcessing(true);
-      const userId = auth.currentUser.uid;
-      const uploadData = {
-        userId,
-        username,
+      const accountDocRef = doc(db, "accounts", editingAccount.id);
+      await updateDoc(accountDocRef, {
         accountName,
         accountCredential,
         accountWorth,
         accountDescription,
-        createdAt: new Date(),
-        currency: userCurrency,
-        category: "User Uploads",
-      };
-      const accountDocRef = await addDoc(
-        collection(db, "accounts"),
-        uploadData
-      );
+        updatedAt: new Date(),
+      });
 
-      const imagesRef = collection(db, `accounts/${accountDocRef.id}/images`);
+      const imagesRef = collection(db, `accounts/${editingAccount.id}/images`);
       if (accountImage) {
         await setDoc(doc(imagesRef, "accountImage"), { image: accountImage });
+      } else {
+        await deleteDoc(doc(imagesRef, "accountImage"));
+      }
+      const existingImages = await getDocs(imagesRef);
+      for (const imgDoc of existingImages.docs) {
+        if (imgDoc.id.startsWith("screenshot")) {
+          await deleteDoc(doc(imagesRef, imgDoc.id));
+        }
       }
       for (let i = 0; i < screenshots.length; i++) {
         await setDoc(doc(imagesRef, `screenshot${i}`), {
@@ -352,13 +368,97 @@ const Uploads = ({ profileImage }) => {
       }
 
       resetForm();
+      setEditingAccount(null);
       fetchAccounts();
-      alert("Account uploaded successfully!");
+      alert("Account updated successfully!");
     } catch (err) {
-      console.error("Upload error:", err.code, err.message);
-      alert("Failed to upload account: " + err.message);
+      console.error("Update error:", err);
+      alert("Failed to update account: " + err.message);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleShare = (account) => {
+    const shareUrl = `${window.location.origin}/account/${account.id}`;
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => {
+        alert("Shareable link copied to clipboard!");
+      })
+      .catch((err) => {
+        console.error("Failed to copy link:", err);
+        alert("Failed to copy link. Please try again.");
+      });
+  };
+
+  const handleUpload = async () => {
+    if (editingAccount) {
+      await handleUpdate();
+    } else {
+      if (!auth.currentUser) {
+        alert("Please log in to upload an account.");
+        return;
+      }
+      if (
+        !accountName ||
+        !accountCredential ||
+        !accountWorth ||
+        !accountDescription
+      ) {
+        alert("Please fill out all required fields.");
+        return;
+      }
+      if (screenshots.length < minScreenshots) {
+        alert(`Please upload at least ${minScreenshots} screenshots.`);
+        return;
+      }
+      const wordCount = accountDescription.trim().split(/\s+/).length;
+      if (wordCount > maxDescriptionWords) {
+        alert(
+          `Description exceeds ${maxDescriptionWords} words (current: ${wordCount}).`
+        );
+        return;
+      }
+
+      try {
+        setIsProcessing(true);
+        const userId = auth.currentUser.uid;
+        const uploadData = {
+          userId,
+          username,
+          accountName,
+          accountCredential,
+          accountWorth,
+          accountDescription,
+          createdAt: new Date(),
+          currency: userCurrency,
+          category: "User Uploads",
+        };
+        const accountDocRef = await addDoc(
+          collection(db, "accounts"),
+          uploadData
+        );
+
+        const imagesRef = collection(db, `accounts/${accountDocRef.id}/images`);
+        if (accountImage) {
+          await setDoc(doc(imagesRef, "accountImage"), { image: accountImage });
+        }
+        for (let i = 0; i < screenshots.length; i++) {
+          await setDoc(doc(imagesRef, `screenshot${i}`), {
+            image: screenshots[i],
+          });
+        }
+
+        resetForm();
+        fetchAccounts();
+        alert("Account uploaded successfully!");
+      } catch (err) {
+        console.error("Upload error:", err.code, err.message);
+        alert("Failed to upload account: " + err.message);
+      } finally {
+        setIsProcessing(false);
+      }
     }
   };
 
@@ -385,6 +485,7 @@ const Uploads = ({ profileImage }) => {
     setAccountImage(null);
     setScreenshots([]);
     setIsUploading(false);
+    setEditingAccount(null);
     if (accountImageInputRef.current) {
       accountImageInputRef.current.value = null;
     }
@@ -434,12 +535,17 @@ const Uploads = ({ profileImage }) => {
       )}
       <div className="flex flex-col mb-12 sm:flex-row justify-between items-center gap-4 sm:gap-10 p-3 xs:p-4 sm:p-6 my-3 border border-gray-200 rounded-lg">
         <h2 className="text-white text-md xs:text-lg sm:text-xl text-center sm:text-left font-semibold tracking-wide">
-          Upload An Account
+          {editingAccount ? "Edit Account" : "Upload An Account"}
         </h2>
         <button
           className="bg-gray-400 rounded-lg cursor-pointer p-2 hover:bg-gray-500 transition-all duration-300"
-          onClick={() => setIsUploading(!isUploading)}
-          aria-label={isUploading ? "Close upload form" : "Open upload form"}
+          onClick={() => {
+            if (editingAccount) {
+              resetForm();
+            }
+            setIsUploading(!isUploading);
+          }}
+          aria-label={isUploading ? "Close form" : "Open form"}
         >
           <IoAdd className="w-5 h-5 xs:w-6 xs:h-6 sm:w-7 sm:h-7" />
         </button>
@@ -574,16 +680,24 @@ const Uploads = ({ profileImage }) => {
             <button
               onClick={resetForm}
               className="flex items-center justify-center gap-2 text-white font-medium bg-[#EB3223] px-4 py-2 rounded-lg cursor-pointer w-full sm:w-32 hover:bg-[#B71C1C] transition"
-              aria-label="Discard upload form"
+              aria-label="Discard form"
             >
               <FaTrashAlt className="w-4 h-4" /> Discard
             </button>
             <button
               onClick={handleUpload}
               className="flex items-center justify-center gap-2 text-white font-medium bg-[#4426B9] px-4 py-2 rounded-lg cursor-pointer w-full sm:w-32 hover:bg-[#2F1A7F] transition"
-              aria-label="Upload account"
+              aria-label={editingAccount ? "Update account" : "Upload account"}
             >
-              <LuUpload className="w-4 h-4" /> Upload
+              {editingAccount ? (
+                <>
+                  <FaSave className="w-4 h-4" /> Update
+                </>
+              ) : (
+                <>
+                  <LuUpload className="w-4 h-4" /> Upload
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -665,7 +779,7 @@ const Uploads = ({ profileImage }) => {
                 Object.keys(acc.images).filter((key) =>
                   key.startsWith("screenshot")
                 ).length > 0 ? (
-                  <div className="mb-2">
+                  <div className="mb-4">
                     <p className="text-gray-200 text-xs sm:text-sm font-light uppercase tracking-wider mb-2">
                       Screenshots:
                     </p>
@@ -698,19 +812,35 @@ const Uploads = ({ profileImage }) => {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-gray-400 text-xs sm:text-sm font-light tracking-wider mb-2">
+                  <p className="text-gray-400 text-xs sm:text-sm font-light tracking-wider mb-4">
                     No screenshots available.
                   </p>
                 )}
 
-                <div className="absolute top-1 right-1 sm:top-2 sm:right-2">
+                <div className="flex justify-between items-center">
                   <button
-                    onClick={() => setShowDeleteConfirm(acc)}
-                    className="flex items-center justify-center bg-[#EB3223]/80 text-white p-1.5 sm:p-2 rounded-full hover:bg-[#EB3223] active:bg-[#B71C1C] transition-all duration-300 w-8 h-8 sm:w-9 sm:h-9"
-                    aria-label={`Delete account ${acc.accountName}`}
+                    onClick={() => handleShare(acc)}
+                    className="flex items-center justify-center bg-[#0576FF]/80 text-white p-1.5 sm:p-2 rounded-full hover:bg-[#0576FF] active:bg-[#045FCC] transition-all duration-300 w-8 h-8 sm:w-9 sm:h-9"
+                    aria-label={`Share account ${acc.accountName}`}
                   >
-                    <FaTrashAlt className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <FaShareAlt className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(acc)}
+                      className="flex items-center justify-center bg-[#4426B9]/80 text-white p-1.5 sm:p-2 rounded-full hover:bg-[#4426B9] active:bg-[#2F1A7F] transition-all duration-300 w-8 h-8 sm:w-9 sm:h-9"
+                      aria-label={`Edit account ${acc.accountName}`}
+                    >
+                      <BsPencilSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </button>
+                    <button
+                      onClick={() => setShowDeleteConfirm(acc)}
+                      className="flex items-center justify-center bg-[#EB3223]/80 text-white p-1.5 sm:p-2 rounded-full hover:bg-[#EB3223] active:bg-[#B71C1C] transition-all duration-300 w-8 h-8 sm:w-9 sm:h-9"
+                      aria-label={`Delete account ${acc.accountName}`}
+                    >
+                      <FaTrashAlt className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
