@@ -84,23 +84,32 @@ const AccountDetails = () => {
     account?.screenShots?.length > 0 &&
     setSelectedImage((prev) => (prev + 1) % account.screenShots.length);
 
-  const handlePrev = () =>
+  const handlePrev = () => {
     account?.screenShots?.length > 0 &&
-    setSelectedImage(
-      (prev) =>
-        (prev - 1 + account.screenShots.length) % account.screenShots.length
-    );
+      setSelectedImage(
+        (prev) =>
+          (prev - 1 + account.screenShots.length) % account.screenShots.length
+      );
+  }
 
   const handleAddToCart = () => {
+    const existingCart = JSON.parse(localStorage.getItem("ghost_cart")) || [];
+
+    const alreadyInCart = existingCart.some(
+      (item) => (item.slug || item.id) === (account.slug || account.id)
+    );
+  
     if (
-      cart.some(
-        (item) => (item.slug || item.id) === (account.slug || account.id)
-      )
+      alreadyInCart
     ) {
       toast.warning(`${account.title} is already in your cart!`);
     } else {
-      setCart([...cart, account]);
+      const updatedCart = [...existingCart, account];
+      localStorage.setItem("ghost_cart", JSON.stringify(updatedCart));
+      setCart(updatedCart);
       toast.success(`${account.title} added to cart!`);
+
+      console.log("🧃 Saved to localStorage:", updatedCart);
     }
   };
 

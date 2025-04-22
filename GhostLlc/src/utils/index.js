@@ -111,47 +111,6 @@ import Instagram from "../assets/imgs/instagram-icon.svg"
 import Twitter from "../assets/imgs/twitter-icon.svg"
 import Youtube from "../assets/imgs/youtube-icon.svg"
 
-import Stickers from "../assets/imgs/Anime stickers.jpg"
-import CX05 from "../assets/imgs/CX05 magnetic cooler.jpg"
-import CX07 from "../assets/imgs/CX07 magnetic cooler.jpg"
-import CX08 from "../assets/imgs/CX08 magnetic cooler.jpg"
-import DAGEL from "../assets/imgs/DAGEL finger sleeves.jpg"
-import DLA8 from "../assets/imgs/DLA8.jpg"
-import Gloves from "../assets/imgs/Gaming gloves.jpg"
-import Gamenote from "../assets/imgs/Havit Gamenote Fuxi-H3.jpg"
-import iPadStand from "../assets/imgs/iPad stand.jpg"
-import iPad from "../assets/imgs/iPad.jpg"
-import iPhone from "../assets/imgs/iPhones.jpg"
-import MemoDI05 from "../assets/imgs/Memo DI05.jpg"
-import MemoDLA5 from "../assets/imgs/Memo DLA5-2.jpg"
-import MemoDLA52 from "../assets/imgs/Memo DLA5.jpg"
-import MemoDLA7 from "../assets/imgs/Memo DLA7 phone cooler.jpg"
-import MemoDLA72 from "../assets/imgs/Memo DLA7 phone cooler2.jpg"
-import NonGamer from "../assets/imgs/Non-gamer Package.jpg"
-import Nubia from "../assets/imgs/Nubia gaming phone.jpg"
-import PhoneCooler from "../assets/imgs/Phone Cooler.jpg"
-import Playstation5 from "../assets/imgs/PlayStation5.jpg"
-import ProGamer1 from "../assets/imgs/Pro Gamer package.jpg"
-import ProGamer2 from "../assets/imgs/Pro Gamer package2.jpg"
-import ProGamer3 from "../assets/imgs/Pro Gamer package3.jpg"
-import RookiePackage1 from "../assets/imgs/Rookie Package1.jpg"
-import RookiePackage2 from "../assets/imgs/Rookie Package2.jpg"
-import RookiePackage3 from "../assets/imgs/Rookie Package3.jpg"
-import XennaLogo from "../assets/imgs/XenaLogo.png"
-import Xiaomi from "../assets/imgs/Xiaomi Pad6.jpg"
-
-import PhoneCoolers from "../assets/imgs/phone-cooler.png"
-import GamingPC from "../assets/imgs/gaming-pc.png"
-import GamingEquips from "../assets/imgs/gaming-equips.png"
-import Phones from "../assets/imgs/phones.png"
-import GiftProducts from "../assets/imgs/gift-products.png"
-
-import BoomBox from "../assets/imgs/JBL_BOOMBOX.png"
-import IdeaPadGamingLaptop from "../assets/imgs/ideapad-gaming-3i.png"
-import GameController from "../assets/imgs/game-controller.png"
-import Playstation5Slim from "../assets/imgs/ps5-slim.png"
-import MiniSpeakers from "../assets/imgs/speakers.png"
-
 export const BackGround_ = Background
 export const Title = GhostTitle
 export const Logo = GhostLogo
@@ -264,52 +223,3 @@ export const Street_Fighter_Screenshot_3 = Street_Fighter_3
 export const InstagramIcon = Instagram
 export const TwitterIcon = Twitter
 export const YoutubeIcon = Youtube
-
-export const AnimeStickers = Stickers
-
-export const CX05_Magnetic_cooler = CX05
-export const CX07_Magnetic_cooler = CX07
-export const CX08_Magnetic_cooler = CX08
-
-export const DAGEL_Finger_Sleeves = DAGEL
-export const DLA_8 = DLA8
-export const GamingGloves = Gloves
-export const HavitGameNote = Gamenote
-
-export const iPad_Stand = iPadStand
-export const iPad_ = iPad
-export const iPhone_ = iPhone
-
-export const Memo_DI05 = MemoDI05
-export const Memo_DLA5 = MemoDLA5
-export const Memo_DLA52 = MemoDLA52
-export const Memo_DLA7 = MemoDLA7
-export const Memo_DLA72 = MemoDLA72
-
-export const NonGamerPackage = NonGamer
-export const NubiaGamingPhone = Nubia
-export const Phone_cooler = PhoneCooler
-export const Pes5 = Playstation5
-
-export const ProGamerPackage1 = ProGamer1
-export const ProGamerPackage2 = ProGamer2
-export const ProGamerPackage3 = ProGamer3
-
-export const RookieGamerPackage1 = RookiePackage1
-export const RookieGamerPackage2 = RookiePackage2
-export const RookieGamerPackage3 = RookiePackage3
-
-export const Xenna = XennaLogo
-export const XiaomiPad6 = Xiaomi
-
-export const Phone_Coolers = PhoneCoolers
-export const Gaming_PC = GamingPC
-export const Gaming_Equips = GamingEquips
-export const Gaming_Phones = Phones
-export const Gift_Packages = GiftProducts
-
-export const JBL = BoomBox
-export const i3_Gaming_Laptop = IdeaPadGamingLaptop
-export const Controller = GameController
-export const Pes5Slim = Playstation5Slim
-export const Echo_Speakers = MiniSpeakers

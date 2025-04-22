@@ -5,13 +5,14 @@ import { Link } from "react-router-dom";
 import { AdminIcon } from "../utils";
 import { FaHeart } from "react-icons/fa6";
 
-// Define only the specific categories we want
+// Define only the specific categories we want - changed Fighter to Fighting and added Racing
 const ALLOWED_CATEGORIES = [
-  "Fighter",
+  "Fighting",
   "Shooter",
   "Action",
   "Sport",
   "Adventure",
+  "Racing",
 ];
 
 const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
@@ -38,19 +39,26 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
         const existingCategory = (account.category || "").toLowerCase();
 
         // First try to match the existing category
-        if (existingCategory.includes("fight")) return "Fighter";
+        if (existingCategory.includes("fight")) return "Fighting";
         if (existingCategory.includes("shoot")) return "Shooter";
         if (existingCategory.includes("sport")) return "Sport";
         if (existingCategory.includes("adventure")) return "Adventure";
         if (existingCategory.includes("action")) return "Action";
+        if (
+          existingCategory.includes("rac") ||
+          existingCategory.includes("driv")
+        )
+          return "Racing";
 
         // If no match from existing category, try to infer from title
         if (
           title.includes("fight") ||
           title.includes("combat") ||
-          title.includes("battle")
+          title.includes("battle") ||
+          title.includes("wrestling") ||
+          title.includes("martial")
         )
-          return "Fighter";
+          return "Fighting";
         if (
           title.includes("shoot") ||
           title.includes("gun") ||
@@ -73,6 +81,13 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
           return "Adventure";
         if (title.includes("action") || title.includes("mission"))
           return "Action";
+        if (
+          title.includes("rac") ||
+          title.includes("driv") ||
+          title.includes("car") ||
+          title.includes("speed")
+        )
+          return "Racing";
 
         // Default category if no matches
         return "Action";
@@ -80,6 +95,11 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
 
       // Process each account and assign to appropriate category
       combinedAccounts.forEach((account) => {
+        // Map "Fighter" category to "Fighting" for existing accounts
+        if (account.category === "Fighter") {
+          account.category = "Fighting";
+        }
+
         const category = mapAccountToCategory(account);
 
         const gameData = {
@@ -102,11 +122,17 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
       }));
     };
 
-    // Static categories from constants (if needed)
+    // Static categories from constants - map Fighter to Fighting
     const staticCategories = categoryAccounts
-      .filter((cat) => ALLOWED_CATEGORIES.includes(cat.category))
+      .filter((cat) => {
+        // Convert "Fighter" category to "Fighting" for comparison
+        const categoryName =
+          cat.category === "Fighter" ? "Fighting" : cat.category;
+        return ALLOWED_CATEGORIES.includes(categoryName);
+      })
       .map((cat) => ({
-        name: cat.category,
+        // Convert "Fighter" to "Fighting" in the result
+        name: cat.category === "Fighter" ? "Fighting" : cat.category,
         games: cat.games,
       }));
 

@@ -30,7 +30,6 @@ import {
 } from "firebase/firestore";
 import imageCompression from "browser-image-compression";
 
-
 const tabs = ["Uploads", "Bio", "Socials", "Favorites"];
 
 const Layout = ({
@@ -62,9 +61,9 @@ const Layout = ({
     <>
       <NavBar profileImage={profileImage || "/default-profile.png"} />
       <div className="flex flex-col items-center justify-center p-3 bg-[#010409]">
-          <div className="w-full flex justify-start">
-    <BackButton />
-  </div>
+        <div className="w-full flex justify-start">
+          <BackButton />
+        </div>
         <div className="my-10 relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-[#0576FF]">
           <img
             src={profileImage || "/default-profile.png"}
@@ -335,7 +334,7 @@ const Uploads = ({ profileImage }) => {
         accountDescription,
         createdAt: new Date(),
         currency: userCurrency,
-        category: "User Uploads", // Add category field
+        category: "User Uploads",
       };
       const accountDocRef = await addDoc(
         collection(db, "accounts"),
@@ -433,7 +432,7 @@ const Uploads = ({ profileImage }) => {
           </div>
         </div>
       )}
-      <div className="flex flex-col mb-5 sm:flex-row justify-between items-center gap-4 sm:gap-10 p-3 xs:p-4 sm:p-6 my-3 border border-gray-200 rounded-lg">
+      <div className="flex flex-col mb-12 sm:flex-row justify-between items-center gap-4 sm:gap-10 p-3 xs:p-4 sm:p-6 my-3 border border-gray-200 rounded-lg">
         <h2 className="text-white text-md xs:text-lg sm:text-xl text-center sm:text-left font-semibold tracking-wide">
           Upload An Account
         </h2>
@@ -447,7 +446,7 @@ const Uploads = ({ profileImage }) => {
       </div>
 
       {isUploading && (
-        <div className="bg-[#0E1115] p-4 sm:p-6 rounded-lg border border-gray-600">
+        <div className="bg-[#0E1115] p-4 sm:p-6 rounded-lg border border-gray-600 mb-12">
           <div className="flex flex-col lg:flex-row gap-6">
             <div className="flex-1 flex flex-col gap-4">
               <div className="relative w-full max-w-[450px] mx-auto aspect-[4/3] border-2 border-[#0576FF] rounded-xl overflow-hidden">
@@ -590,7 +589,7 @@ const Uploads = ({ profileImage }) => {
         </div>
       )}
 
-      <div className="p-4 xs:p-5 sm:p-6 md:p-7 lg:p-8 xl:p-10 bg-gradient-to-br from-[#0E1115] via-[#1A1F29] to-[#252A36] rounded-2xl border border-gray-800">
+      <div className="p-4 xs:p-5 sm:p-6 md:p-7 lg:p-8 xl:p-10 bg-gradient-to-br from-[#0E1115] via-[#1A1F29] to-[#252A36] rounded-2xl border border-gray-800 mt-8">
         <h2 className="text-gray-100 text-lg xs:text-xl sm:text-2xl md:text-2xl lg:text-3xl font-semibold tracking-wider mb-6 md:mb-8 lg:mb-10">
           Accounts Uploaded
         </h2>

@@ -20,9 +20,6 @@ import ProfileVisit from "./pages/Profile/ProfileVisit";
 import WelcomePage from "./pages/WelcomePage";
 import AccountSetup from "./pages/AccountSetup";
 import AccountLogin from "./pages/AccountLogin";
-import Store from "./pages/Store/Store";
-import ProductDetails from "./pages/Store/ProductDetails";
-import MoreProducts from "./pages/Store/MoreProducts";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import FAQs from "./pages/FAQs";
 import Doc from "./pages/Doc";
@@ -99,6 +96,27 @@ const App = () => {
             <Route index element={<WelcomePage />} />
             <Route path="/sign-up" element={<AccountSetup />} />
             <Route path="/login" element={<AccountLogin />} />
+            <Route
+              path="/categories"
+              element={<Category uploadedAccounts={uploadedAccounts} />}
+            />
+            <Route
+              path="/account"
+              element={<UserProfile setUploadedAccounts={setUploadedAccounts} />}
+            />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/account/:slug" element={<AccountDetails />} />
+            <Route path="/profile" element={<UserProfile />} />
+            <Route path="/profilevisit" element={<ProfileVisit />} />
+            <Route path="/doc" element={<Doc />} />
+            <Route
+              path="/profile"
+              element={<UserProfile setUploadedAccounts={setUploadedAccounts} />}
+            />
+            <Route path="/faqs" element={<FAQs />} />
+            <Route path="/community" element={<Community />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/faqs" element={<FAQs />} />
@@ -125,10 +143,10 @@ const App = () => {
                 }
               />
               <Route path="/account/:slug" element={<AccountDetails />} />
-              <Route path="/product/:slug" element={<ProductDetails />} />
-              <Route path="/more-product/:slug" element={<MoreProducts />} />
+              
+              
               <Route path="/community" element={<Community />} />
-              <Route path="/store" element={<Store />} />
+              
               <Route path="/settings" element={<Settings />} />
               <Route
                 path="/profilevisit/:userId"
