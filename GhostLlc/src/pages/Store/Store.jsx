@@ -13,19 +13,43 @@ import {
     Pes5Slim, 
     Phone_Coolers,
     Xenna
-} from "../../utils"
+} from "../../utils";
 import flashSalesProducts from "./flashSalesProducts";
 import { useEffect, useState } from "react";
 import productsData from "./categoryData";
 import NavBar from "../Profile/NavBar";
+
 import BackButton from "../../components/BackButton";
 
 
 
+import { auth, db } from "../../database/firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
+
+
 const Store = () => {
+    const [profileImage, setProfileImage] = useState(null);
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            if (auth.currentUser) {
+                try {
+                    const userDocRef = doc(db, "users", auth.currentUser.uid);
+                    const userDocSnap = await getDoc(userDocRef);
+                    if (userDocSnap.exists() && userDocSnap.data().profileImage) {
+                        setProfileImage(userDocSnap.data().profileImage);
+                    }
+                } catch (error) {
+                    console.error("Error fetching profile image:", error);
+                }
+            }
+        };
+        fetchUserData();
+    }, []);
+
     return (
         <>
-            <NavBar />
+            <NavBar profileImage={profileImage || "/default-profile.png"} />
 
             <div className="min-h-screen flex flex-col items-center">
                 {/* NavBar Section */}
@@ -64,25 +88,22 @@ const Store = () => {
 
                     <div className="flex overflow-x-auto space-x-4 no-scrollbar">
                         {flashSalesProducts.map((product, id) => (
-                            <>
-                                <Link to={`/product/${product.slug}`} className="cursor-pointer">
-                                    <div
-                                        key={id}
-                                        className="min-w-[280px] text-black p-4 rounded-lg shadow-lg"
-                                    >
-                                        <img src={product.image} alt={product.name} className="w-full h-44 object-cover rounded" />
-                                        <h3 className="mt-2 text-sm text-white font-medium">
-                                            {product.name}
-                                        </h3>
-                                        <div className="max-w-fit my-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
-                                            {product.views} views
-                                        </div>
-                                        <p className="text-xs text-gray-500">
-                                            ⭐ {product.rating} reviews
-                                        </p>
+                            <Link to={`/product/${product.slug}`} key={id} className="cursor-pointer">
+                                <div
+                                    className="min-w-[280px] text-black p-4 rounded-lg shadow-lg"
+                                >
+                                    <img src={product.image} alt={product.name} className="w-full h-44 object-cover rounded" />
+                                    <h3 className="mt-2 text-sm text-white font-medium">
+                                        {product.name}
+                                    </h3>
+                                    <div className="max-w-fit my-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
+                                        {product.views} views
                                     </div>
-                                </Link>
-                            </>
+                                    <p className="text-xs text-gray-500">
+                                        ⭐ {product.rating} reviews
+                                    </p>
+                                </div>
+                            </Link>
                         ))}
                     </div>
                 </div>
@@ -113,7 +134,6 @@ const Store = () => {
                                 Buy Now!
                             </button>
                         </div>
-                        {/* Right Side */}
                         <div className="flex justify-center">
                             <img
                                 src={JBL}
@@ -137,10 +157,10 @@ const Store = () => {
                 </div>
             </div>
         </>
-    )
+    );
 };
 
-const careouselImages = [
+const carouselImages = [
     { id: 1, image: Pes5Slim, info: "Up to 10% off Vouchers on selected items" },
     { id: 2, image: i3_Gaming_Laptop, info: "Up to 20% off Vouchers on selected items" },
     { id: 3, image: Controller, info: "Up to 30% off Vouchers on selected items" },
@@ -153,18 +173,17 @@ const Carousel = () => {
 
     useEffect(() => {
         const interval = setInterval(() => {
-            setCurrentIndex((prevIndex) => (prevIndex + 1) % careouselImages.length);
+            setCurrentIndex((prevIndex) => (prevIndex + 1) % carouselImages.length);
         }, 3000);
         return () => clearInterval(interval);
     }, []);
 
     return (
         <div className="relative w-full h-64 overflow-hidden bg-black flex items-center">
-            {careouselImages.map((item, index) => (
+            {carouselImages.map((item, index) => (
                 <div
                     key={item.id}
-                    className={`absolute w-full flex items-center justify-between px-10 transition-transform duration-700 ${index === currentIndex ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
-                        }`}
+                    className={`absolute w-full flex items-center justify-between px-10 transition-transform duration-700 ${index === currentIndex ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}
                 >
                     <div className="text-white">
                         <h2 className="text-2xl font-bold">{item.info}</h2>
@@ -173,18 +192,16 @@ const Carousel = () => {
                     <img src={item.image} alt="carousel" className="h-[250px] object-contain" />
                 </div>
             ))}
-            {/* Dots */}
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                {careouselImages.map((_, index) => (
+                {carouselImages.map((_, index) => (
                     <div
                         key={index}
-                        className={`w-3 h-3 rounded-full ${index === currentIndex ? 'bg-red-500' : 'bg-gray-500'
-                            }`}
+                        className={`w-3 h-3 rounded-full ${index === currentIndex ? 'bg-red-500' : 'bg-gray-500'}`}
                     ></div>
                 ))}
             </div>
         </div>
-    )
+    );
 };
 
 const categories = [
@@ -204,13 +221,11 @@ const CategoryFilter = () => {
 
     return (
         <>
-            {/* Category Buttons */}
             <div className="flex justify-center items-center gap-4 overflow-x-auto no-scrollbar">
                 {categories.map((category) => (
                     <button
                         key={category.id}
-                        className={`w-full px-4 py-2 border rounded-md flex flex-col items-center cursor-pointer ${selectedCategory === category.slug ? 'bg-red-500 text-white' : 'bg-white text-black'
-                            }`}
+                        className={`w-full px-4 py-2 border rounded-md flex flex-col items-center cursor-pointer ${selectedCategory === category.slug ? 'bg-red-500 text-white' : 'bg-white text-black'}`}
                         onClick={() => setSelectedCategory(category.slug)}
                     >
                         <img src={category.image} alt={category.name} className="w-8 h-8 mb-1" />
@@ -219,12 +234,10 @@ const CategoryFilter = () => {
                 ))}
             </div>
 
-            {/* Category Title */}
             <h2 className="text-gray-400 text-xl font-bold mt-10">
                 Best Selling {categories.find(c => c.slug === selectedCategory)?.name}s
             </h2>
 
-            {/* Product Listing */}
             <div className="grid grid-cols-4 gap-4 mt-4">
                 {filteredProducts.length > 0 ? (
                     filteredProducts.map((stock) => (
@@ -244,7 +257,7 @@ const CategoryFilter = () => {
                 )}
             </div>
         </>
-    )
+    );
 };
 
 const NewArrivals = () => {
@@ -277,7 +290,7 @@ const NewArrivals = () => {
                     <div className="relative z-10">
                         <h2 className="text-lg text-white font-bold">Echo Speakers</h2>
                         <p className="text-gray-400 text-sm">
-                            Featured women&apos;s collections that give you another vibe.
+                            Featured women's collections that give you another vibe.
                         </p>
                         <a href="#" className="inline-block mt-2 text-white border-b">
                             Shop Now
@@ -285,7 +298,6 @@ const NewArrivals = () => {
                     </div>
                 </div>
 
-                {/* Speakers */}
                 <div className="relative bg-[#161B22] p-6 rounded-lg flex flex-col justify-end min-h-[150px] overflow-hidden">
                     <img
                         src={Controller}
@@ -301,7 +313,6 @@ const NewArrivals = () => {
                     </div>
                 </div>
 
-                {/* Perfume */}
                 <div className="relative bg-[#161B22] p-6 rounded-lg flex flex-col justify-end min-h-[150px] overflow-hidden">
                     <img
                         src={i3_Gaming_Laptop}
@@ -318,7 +329,7 @@ const NewArrivals = () => {
                 </div>
             </div>
         </div>
-    )
+    );
 };
 
-export default Store
+export default Store;

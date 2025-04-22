@@ -1,136 +1,205 @@
-/* eslint-disable react/prop-types */
 import "../App.css";
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import categoryAccounts from "../constants/category";
 import { Link } from "react-router-dom";
 import { AdminIcon } from "../utils";
 import { FaHeart } from "react-icons/fa6";
 
-const CategoryFilter = ({ searchTerm, combinedAccounts }) => {
+// Define only the specific categories we want
+const ALLOWED_CATEGORIES = [
+  "Fighter",
+  "Shooter",
+  "Action",
+  "Sport",
+  "Adventure",
+];
+
+const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
   const [activeCategory, setActiveCategory] = useState("All");
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 2000);
-    return () => clearTimeout(timer);
-  }, []);
+  // Memoized merged categories with proper account mapping
+  const mergedCategories = useMemo(() => {
+    const processUploadedAccounts = () => {
+      if (!combinedAccounts || !combinedAccounts.length) return [];
 
-  const handleCategoryChange = (category) => {
-    setActiveCategory(category);
-    setLoading(true);
-    setTimeout(() => setLoading(false), 2000);
-  };
+      // Initialize category buckets
+      const categorizedGames = {};
+      ALLOWED_CATEGORIES.forEach((cat) => {
+        categorizedGames[cat] = [];
+      });
 
-  // Process uploaded accounts from Firestore to match the category structure
-  const processUploadedAccounts = () => {
-    if (!combinedAccounts) return [];
+      // Function to determine the appropriate category for an account
+      const mapAccountToCategory = (account) => {
+        const title = (
+          account.title ||
+          account.accountName ||
+          ""
+        ).toLowerCase();
+        const existingCategory = (account.category || "").toLowerCase();
 
-    // Create a map to store games by category
-    const categorizedGames = {};
+        // First try to match the existing category
+        if (existingCategory.includes("fight")) return "Fighter";
+        if (existingCategory.includes("shoot")) return "Shooter";
+        if (existingCategory.includes("sport")) return "Sport";
+        if (existingCategory.includes("adventure")) return "Adventure";
+        if (existingCategory.includes("action")) return "Action";
 
-    combinedAccounts.forEach((account) => {
-      const category = account.category || "Other"; // Use "Other" as default category if none exists
-      const gameData = {
-        title: account.title || account.accountName || "Untitled Account",
-        slug: account.slug || account.id || `account-${Date.now()}`,
-        img: account.img || account.accountImage || AdminIcon,
-        views: account.views || 0,
+        // If no match from existing category, try to infer from title
+        if (
+          title.includes("fight") ||
+          title.includes("combat") ||
+          title.includes("battle")
+        )
+          return "Fighter";
+        if (
+          title.includes("shoot") ||
+          title.includes("gun") ||
+          title.includes("fps")
+        )
+          return "Shooter";
+        if (
+          title.includes("sport") ||
+          title.includes("soccer") ||
+          title.includes("basketball") ||
+          title.includes("football") ||
+          title.includes("tennis")
+        )
+          return "Sport";
+        if (
+          title.includes("adventure") ||
+          title.includes("explore") ||
+          title.includes("quest")
+        )
+          return "Adventure";
+        if (title.includes("action") || title.includes("mission"))
+          return "Action";
+
+        // Default category if no matches
+        return "Action";
       };
 
-      if (!categorizedGames[category]) {
-        categorizedGames[category] = [];
-      }
+      // Process each account and assign to appropriate category
+      combinedAccounts.forEach((account) => {
+        const category = mapAccountToCategory(account);
 
-      categorizedGames[category].push(gameData);
+        const gameData = {
+          title: account.title || account.accountName || "Untitled Account",
+          slug: account.slug || account.id || `account-${Date.now()}`,
+          img: account.img || account.accountImage || AdminIcon,
+          views: account.views || 0,
+          userProfilePic: account.userProfilePic || null,
+          username: account.username || "Unknown",
+          category: category, // Store the mapped category with the game data
+        };
+
+        categorizedGames[category].push(gameData);
+      });
+
+      // Convert to array format expected by the component
+      return ALLOWED_CATEGORIES.map((category) => ({
+        name: category,
+        games: categorizedGames[category] || [],
+      }));
+    };
+
+    // Static categories from constants (if needed)
+    const staticCategories = categoryAccounts
+      .filter((cat) => ALLOWED_CATEGORIES.includes(cat.category))
+      .map((cat) => ({
+        name: cat.category,
+        games: cat.games,
+      }));
+
+    // Dynamic categories from uploaded accounts
+    const dynamicCategories = processUploadedAccounts();
+
+    // Merge static and dynamic categories
+    const combinedCategories = [];
+    const categoryMap = {};
+
+    // First add all static categories
+    staticCategories.forEach((cat) => {
+      if (!categoryMap[cat.name]) {
+        categoryMap[cat.name] = { name: cat.name, games: [] };
+        combinedCategories.push(categoryMap[cat.name]);
+      }
+      categoryMap[cat.name].games.push(...cat.games);
     });
 
-    // Convert the map to the format expected by the component
-    return Object.entries(categorizedGames).map(([name, games]) => ({
-      name,
-      games,
-    }));
-  };
+    // Then add dynamic categories, merging with existing ones if needed
+    dynamicCategories.forEach((cat) => {
+      if (!categoryMap[cat.name]) {
+        categoryMap[cat.name] = { name: cat.name, games: [] };
+        combinedCategories.push(categoryMap[cat.name]);
+      }
+      categoryMap[cat.name].games.push(...cat.games);
+    });
 
-  // Combine static category accounts with processed uploaded accounts
-  const allCategoryAccounts = [
-    ...categoryAccounts,
-    ...processUploadedAccounts(),
-  ];
+    return combinedCategories;
+  }, [combinedAccounts]);
 
-  // Merge categories with the same name
-  const mergedCategories = allCategoryAccounts.reduce((acc, current) => {
-    const existingCategory = acc.find((cat) => cat.name === current.name);
-    if (existingCategory) {
-      existingCategory.games = [...existingCategory.games, ...current.games];
+  // Category names - "All" plus the allowed categories
+  const categoryNames = useMemo(() => ["All", ...ALLOWED_CATEGORIES], []);
+
+  // Filter games based on search term and active category
+  const filteredGames = useMemo(() => {
+    const normalizedSearch = searchTerm.toLowerCase().trim();
+    let games = [];
+
+    if (normalizedSearch) {
+      // When searching, get games from all categories that match search term
+      games = mergedCategories
+        .flatMap((category) => category.games)
+        .filter((game) => game.title.toLowerCase().includes(normalizedSearch));
     } else {
-      acc.push(current);
+      if (activeCategory === "All") {
+        // Get all games for "All" category
+        games = mergedCategories.flatMap((category) => category.games);
+      } else {
+        // Get games only for the active category
+        const category = mergedCategories.find(
+          (cat) => cat.name === activeCategory
+        );
+        games = category ? category.games : [];
+      }
     }
-    return acc;
-  }, []);
 
-  // Build the list of unique category names
-  const categories = [
-    "All",
-    ...new Set(mergedCategories.map((cat) => cat.name)),
-  ];
-
-  // Normalize search term
-  const normalizedSearch = searchTerm.toLowerCase().trim();
-
-  // Filter games based on search term or active category
-  let filteredGames = [];
-  if (normalizedSearch !== "") {
-    filteredGames = mergedCategories
-      .flatMap((cat) => cat.games)
-      .filter((game) => {
-        const gameTitle = game.title.toLowerCase();
-        return gameTitle.includes(normalizedSearch);
-      });
-  } else {
-    if (activeCategory === "All") {
-      filteredGames = mergedCategories.flatMap((cat) => cat.games);
-    } else {
-      const category = mergedCategories.find(
-        (cat) => cat.name === activeCategory
-      );
-      filteredGames = category ? category.games : [];
-    }
-  }
-
-  // When search term is cleared, reset activeCategory to "All"
-  useEffect(() => {
-    if (normalizedSearch === "") {
-      setActiveCategory("All");
-    }
-  }, [normalizedSearch]);
+    return games;
+  }, [searchTerm, activeCategory, mergedCategories]);
 
   return (
     <div className="p-2 md:p-8">
       {/* Category Buttons */}
       <div className="flex overflow-x-auto gap-5 mb-6 no-scrollbar">
-        {categories.map((category) => (
+        {categoryNames.map((category) => (
           <button
             key={category}
-            onClick={() => handleCategoryChange(category)}
-            className={`rounded-full cursor-pointer font-semibold 
-              ${activeCategory === category
-                ? "bg-blue-900 text-white"
-                : "bg-gray-200 text-black"
+            onClick={() => setActiveCategory(category)}
+            className={`rounded-lg cursor-pointer font-semibold px-6 py-3 transition-all duration-300 ease-in-out
+              ${
+                activeCategory === category
+                  ? "bg-blue-900 text-white shadow-lg"
+                  : "bg-gray-200 text-black hover:bg-blue-600 hover:text-white"
               }
-              px-10 py-3`}
+              text-sm md:text-base
+              flex-shrink-0
+              min-w-[120px] md:min-w-[150px] 
+              max-w-[250px] md:max-w-[300px]
+              whitespace-nowrap`}
           >
             {category}
           </button>
         ))}
       </div>
 
-      {/* Games Grid */}
+      {/* Loader */}
       {loading ? (
         <div className="flex justify-center items-center h-40">
-          <div className="category-loader w-24 h-24 rounded-full animate-spin"></div>
+          <div className="category-loader w-16 h-16 rounded-full animate-spin border-4 border-gray-300 border-t-blue-600"></div>
         </div>
       ) : (
         <>
+          {/* Games Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredGames.length > 0 ? (
               filteredGames.map((game, index) => (
@@ -142,15 +211,37 @@ const CategoryFilter = ({ searchTerm, combinedAccounts }) => {
                     src={game.img}
                     alt={game.title}
                     className="w-full h-24 md:h-40 object-cover rounded-lg"
+                    onError={(e) => {
+                      console.error(`Failed to load image for ${game.title}`);
+                      e.target.src = AdminIcon; // Fallback image
+                    }}
                   />
                   <h3 className="mt-1 md:mt-2 text-sm md:text-lg font-bold">
                     {game.title}
                   </h3>
-                  <span className="flex justify-between items-center">
-                    <p className="text-gray-400 my-1 md:my-2 text-xs md:text-sm">
+                  <div className="flex items-center mt-1 md:mt-2">
+                    <img
+                      src={game.userProfilePic || AdminIcon}
+                      alt="User Profile"
+                      className="w-6 h-6 rounded-full object-cover mr-2"
+                      onError={(e) => {
+                        console.error(
+                          `Failed to load profile pic for ${game.title}`
+                        );
+                        e.target.src = AdminIcon; // Fallback image
+                      }}
+                    />
+                    <p className="text-gray-400 text-xs md:text-sm">
+                      By {game.username}
+                    </p>
+                  </div>
+                  <span className="flex justify-between items-center mt-1 md:mt-2">
+                    <p className="text-gray-400 text-xs md:text-sm">
                       {game.views} Total Views
                     </p>
-                    <img src={AdminIcon} alt="admin" className="w-6 md:w-8" />
+                    <p className="text-gray-400 text-xs md:text-sm">
+                      {game.category || ""}
+                    </p>
                   </span>
                   <div className="flex justify-between items-center mt-2">
                     <Link
@@ -159,9 +250,8 @@ const CategoryFilter = ({ searchTerm, combinedAccounts }) => {
                     >
                       View Details
                     </Link>
-
                     <button className="cursor-pointer self-center bg-blue-500 text-white px-2 py-1 rounded-md text-xs md:text-sm flex items-center gap-1">
-                      <FaHeart className="self-center text-white text-2xl" />
+                      <FaHeart className="text-white text-2xl" />
                     </button>
                   </div>
                 </div>

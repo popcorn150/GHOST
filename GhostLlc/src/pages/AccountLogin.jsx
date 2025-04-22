@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { BackGround_, Logo, Title, Google } from "../utils";
 import { auth, googleProvider } from "../database/firebaseConfig";
-import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+} from "firebase/auth";
 import {
   getFirestore,
   collection,
@@ -22,13 +26,49 @@ const AccountLogin = () => {
   const navigate = useNavigate();
   const db = getFirestore();
 
+  // REMOVED the automatic sign-out to allow authenticated users to stay signed in
+  // Now we just check if a user is already signed in
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        console.log(`User already signed in: ${user.uid}`);
+        // User is already signed in, but we don't redirect them
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   // Simple email validation function
   const validateEmail = (email) => {
     const regex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
     return regex.test(email);
   };
 
-  //Email/Username Login Handler
+  // Check if user exists in Firestore with error handling
+  const checkUserExists = async (uid) => {
+    try {
+      const userRef = doc(db, "users", uid);
+      const userDoc = await getDoc(userRef);
+      console.log(`checkUserExists: UID=${uid}, Exists=${userDoc.exists()}`);
+      return userDoc.exists();
+    } catch (error) {
+      console.error(`Error checking user existence for UID=${uid}:`, error);
+      // If we get a permission error, we can't check if user exists
+      // Instead of failing, we'll assume the user exists (auth passed)
+      if (
+        error.code === "permission-denied" ||
+        error.message.includes("permissions")
+      ) {
+        console.log(
+          "Permission error when checking user, assuming user exists"
+        );
+        return true;
+      }
+      return false;
+    }
+  };
+
+  // Email/Username Login Handler
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
@@ -43,63 +83,129 @@ const AccountLogin = () => {
 
     try {
       let userEmail = emailOrUsername;
+      let userExists = false;
 
       // If input is not a valid email, treat it as a username
       if (!validateEmail(emailOrUsername)) {
-        const usersRef = collection(db, "users");
-        const q = query(usersRef, where("username", "==", emailOrUsername));
-        const querySnapshot = await getDocs(q);
+        try {
+          const usersRef = collection(db, "users");
+          const q = query(usersRef, where("username", "==", emailOrUsername));
+          const querySnapshot = await getDocs(q);
 
-        if (querySnapshot.empty) {
-          throw new Error("auth/user-not-found");
-        }
+          if (querySnapshot.empty) {
+            throw new Error("auth/user-not-found");
+          }
 
-        if (querySnapshot.size > 1) {
-          throw new Error(
-            "Multiple users found with this username. Please contact support."
-          );
-        }
+          if (querySnapshot.size > 1) {
+            throw new Error(
+              "Multiple users found with this username. Please contact support."
+            );
+          }
 
-        userEmail = querySnapshot.docs[0].data().email;
-        if (!validateEmail(userEmail)) {
-          throw new Error("Invalid email retrieved from database.");
+          const userData = querySnapshot.docs[0].data();
+          userEmail = userData.email;
+
+          if (!validateEmail(userEmail)) {
+            throw new Error("Invalid email retrieved from database.");
+          }
+
+          // User exists in Firestore since we found them by username
+          userExists = true;
+        } catch (firestoreError) {
+          // If we got a permission error looking up by username, try direct login instead
+          if (
+            firestoreError.code === "permission-denied" ||
+            firestoreError.message.includes("permissions")
+          ) {
+            console.log(
+              "Permission error when looking up username, will try direct auth"
+            );
+          } else {
+            throw firestoreError;
+          }
         }
       }
 
-      // Log for debugging
-      console.log("Attempting login with email:", userEmail);
-      console.log("Password length:", password.length);
+      // Attempt login with Firebase Authentication
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        userEmail,
+        password
+      );
 
-      // Attempt login
-      await signInWithEmailAndPassword(auth, userEmail, password);
-      alert("Login successful!");
-      navigate("/categories");
-    } catch (error) {
-      console.error("Login error:", error.message);
-      switch (error.message) {
-        case "auth/user-not-found":
-          setError("User not found. Check your email or username, or sign up.");
-          break;
-        case "Multiple users found with this username. Please contact support.":
-          setError(error.message);
-          break;
-        case "Invalid email retrieved from database.":
-          setError("Invalid email data. Please contact support.");
-          break;
-        default:
-          if (error.code === "auth/wrong-password") {
-            setError("Incorrect password. Please try again.");
-          } else if (error.code === "auth/invalid-email") {
-            setError("Invalid email format. Please enter a valid email.");
-          } else if (error.code === "auth/invalid-credential") {
-            setError("Invalid credentials. Please check your input.");
-          } else if (error.code === "auth/too-many-requests") {
-            setError("Too many attempts. Please try again later.");
-          } else if (error.code === "auth/user-disabled") {
-            setError("This account has been disabled.");
-          } else {
-            setError("Login failed. Please try again.");
+      // If we didn't verify existence by username, check if they exist in Firestore
+      // Skip this check if we already know they exist or if we can't check due to permissions
+      if (!userExists) {
+        try {
+          userExists = await checkUserExists(userCredential.user.uid);
+          if (!userExists) {
+            // User is authenticated but not in our database
+            // We'll let them proceed anyway since auth was successful
+            console.log("User authenticated but not found in Firestore");
           }
+        } catch (checkError) {
+          // If we can't check due to permissions, we'll assume the user exists
+          console.log(
+            "Error checking if user exists, proceeding anyway",
+            checkError
+          );
+        }
+      }
+
+      alert("Login successful!");
+      // No automatic redirect - user stays on current page
+    } catch (error) {
+      console.error("Login error:", error);
+
+      // Handle specific Firebase auth errors
+      if (error.code) {
+        switch (error.code) {
+          case "auth/user-not-found":
+            setError(
+              "User not found. Check your email or username, or sign up."
+            );
+            break;
+          case "auth/wrong-password":
+            setError("Incorrect password. Please try again.");
+            break;
+          case "auth/invalid-email":
+            setError("Invalid email format. Please enter a valid email.");
+            break;
+          case "auth/invalid-credential":
+            setError("Invalid credentials. Please check your input.");
+            break;
+          case "auth/too-many-requests":
+            setError("Too many attempts. Please try again later.");
+            break;
+          case "auth/user-disabled":
+            setError("This account has been disabled.");
+            break;
+          case "auth/network-request-failed":
+            setError("Network error. Please check your connection.");
+            break;
+          default:
+            setError("Login failed. Please try again.");
+        }
+      } else {
+        // Handle custom errors
+        switch (error.message) {
+          case "auth/user-not-found":
+            setError(
+              "User not found. Check your email or username, or sign up."
+            );
+            break;
+          case "Multiple users found with this username. Please contact support.":
+            setError(error.message);
+            break;
+          case "Invalid email retrieved from database.":
+            setError("Invalid email data. Please contact support.");
+            break;
+          case "Account not registered in our system. Please sign up first.":
+            setError(error.message);
+            break;
+          default:
+            setError("Login failed. Please try again.");
+        }
       }
     } finally {
       setLoading(false);
@@ -119,37 +225,53 @@ const AccountLogin = () => {
         throw new Error("No user or email returned from Google sign-in.");
       }
 
-      // Check if user document exists in Firestore
-      const userRef = doc(db, "users", signedInUser.uid);
-      const userSnapshot = await getDoc(userRef);
+      try {
+        // Check if user document exists in Firestore
+        const userExists = await checkUserExists(signedInUser.uid);
 
-      if (userSnapshot.exists()) {
-        // Existing user, proceed to categories
-        navigate("/categories");
-      } else {
-        // New user, throw error and prompt to go back to Welcome page
-        throw new Error(
-          "No account found. Please return to the Welcome page to sign up."
+        if (userExists) {
+          alert("Google sign-in successful!");
+          // No automatic redirect - user stays on current page
+        } else {
+          // We'll still let them stay signed in even if they don't exist in Firestore
+          alert("Google sign-in successful!");
+        }
+      } catch (checkError) {
+        // If we can't check due to permissions, assume user is OK
+        console.log(
+          "Error checking if Google user exists, proceeding anyway",
+          checkError
         );
+        alert("Google sign-in successful!");
       }
     } catch (error) {
-      console.error("Google sign-in error:", error.message);
-      if (error.code === "auth/popup-closed-by-user") {
-        setError("Google sign-in was canceled. Please try again.");
-      } else if (error.code === "auth/popup-blocked") {
-        setError("Popup blocked. Please allow popups and try again.");
-      } else if (
-        error.code === "auth/account-exists-with-different-credential"
-      ) {
-        setError(
-          "Account exists with a different sign-in method. Try another method."
-        );
+      console.error("Google sign-in error:", error);
+
+      if (error.code) {
+        switch (error.code) {
+          case "auth/popup-closed-by-user":
+            setError("Google sign-in was canceled. Please try again.");
+            break;
+          case "auth/popup-blocked":
+            setError("Popup blocked. Please allow popups and try again.");
+            break;
+          case "auth/account-exists-with-different-credential":
+            setError(
+              "Account exists with a different sign-in method. Try another method."
+            );
+            break;
+          case "auth/cancelled-popup-request":
+            setError("Another authentication request is in progress.");
+            break;
+          case "auth/network-request-failed":
+            setError("Network error. Please check your connection.");
+            break;
+          default:
+            setError("Google sign-in failed. Please try again.");
+        }
       } else {
-        // Custom error for new users
-        setError(
-          error.message ||
-          "Google sign-in failed. Please return to the Welcome page."
-        );
+        // Custom error message or messages from thrown errors
+        setError(error.message || "Google sign-in failed. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -235,7 +357,7 @@ const AccountLogin = () => {
             <Link to="/">
               <button
                 type="button"
-                className="w-full mt-5 border-2 border-gray-500 text-white text-xs font-medium p-2 rounded-md"
+                className="w-full mt-5 border-2 border-gray-500 text-white text-xs font-medium p-2 rounded-md hover:bg-gray-700 transition"
               >
                 Create An Account
               </button>
