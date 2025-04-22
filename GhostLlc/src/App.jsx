@@ -8,8 +8,6 @@ import ProfileVisit from "./pages/Profile/ProfileVisit";
 import WelcomePage from "./pages/WelcomePage";
 import AccountSetup from "./pages/AccountSetup";
 import AccountLogin from "./pages/AccountLogin";
-import ProductDetails from "./pages/Store/ProductDetails";
-import MoreProducts from "./pages/Store/MoreProducts";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import FAQs from "./pages/FAQs";
 import Doc from "./pages/Doc";
@@ -37,8 +35,6 @@ const App = () => {
             />
             <Route path="/cart" element={<Cart />} />
             <Route path="/account/:slug" element={<AccountDetails />} />
-            <Route path="/product/:slug" element={<ProductDetails />} />
-            <Route path="/more-product/:slug" element={<MoreProducts />} />
             <Route path="/profile" element={<UserProfile />} />
             <Route path="/profilevisit" element={<ProfileVisit />} />
             <Route path="/doc" element={<Doc />} />
