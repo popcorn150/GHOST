@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }) => {
         `AuthContext checkUserExists failed for UID=${uid}:`,
         error
       );
-      return true; // Assume exists to allow navigation
+      return false; // Changed to false - don't assume user exists on error
     }
   }, []);
 
@@ -141,13 +141,22 @@ export const AuthProvider = ({ children }) => {
         setLastProcessedUid(user.uid);
         setCurrentUser(user);
 
+        // Check if the user exists in Firestore
         const userExists = await checkUserExists(user.uid);
         console.log(
           `Navigation check: userExists=${userExists}, setupComplete=${userDetails?.setupComplete}, path=${location.pathname}`
         );
 
-        if (!userExists && location.pathname !== "/sign-up") {
-          navigate("/sign-up");
+        if (!userExists) {
+          // Don't navigate - just let the user stay on the current page
+          // They will see an error message on login/signup pages
+          console.log("User authenticated but no Firestore record exists");
+
+          // Only force navigation if they're trying to access protected routes
+          const publicRoutes = ["/", "/login", "/sign-up"];
+          if (!publicRoutes.includes(location.pathname)) {
+            navigate("/login");
+          }
         } else if (
           userExists &&
           userDetails?.setupComplete &&
@@ -158,11 +167,14 @@ export const AuthProvider = ({ children }) => {
           navigate("/sign-up");
         }
       } else {
+        // User is not authenticated
         setCurrentUser(null);
         setUserDetails(null);
         setLastProcessedUid(null);
 
-        if (location.pathname !== "/login" && location.pathname !== "/") {
+        // Only redirect from protected routes
+        const publicRoutes = ["/", "/login", "/sign-up"];
+        if (!publicRoutes.includes(location.pathname)) {
           navigate("/login");
         }
       }
@@ -172,7 +184,6 @@ export const AuthProvider = ({ children }) => {
     [
       checkUserExists,
       navigate,
-      resetInactivityTimer,
       location.pathname,
       loading,
       lastProcessedUid,

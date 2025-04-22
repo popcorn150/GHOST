@@ -36,16 +36,44 @@ const AccountLogin = () => {
     return regex.test(email);
   };
 
-  const checkUserExists = async (uid) => {
+  // Enhanced function to check if user details exist in Firebase
+  const checkUserDetails = async (uid) => {
     try {
       const userRef = doc(db, "users", uid);
       const userDoc = await getDoc(userRef);
-      console.log(`checkUserExists: UID=${uid}, Exists=${userDoc.exists()}`);
-      return userDoc.exists();
+
+      if (!userDoc.exists()) {
+        console.log(`User document doesn't exist for UID=${uid}`);
+        return {
+          exists: false,
+          message: "Account not found. Please sign up to create an account.",
+        };
+      }
+
+      const userData = userDoc.data();
+
+      // Check if essential user details are present
+      const requiredFields = ["email", "username"];
+      const missingFields = requiredFields.filter((field) => !userData[field]);
+
+      if (missingFields.length > 0) {
+        console.log(`Missing user details: ${missingFields.join(", ")}`);
+        return {
+          exists: false,
+          message:
+            "Account incomplete. Please sign up to create a full account.",
+        };
+      }
+
+      console.log(`User details complete for UID=${uid}`);
+      return { exists: true };
     } catch (error) {
-      console.error(`Error checking user existence for UID=${uid}:`, error);
-      console.log("Assuming user exists due to error");
-      return true; // Assume exists to allow login
+      console.error(`Error checking user details for UID=${uid}:`, error);
+      return {
+        exists: false,
+        message:
+          "Account verification failed. Please sign up if you don't have an account.",
+      };
     }
   };
 
@@ -107,21 +135,23 @@ const AccountLogin = () => {
         password
       );
 
-      if (!userExists) {
-        userExists = await checkUserExists(userCredential.user.uid);
-        console.log(`Post-login userExists: ${userExists}`);
+      // Check if user details exist in Firebase
+      const userDetailsCheck = await checkUserDetails(userCredential.user.uid);
+
+      if (!userDetailsCheck.exists) {
+        setError(userDetailsCheck.message);
+        // Do NOT navigate - just show the error message about signing up
+        return;
       }
 
       alert("Login successful!");
-      navigate("/categories"); // Explicit navigation
+      navigate("/categories"); // Only navigate if user details exist
     } catch (error) {
       console.error("Login error:", error);
       if (error.code) {
         switch (error.code) {
           case "auth/user-not-found":
-            setError(
-              "User not found. Check your email or username, or sign up."
-            );
+            setError("User not found. Please sign up to create an account.");
             break;
           case "auth/wrong-password":
             setError("Incorrect password. Please try again.");
@@ -142,14 +172,14 @@ const AccountLogin = () => {
             setError("Network error. Please check your connection.");
             break;
           default:
-            setError("Login failed. Please try again.");
+            setError(
+              "Login failed. Please try again or sign up for an account."
+            );
         }
       } else {
         switch (error.message) {
           case "auth/user-not-found":
-            setError(
-              "User not found. Check your email or username, or sign up."
-            );
+            setError("User not found. Please sign up to create an account.");
             break;
           case "Multiple users found with this username. Please contact support.":
             setError(error.message);
@@ -158,7 +188,9 @@ const AccountLogin = () => {
             setError("Invalid email data. Please contact support.");
             break;
           default:
-            setError("Login failed. Please try again.");
+            setError(
+              "Login failed. Please try again or sign up for an account."
+            );
         }
       }
     } finally {
@@ -178,11 +210,17 @@ const AccountLogin = () => {
         throw new Error("No user or email returned from Google sign-in.");
       }
 
-      const userExists = await checkUserExists(signedInUser.uid);
-      console.log(`Google sign-in userExists: ${userExists}`);
+      // Check if user details exist in Firebase
+      const userDetailsCheck = await checkUserDetails(signedInUser.uid);
+
+      if (!userDetailsCheck.exists) {
+        setError(userDetailsCheck.message);
+        // Do NOT navigate - just show the error message about signing up
+        return;
+      }
 
       alert("Google sign-in successful!");
-      navigate("/categories"); // Explicit navigation
+      navigate("/categories"); // Only navigate if user details exist
     } catch (error) {
       console.error("Google sign-in error:", error);
       if (error.code) {
@@ -205,10 +243,15 @@ const AccountLogin = () => {
             setError("Network error. Please check your connection.");
             break;
           default:
-            setError("Google sign-in failed. Please try again.");
+            setError(
+              "Google sign-in failed. Please try again or sign up for an account."
+            );
         }
       } else {
-        setError(error.message || "Google sign-in failed. Please try again.");
+        setError(
+          error.message ||
+            "Google sign-in failed. Please try again or sign up for an account."
+        );
       }
     } finally {
       setLoading(false);
@@ -240,7 +283,11 @@ const AccountLogin = () => {
             Login
           </h1>
 
-          {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 w-full">
+              <span className="block sm:inline">{error}</span>
+            </div>
+          )}
 
           <form className="space-y-4" onSubmit={handleLogin}>
             <div>
@@ -278,10 +325,10 @@ const AccountLogin = () => {
               </Link>
             </p>
 
-            <h5 className="text-white text-xs text-center">
+            <h6 className="text-white text-xs text-center">
               Join Ghost and discover thousands of gaming accounts for sale at
               your fingertips.
-            </h5>
+            </h6>
 
             <Link to="/">
               <button
