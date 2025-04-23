@@ -14,7 +14,6 @@ import {
 import { FaSquareFacebook, FaXTwitter } from "react-icons/fa6";
 import { IoAdd } from "react-icons/io5";
 import { LuUpload } from "react-icons/lu";
-import { AdminIcon } from "../../utils";
 import { useState, useEffect, useRef } from "react";
 import { auth, db } from "../../database/firebaseConfig";
 import {
@@ -29,7 +28,7 @@ import {
   setDoc,
   updateDoc,
 } from "firebase/firestore";
-// import imageCompression from "browser-image-compression";
+import { toast } from "sonner";
 
 let imageCompression;
 import("browser-image-compression").then((mod) => {
@@ -66,7 +65,7 @@ const Layout = ({
   return (
     <>
       <NavBar profileImage={profileImage || "/default-profile.png"} />
-      <div className="flex flex-col items-center justify-center p-3 bg-[#010409]">
+      <div className="flex flex-col items-center justify-center p-2 bg-[#010409]">
         <div className="w-full flex justify-start">
           <BackButton />
         </div>
@@ -104,17 +103,16 @@ const Layout = ({
         <h2 className="text-white text-xl font-semibold mb-4">
           {username || "User"}
         </h2>
-        <div className="w-full px-4 sm:px-12 md:px-24 mx-auto">
+        <div className="w-full px-2 sm:px-12 md:px-24 mx-auto">
           <div className="flex justify-between border-b relative">
             {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`py-2 flex-1 text-center relative cursor-pointer ${
-                  activeTab === tab
-                    ? "text-white font-semibold"
-                    : "text-gray-400"
-                }`}
+                className={`py-2 flex-1 text-center relative cursor-pointer ${activeTab === tab
+                  ? "text-white font-semibold"
+                  : "text-gray-400"
+                  }`}
                 aria-current={activeTab === tab ? "true" : "false"}
               >
                 {tab}
@@ -198,7 +196,7 @@ const Uploads = ({ profileImage }) => {
   }, []);
 
   const compressImage = async (file) => {
-    const {default: imageCompression} = await import("browser-image-compression");
+    const { default: imageCompression } = await import("browser-image-compression");
     const options = {
       maxSizeMB: 0.5,
       maxWidthOrHeight: 1024,
@@ -387,15 +385,16 @@ const Uploads = ({ profileImage }) => {
   };
 
   const handleShare = (account) => {
-    const shareUrl = `${window.location.origin}/account/${account.id}`;
+    const shareUrl = `${window.location.origin}/account/${account.id}?public=true`;
+
     navigator.clipboard
       .writeText(shareUrl)
       .then(() => {
-        alert("Shareable link copied to clipboard!");
+        toast.success("🎉 Public link copied!");
       })
       .catch((err) => {
         console.error("Failed to copy link:", err);
-        alert("Failed to copy link. Please try again.");
+        toast.error("Failed to copy link. Please try again.");
       });
   };
 
@@ -502,7 +501,7 @@ const Uploads = ({ profileImage }) => {
   };
 
   return (
-    <div className="p-3 xs:p-4 sm:p-6">
+    <div className="p-2">
       {isProcessing && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
           <div className="flex flex-col items-center gap-3">
@@ -710,16 +709,16 @@ const Uploads = ({ profileImage }) => {
         </div>
       )}
 
-      <div className="p-4 xs:p-5 sm:p-6 md:p-7 lg:p-8 xl:p-10 bg-gradient-to-br from-[#0E1115] via-[#1A1F29] to-[#252A36] rounded-2xl border border-gray-800 mt-8">
-        <h2 className="text-gray-100 text-lg xs:text-xl sm:text-2xl md:text-2xl lg:text-3xl font-semibold tracking-wider mb-6 md:mb-8 lg:mb-10">
+      <div className="w-full max-w-screen-2xl mx-auto p-4 sm:p-6 lg:px-8 py-6 bg-gradient-to-br from-[#0E1115] via-[#1A1F29] to-[#252A36] rounded-xl border border-gray-800 mt-8">
+        <h2 className="text-gray-100 text-lg sm:text-2xl md:text-3xl lg:text-4xl font-semibold tracking-wider mb-6 md:mb-8 lg:mb-10">
           Accounts Uploaded
         </h2>
         {uploadedAccounts.length > 0 ? (
-          <div className="grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 xs:gap-5 sm:gap-6 md:gap-6 lg:gap-8">
-            {uploadedAccounts.map((acc, index) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+            {uploadedAccounts.map((acc) => (
               <div
                 key={acc.id}
-                className="relative bg-[#161B22]/80 p-4 rounded-xl shadow-lg border border-gray-800 active:scale-95 transition-all duration-300 group"
+                className="w-full min-w-[240px] bg-[#161B22]/80 p-4 rounded-xl shadow-lg border border-gray-800 active:scale-95 transition-all duration-300 group"
               >
                 <div className="flex items-center mb-4">
                   <img
@@ -764,7 +763,7 @@ const Uploads = ({ profileImage }) => {
                     <span className="text-[#0576FF] font-light uppercase text-xs">
                       Credential:
                     </span>{" "}
-                    <span className="font-medium">{acc.accountCredential}</span>
+                    <span className="font-medium break-all">{acc.accountCredential}</span>
                   </p>
                   <p className="text-gray-200 text-xs sm:text-sm tracking-wider leading-relaxed">
                     <span className="text-[#0576FF] font-light uppercase text-xs">
@@ -783,9 +782,9 @@ const Uploads = ({ profileImage }) => {
                 </div>
 
                 {acc.images &&
-                Object.keys(acc.images).filter((key) =>
-                  key.startsWith("screenshot")
-                ).length > 0 ? (
+                  Object.keys(acc.images).filter((key) =>
+                    key.startsWith("screenshot")
+                  ).length > 0 ? (
                   <div className="mb-4">
                     <p className="text-gray-200 text-xs sm:text-sm font-light uppercase tracking-wider mb-2">
                       Screenshots:
@@ -853,7 +852,7 @@ const Uploads = ({ profileImage }) => {
             ))}
           </div>
         ) : (
-          <p className="text-gray-400 text-center text-sm sm:text-base font-light tracking-wider">
+          <p className="p-10 text-gray-400 text-center text-sm sm:text-base font-light tracking-wider">
             No accounts uploaded yet.
           </p>
         )}
@@ -1359,7 +1358,7 @@ const UserProfile = () => {
   }, []);
 
   const handleImageChange = async (event) => {
-    const {default: imageCompression} = await import("browser-image-compression");
+    const { default: imageCompression } = await import("browser-image-compression");
     const file = event.target.files[0];
     if (file) {
       try {
