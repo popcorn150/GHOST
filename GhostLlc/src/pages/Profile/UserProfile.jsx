@@ -11,6 +11,12 @@ import {
   FaImage,
   FaShareAlt,
 } from "react-icons/fa";
+import {
+  UploadCloud,
+  User,
+  Heart,
+  Trophy,
+} from "lucide-react";
 import { FaSquareFacebook, FaXTwitter } from "react-icons/fa6";
 import { IoAdd } from "react-icons/io5";
 import { LuUpload } from "react-icons/lu";
@@ -35,7 +41,13 @@ import("browser-image-compression").then((mod) => {
   imageCompression = mod.default;
 });
 
-const tabs = ["Uploads", "Bio", "Socials", "Favorites"];
+const tabs = [
+  { name: "Uploads", icon: UploadCloud },
+  { name: "Bio", icon: User },
+  { name: "Socials", icon: Heart },
+  { name: "Favorites", icon: Trophy },
+];
+
 
 const Layout = ({
   activeTab,
@@ -103,31 +115,38 @@ const Layout = ({
         <h2 className="text-white text-xl font-semibold mb-4">
           {username || "User"}
         </h2>
-        <div className="w-full px-2 sm:px-12 md:px-24 mx-auto">
-          <div className="flex justify-between border-b relative">
-            {tabs.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`py-2 flex-1 text-center relative cursor-pointer ${activeTab === tab
+        <div className="w-full px-4 sm:px-12 md:px-24 mx-auto">
+      <div className="flex justify-between border-b relative">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.name}
+              onClick={() => setActiveTab(tab.name)}
+              className={`py-2 flex-1 text-center cursor-pointer flex items-center justify-center gap-1 ${
+                activeTab === tab.name
                   ? "text-white font-semibold"
                   : "text-gray-400"
-                  }`}
-                aria-current={activeTab === tab ? "true" : "false"}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-          <div className="relative w-full h-1 bg-[#0E1115] border-none">
-            <div
-              className="h-full bg-purple-500 transition-all duration-300"
-              style={{
-                width: "20%",
-                transform: `translateX(${tabs.indexOf(activeTab) * 135}%)`,
-              }}
-            ></div>
-          </div>
+              }`}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="hidden sm:inline text-sm">{tab.name}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="relative w-full h-1 bg-[#0E1115] border-none">
+        <div
+          className="h-full bg-purple-500 transition-all duration-300"
+          style={{
+            width: "20%",
+            transform: `translateX(${
+              tabs.findIndex((tab) => tab.name === activeTab) * 135
+            }%)`,
+          }}
+        ></div>
+      </div>
           <div className="w-full">{children}</div>
         </div>
       </div>
@@ -152,6 +171,7 @@ const Uploads = ({ profileImage }) => {
   const minScreenshots = 3;
   const maxScreenshots = 5;
   const maxDescriptionWords = 100;
+  const [accountCategory, setAccountCategory] = useState("");
   const accountImageInputRef = useRef(null);
   const screenshotInputRef = useRef(null);
 
@@ -629,7 +649,50 @@ const Uploads = ({ profileImage }) => {
                   aria-label={`Account worth in ${userCurrency}`}
                 />
               </div>
-            </div>
+              
+  <input
+    type="text"
+    placeholder="Name of Account"
+    value={accountName}
+    onChange={(e) => setAccountName(e.target.value)}
+    className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
+    required
+  />
+  <input
+    type="text"
+    placeholder="Account Credential"
+    value={accountCredential}
+    onChange={(e) => setAccountCredential(e.target.value)}
+    className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
+    required
+  />
+  <input
+    type="number"
+    placeholder={`Account's Worth (in ${userCurrency})`}
+    value={accountWorth}
+    onChange={(e) => setAccountWorth(e.target.value)}
+    className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
+    required
+  />
+
+  {/* Category Dropdown */}
+  <select
+    value={accountCategory}
+    onChange={(e) => setAccountCategory(e.target.value)}
+    className="w-full mt-1 p-2 rounded bg-[#0E1115] text-gray-400  border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] h-11"
+    required
+  >
+    <option value="">Select Account Category</option>
+    <option value="Shooter">Shooter</option>
+    <option value="Action">Action</option>
+    <option value="Racing">Racing</option>
+    <option value="Sports">Sports</option>
+    <option value="Fighting">Fighting</option>
+    <option value="User Uploads">User Uploads</option>
+    <option value="Other">Other</option>
+  </select>
+</div>
+
             <div className="flex-1">
               <textarea
                 placeholder={`Full Account Description (max ${maxDescriptionWords} words)`}
