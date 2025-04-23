@@ -29,7 +29,12 @@ import {
   setDoc,
   updateDoc,
 } from "firebase/firestore";
-import imageCompression from "browser-image-compression";
+// import imageCompression from "browser-image-compression";
+
+let imageCompression;
+import("browser-image-compression").then((mod) => {
+  imageCompression = mod.default;
+});
 
 const tabs = ["Uploads", "Bio", "Socials", "Favorites"];
 
@@ -193,11 +198,13 @@ const Uploads = ({ profileImage }) => {
   }, []);
 
   const compressImage = async (file) => {
+    const {default: imageCompression} = await import("browser-image-compression");
     const options = {
       maxSizeMB: 0.5,
       maxWidthOrHeight: 1024,
       useWebWorker: true,
     };
+
     try {
       const compressedFile = await imageCompression(file, options);
       const reader = new FileReader();
@@ -1352,6 +1359,7 @@ const UserProfile = () => {
   }, []);
 
   const handleImageChange = async (event) => {
+    const {default: imageCompression} = await import("browser-image-compression");
     const file = event.target.files[0];
     if (file) {
       try {
