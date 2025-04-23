@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate, Link, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { BackGround_, Logo, Title, Google } from "../utils";
 import { auth, googleProvider } from "../database/firebaseConfig";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
@@ -20,97 +20,184 @@ const AccountLogin = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
   const db = getFirestore();
 
-  // Simple email validation function
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        console.log(`User already signed in: ${user.uid}`);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const validateEmail = (email) => {
     const regex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
     return regex.test(email);
   };
 
-    //Email/Username Login Handler
+  // Enhanced function to check if user details exist in Firebase
+  const checkUserDetails = async (uid) => {
+    try {
+      const userRef = doc(db, "users", uid);
+      const userDoc = await getDoc(userRef);
+
+      if (!userDoc.exists()) {
+        console.log(`User document doesn't exist for UID=${uid}`);
+        return {
+          exists: false,
+          message: "Account not found. Please sign up to create an account.",
+        };
+      }
+
+      const userData = userDoc.data();
+
+      // Check if essential user details are present
+      const requiredFields = ["email", "username"];
+      const missingFields = requiredFields.filter((field) => !userData[field]);
+
+      if (missingFields.length > 0) {
+        console.log(`Missing user details: ${missingFields.join(", ")}`);
+        return {
+          exists: false,
+          message:
+            "Account incomplete. Please sign up to create a full account.",
+        };
+      }
+
+      console.log(`User details complete for UID=${uid}`);
+      return { exists: true };
+    } catch (error) {
+      console.error(`Error checking user details for UID=${uid}:`, error);
+      return {
+        exists: false,
+        message:
+          "Account verification failed. Please sign up if you don't have an account.",
+      };
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
-    
-    // Validate inputs
     if (!emailOrUsername.trim() || !password.trim()) {
       setError("Please fill out all required fields.");
       return;
     }
 
     setLoading(true);
-
     try {
       let userEmail = emailOrUsername;
+      let userExists = false;
 
-      // If input is not a valid email, treat it as a username
       if (!validateEmail(emailOrUsername)) {
-        const usersRef = collection(db, "users");
-        const q = query(usersRef, where("username", "==", emailOrUsername));
-        const querySnapshot = await getDocs(q);
+        try {
+          const usersRef = collection(db, "users");
+          const q = query(usersRef, where("username", "==", emailOrUsername));
+          const querySnapshot = await getDocs(q);
 
-        if (querySnapshot.empty) {
-          throw new Error("auth/user-not-found");
-        }
+          if (querySnapshot.empty) {
+            throw new Error("auth/user-not-found");
+          }
 
-        if (querySnapshot.size > 1) {
-          throw new Error(
-            "Multiple users found with this username. Please contact support."
-          );
-        }
+          if (querySnapshot.size > 1) {
+            throw new Error(
+              "Multiple users found with this username. Please contact support."
+            );
+          }
 
-        userEmail = querySnapshot.docs[0].data().email;
-        if (!validateEmail(userEmail)) {
-          throw new Error("Invalid email retrieved from database.");
+          const userData = querySnapshot.docs[0].data();
+          userEmail = userData.email;
+
+          if (!validateEmail(userEmail)) {
+            throw new Error("Invalid email retrieved from database.");
+          }
+
+          userExists = true;
+        } catch (firestoreError) {
+          if (
+            firestoreError.code === "permission-denied" ||
+            firestoreError.message.includes("permissions")
+          ) {
+            console.log(
+              "Permission error when looking up username, will try direct auth"
+            );
+          } else {
+            throw firestoreError;
+          }
         }
       }
 
-      // Log for debugging
-      console.log("Attempting login with email:", userEmail);
-      console.log("Password length:", password.length);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        userEmail,
+        password
+      );
 
-      // Attempt login
-      await signInWithEmailAndPassword(auth, userEmail, password);
+      // Check if user details exist in Firebase
+      const userDetailsCheck = await checkUserDetails(userCredential.user.uid);
+
+      if (!userDetailsCheck.exists) {
+        setError(userDetailsCheck.message);
+        // Do NOT navigate - just show the error message about signing up
+        return;
+      }
+
       alert("Login successful!");
-      navigate("/categories");
-      const from = location.state?.from || '/store';
-      navigate(from, { replace: true });
+      navigate("/categories"); // Only navigate if user details exist
     } catch (error) {
-      console.error("Login error:", error.message);
-      switch (error.message) {
-        case "auth/user-not-found":
-          setError("User not found. Check your email or username, or sign up.");
-          break;
-        case "Multiple users found with this username. Please contact support.":
-          setError(error.message);
-          break;
-        case "Invalid email retrieved from database.":
-          setError("Invalid email data. Please contact support.");
-          break;
-        default:
-          if (error.code === "auth/wrong-password") {
+      console.error("Login error:", error);
+      if (error.code) {
+        switch (error.code) {
+          case "auth/user-not-found":
+            setError("User not found. Please sign up to create an account.");
+            break;
+          case "auth/wrong-password":
             setError("Incorrect password. Please try again.");
-          } else if (error.code === "auth/invalid-email") {
+            break;
+          case "auth/invalid-email":
             setError("Invalid email format. Please enter a valid email.");
-          } else if (error.code === "auth/invalid-credential") {
+            break;
+          case "auth/invalid-credential":
             setError("Invalid credentials. Please check your input.");
-          } else if (error.code === "auth/too-many-requests") {
+            break;
+          case "auth/too-many-requests":
             setError("Too many attempts. Please try again later.");
-          } else if (error.code === "auth/user-disabled") {
+            break;
+          case "auth/user-disabled":
             setError("This account has been disabled.");
-          } else {
-            setError("Login failed. Please try again.");
-          }
+            break;
+          case "auth/network-request-failed":
+            setError("Network error. Please check your connection.");
+            break;
+          default:
+            setError(
+              "Login failed. Please try again or sign up for an account."
+            );
+        }
+      } else {
+        switch (error.message) {
+          case "auth/user-not-found":
+            setError("User not found. Please sign up to create an account.");
+            break;
+          case "Multiple users found with this username. Please contact support.":
+            setError(error.message);
+            break;
+          case "Invalid email retrieved from database.":
+            setError("Invalid email data. Please contact support.");
+            break;
+          default:
+            setError(
+              "Login failed. Please try again or sign up for an account."
+            );
+        }
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Google Sign-In Handler
   const handleGoogleSignIn = async () => {
     setError("");
     setLoading(true);
@@ -123,36 +210,47 @@ const AccountLogin = () => {
         throw new Error("No user or email returned from Google sign-in.");
       }
 
-      // Check if user document exists in Firestore
-      const userRef = doc(db, "users", signedInUser.uid);
-      const userSnapshot = await getDoc(userRef);
+      // Check if user details exist in Firebase
+      const userDetailsCheck = await checkUserDetails(signedInUser.uid);
 
-      if (userSnapshot.exists()) {
-        // Existing user, proceed to categories
-        navigate("/categories");
-      } else {
-        // New user, throw error and prompt to go back to Welcome page
-        throw new Error(
-          "No account found. Please return to the Welcome page to sign up."
-        );
+      if (!userDetailsCheck.exists) {
+        setError(userDetailsCheck.message);
+        // Do NOT navigate - just show the error message about signing up
+        return;
       }
+
+      alert("Google sign-in successful!");
+      navigate("/categories"); // Only navigate if user details exist
     } catch (error) {
-      console.error("Google sign-in error:", error.message);
-      if (error.code === "auth/popup-closed-by-user") {
-        setError("Google sign-in was canceled. Please try again.");
-      } else if (error.code === "auth/popup-blocked") {
-        setError("Popup blocked. Please allow popups and try again.");
-      } else if (
-        error.code === "auth/account-exists-with-different-credential"
-      ) {
-        setError(
-          "Account exists with a different sign-in method. Try another method."
-        );
+      console.error("Google sign-in error:", error);
+      if (error.code) {
+        switch (error.code) {
+          case "auth/popup-closed-by-user":
+            setError("Google sign-in was canceled. Please try again.");
+            break;
+          case "auth/popup-blocked":
+            setError("Popup blocked. Please allow popups and try again.");
+            break;
+          case "auth/account-exists-with-different-credential":
+            setError(
+              "Account exists with a different sign-in method. Try another method."
+            );
+            break;
+          case "auth/cancelled-popup-request":
+            setError("Another authentication request is in progress.");
+            break;
+          case "auth/network-request-failed":
+            setError("Network error. Please check your connection.");
+            break;
+          default:
+            setError(
+              "Google sign-in failed. Please try again or sign up for an account."
+            );
+        }
       } else {
-        // Custom error for new users
         setError(
           error.message ||
-            "Google sign-in failed. Please return to the Welcome page."
+            "Google sign-in failed. Please try again or sign up for an account."
         );
       }
     } finally {
@@ -162,7 +260,6 @@ const AccountLogin = () => {
 
   return (
     <div className="relative flex items-center justify-center bg-[#010409] w-full h-screen overflow-hidden">
-      {/* Background Image */}
       <div className="absolute inset-0 opacity-50">
         <img
           src={BackGround_}
@@ -172,7 +269,6 @@ const AccountLogin = () => {
       </div>
 
       <div className="relative my-5 flex flex-col items-center gap-8 px-6 md:flex-row md:gap-30">
-        {/* Logo and Title */}
         <div className="flex flex-row gap-3 md:flex-col items-center">
           <img
             src={Logo}
@@ -182,16 +278,18 @@ const AccountLogin = () => {
           <img src={Title} alt="Title" className="w-34 md:w-56" />
         </div>
 
-        {/* Login Form */}
         <div className="flex flex-col items-center bg-[#010409] p-7 md:p-14 rounded-xl w-full max-w-md">
           <h1 className="text-white text-xl lg:text-2xl font-semibold mb-4">
             Login
           </h1>
 
-          {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 w-full">
+              <span className="block sm:inline">{error}</span>
+            </div>
+          )}
 
           <form className="space-y-4" onSubmit={handleLogin}>
-            {/* Email/Username Input */}
             <div>
               <label className="text-white block mb-1">Email or Username</label>
               <input
@@ -203,7 +301,6 @@ const AccountLogin = () => {
               />
             </div>
 
-            {/* Password Input */}
             <div>
               <label className="text-white block mb-1">Password</label>
               <input
@@ -214,7 +311,6 @@ const AccountLogin = () => {
               />
             </div>
 
-            {/* Login Button */}
             <button
               type="submit"
               className="w-full bg-[#4426B9] hover:bg-[#341d8c] text-white font-semibold p-2 rounded-md transition duration-200"
@@ -223,30 +319,27 @@ const AccountLogin = () => {
               {loading ? "Loading..." : "Log In"}
             </button>
 
-            {/* Forgot Password Link */}
             <p className="text-gray-400 text-center text-xs">
               <Link to="/forgot-password" className="underline text-blue-400">
                 Forgotten Password?
               </Link>
             </p>
 
-            <h5 className="text-white text-xs text-center">
+            <h6 className="text-white text-xs text-center">
               Join Ghost and discover thousands of gaming accounts for sale at
               your fingertips.
-            </h5>
+            </h6>
 
-            {/* Create Account Button */}
             <Link to="/">
               <button
                 type="button"
-                className="w-full mt-5 border-2 border-gray-500 text-white text-xs font-medium p-2 rounded-md"
+                className="w-full mt-5 border-2 border-gray-500 text-white text-xs font-medium p-2 rounded-md hover:bg-gray-700 transition"
               >
                 Create An Account
               </button>
             </Link>
           </form>
 
-          {/* Google Login Button */}
           <div className="flex flex-col items-center mt-6 w-full">
             <p className="text-white text-sm mb-2">OR</p>
             <button

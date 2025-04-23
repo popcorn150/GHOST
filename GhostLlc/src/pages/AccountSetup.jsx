@@ -1,22 +1,24 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { BackGround_, Logo, Title } from "../utils";
+import { useAuth } from "../components/AuthContext";
 import { auth, db } from "../database/firebaseConfig";
 import {
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
   fetchSignInMethodsForEmail,
 } from "firebase/auth";
-import { doc, setDoc, Timestamp, collection, getDoc } from "firebase/firestore";
+import { doc, setDoc, Timestamp, getDoc } from "firebase/firestore";
 
 const AccountSetup = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { state } = location;
+  const { completeUserSetup } = useAuth();
+
   const [email, setEmail] = useState(state?.email || "");
   const [username, setUsername] = useState("");
-  const [country, setCountry] = useState("");
-  const [currency, setCurrency] = useState("");
+  const [country, setCountry] = useState("United States");
+  const [currency, setCurrency] = useState("USD");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordStrength, setPasswordStrength] = useState("");
@@ -24,26 +26,92 @@ const AccountSetup = () => {
   const [passwordError, setPasswordError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [usernameAvailable, setUsernameAvailable] = useState(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
+
+  // Sync email with auth.currentUser.email and handle Google auth
+  useEffect(() => {
+    console.log("AccountSetup state:", state);
+    console.log("auth.currentUser:", auth.currentUser);
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user && user.email) {
+        console.log("Setting email from auth.currentUser:", user.email);
+        setEmail(user.email);
+      } else if (state?.googleAuth && state?.email) {
+        console.log("Setting email from state:", state.email);
+        setEmail(state.email);
+      } else {
+        console.log("No valid email, redirecting to /login");
+        setErrorMessage("Authentication incomplete. Please sign in again.");
+        setTimeout(() => navigate("/login"), 2000);
+      }
+    });
+    return () => unsubscribe();
+  }, [state, navigate]);
 
   // Fetch user location
   useEffect(() => {
     const fetchLocation = async () => {
       try {
-        const response = await fetch("https://ipapi.co/json/");
-        if (!response.ok) throw new Error("Failed to fetch location");
+        const cachedLocation = localStorage.getItem("userLocation");
+        if (cachedLocation) {
+          const locationData = JSON.parse(cachedLocation);
+          setCountry(locationData.country || "United States");
+          setCurrency(locationData.currency || "USD");
+          return;
+        }
+
+        const response = await fetch("https://api.ipregistry.co/?key=tryout");
+        if (!response.ok) throw new Error(`Status: ${response.status}`);
         const data = await response.json();
-        setCountry(data.country_name || "Unknown");
-        setCurrency(data.currency || "USD");
+
+        const countryName = data.location?.country?.name || "United States";
+        const currencyCode = data.currency?.code || "USD";
+        setCountry(countryName);
+        setCurrency(currencyCode);
+
+        localStorage.setItem(
+          "userLocation",
+          JSON.stringify({ country: countryName, currency: currencyCode })
+        );
       } catch (error) {
-        console.error("Error fetching location:", error);
-        setCountry("Unknown");
+        console.error("Error fetching location, using defaults:", error);
+        setCountry("United States");
         setCurrency("USD");
       }
     };
     fetchLocation();
   }, []);
 
-  // Password validation
+  // Check username availability
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (username.trim().length >= 3) {
+        validateUsername(username);
+      } else {
+        setUsernameAvailable(null);
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [username]);
+
+  const validateUsername = async (username) => {
+    if (!username.trim() || username.length < 3) {
+      setUsernameAvailable(null);
+      return;
+    }
+    setCheckingUsername(true);
+    try {
+      const isAvailable = await checkUsernameAvailability(username);
+      setUsernameAvailable(isAvailable);
+    } catch (error) {
+      console.error("Error validating username:", error);
+      setUsernameAvailable(null);
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
+
   const validatePassword = (pwd) => {
     setPassword(pwd);
     if (!pwd || pwd.length < 8) {
@@ -59,21 +127,30 @@ const AccountSetup = () => {
     }
   };
 
-  // Email validation
   const validateEmailFormat = (email) => {
+    console.log("Validating email:", email);
     const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!email || !emailPattern.test(email)) {
+      console.log("Email validation failed: Invalid format");
       return "Please enter a valid email address.";
     }
-    const allowedDomains = ["gmail.com", "yahoo.com", "outlook.com"];
-    const domain = email.split("@")[1];
-    if (!allowedDomains.includes(domain)) {
-      return "Please use a supported email domain (e.g., gmail.com, yahoo.com).";
-    }
+    console.log("Email validation passed");
     return "";
   };
 
-  // Check if email is linked to a Google account
+  const checkUsernameAvailability = async (username) => {
+    try {
+      console.log(`Checking username availability: ${username}`);
+      const usernameRef = doc(db, "usernames", username.trim());
+      const usernameSnap = await getDoc(usernameRef);
+      console.log(`Username ${username} exists: ${usernameSnap.exists()}`);
+      return !usernameSnap.exists();
+    } catch (error) {
+      console.error("Error checking username:", error);
+      throw new Error("Failed to check username availability");
+    }
+  };
+
   const isGoogleAccount = async (email) => {
     try {
       const methods = await fetchSignInMethodsForEmail(auth, email);
@@ -95,58 +172,68 @@ const AccountSetup = () => {
       return;
     }
 
-    // Validate email
-    const emailValidationError = validateEmailFormat(email);
-    if (emailValidationError) {
-      setErrorMessage(emailValidationError);
+    if (usernameAvailable === false) {
+      setErrorMessage("Username is already taken. Please choose another.");
       return;
     }
 
-    // Handle Google-authenticated user
-    if (state?.email && auth.currentUser) {
+    // Skip email validation for Google users
+    if (state?.googleAuth || auth.currentUser) {
+      console.log("Skipping email validation for Google user, email:", email);
+    } else {
+      const emailValidationError = validateEmailFormat(email);
+      if (emailValidationError) {
+        setErrorMessage(emailValidationError);
+        return;
+      }
+    }
+
+    // Google-authenticated user
+    if (state?.googleAuth || auth.currentUser) {
       if (!isChecked) {
         setErrorMessage("You must agree to the terms and conditions.");
         return;
       }
 
       setLoading(true);
-
       try {
-        // Check if username is taken
-        const usernameRef = doc(db, "usernames", username.trim());
-        const usernameSnap = await getDoc(usernameRef);
-        if (usernameSnap.exists()) {
+        const isUsernameAvailable = await checkUsernameAvailability(username);
+        if (!isUsernameAvailable) {
           setErrorMessage("Username is already taken. Please choose another.");
           setLoading(false);
           return;
         }
 
-        // Save user profile to Firestore
         const userDoc = {
           uid: auth.currentUser.uid,
-          email,
-          username,
+          email: email || auth.currentUser.email,
+          username: username.trim(),
           country,
           currency,
           createdAt: Timestamp.now(),
+          setupComplete: true,
         };
-        await setDoc(doc(db, "users", auth.currentUser.uid), userDoc);
 
-        // Reserve the username
-        await setDoc(usernameRef, { uid: auth.currentUser.uid });
+        await setDoc(doc(db, "usernames", username.trim()), {
+          uid: auth.currentUser.uid,
+        });
 
-        localStorage.setItem("currency", currency);
-        alert("Account created successfully!");
-        navigate("/categories");
+        const success = await completeUserSetup(userDoc);
+        if (success) {
+          localStorage.setItem("currency", currency);
+          alert("Account created successfully!");
+        } else {
+          throw new Error("Failed to complete user setup");
+        }
       } catch (error) {
+        console.error("Profile save error:", error.message);
         if (error.code === "permission-denied") {
           setErrorMessage(
             "Permission denied. Please try again or contact support."
           );
         } else {
-          setErrorMessage("Failed to save profile. Please try again.");
+          setErrorMessage(`Failed to save profile: ${error.message}`);
         }
-        console.error("Profile save error:", error.message);
       } finally {
         setLoading(false);
       }
@@ -178,9 +265,7 @@ const AccountSetup = () => {
     }
 
     setLoading(true);
-
     try {
-      // Check if email is linked to a Google account
       const googleAccount = await isGoogleAccount(email);
       if (googleAccount) {
         setErrorMessage(
@@ -190,16 +275,13 @@ const AccountSetup = () => {
         return;
       }
 
-      // Check if username is taken
-      const usernameRef = doc(db, "usernames", username.trim());
-      const usernameSnap = await getDoc(usernameRef);
-      if (usernameSnap.exists()) {
+      const isUsernameAvailable = await checkUsernameAvailability(username);
+      if (!isUsernameAvailable) {
         setErrorMessage("Username is already taken. Please choose another.");
         setLoading(false);
         return;
       }
 
-      // Create new user
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -207,24 +289,23 @@ const AccountSetup = () => {
       );
       const user = userCredential.user;
 
-      // Save user data to Firestore
       const userDoc = {
         uid: user.uid,
         email,
-        username,
+        username: username.trim(),
         country,
         currency,
         createdAt: Timestamp.now(),
+        setupComplete: true,
       };
-      await setDoc(doc(db, "users", user.uid), userDoc);
 
-      // Reserve the username
-      await setDoc(usernameRef, { uid: user.uid });
+      await setDoc(doc(db, "usernames", username.trim()), { uid: user.uid });
+      await completeUserSetup(userDoc);
 
       localStorage.setItem("currency", currency);
       alert("Account created successfully!");
-      navigate("/categories");
     } catch (error) {
+      console.error("Sign-up error:", error.message);
       switch (error.code) {
         case "auth/email-already-in-use":
           setErrorMessage("Email already in use. Please log in instead.");
@@ -244,8 +325,7 @@ const AccountSetup = () => {
           );
           break;
         default:
-          setErrorMessage("An unexpected error occurred. Please try again.");
-          console.error("Sign-up error:", error.message);
+          setErrorMessage(`An unexpected error occurred: ${error.message}`);
       }
     } finally {
       setLoading(false);
@@ -278,18 +358,40 @@ const AccountSetup = () => {
           </h1>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
+            <div className="relative">
               <input
                 type="text"
                 placeholder="Username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full p-2 bg-[#161B22] text-white rounded-md border border-gray-600"
+                className={`w-full p-2 bg-[#161B22] text-white rounded-md border 
+                ${
+                  usernameAvailable === true
+                    ? "border-green-500"
+                    : usernameAvailable === false
+                    ? "border-red-500"
+                    : "border-gray-600"
+                }`}
                 required
               />
+              {checkingUsername && (
+                <span className="text-xs text-gray-400 block mt-1">
+                  Checking availability...
+                </span>
+              )}
+              {usernameAvailable === true && username.trim().length >= 3 && (
+                <span className="text-xs text-green-500 block mt-1">
+                  Username available!
+                </span>
+              )}
+              {usernameAvailable === false && (
+                <span className="text-xs text-red-500 block mt-1">
+                  Username already taken
+                </span>
+              )}
             </div>
 
-            {!state?.email && (
+            {!(state?.googleAuth || auth.currentUser) && (
               <input
                 type="email"
                 placeholder="Email"
@@ -306,32 +408,33 @@ const AccountSetup = () => {
               value={password}
               onChange={(e) => validatePassword(e.target.value)}
               className={`w-full p-2 bg-[#161B22] text-white rounded-md border border-gray-600 ${
-                state?.email ? "opacity-50" : ""
+                state?.googleAuth || auth.currentUser ? "opacity-50" : ""
               }`}
-              required={!state?.email}
-              disabled={state?.email}
+              required={!(state?.googleAuth || auth.currentUser)}
+              disabled={state?.googleAuth || auth.currentUser}
             />
             <p
               className={`text-sm ${
                 passwordStrength === "Strong"
                   ? "text-green-400"
                   : "text-red-400"
-              } ${state?.email ? "opacity-50" : ""}`}
+              } ${state?.googleAuth || auth.currentUser ? "opacity-50" : ""}`}
             >
               {passwordStrength ||
-                (state?.email ? "Not required for Google accounts" : "")}
+                (state?.googleAuth || auth.currentUser
+                  ? "Not required for Google accounts"
+                  : "")}
             </p>
-
             <input
               type="password"
               placeholder="Confirm Password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className={`w-full p-2 bg-[#161B22] text-white rounded-md border border-gray-600 ${
-                state?.email ? "opacity-50" : ""
+                state?.googleAuth || auth.currentUser ? "opacity-50" : ""
               }`}
-              required={!state?.email}
-              disabled={state?.email}
+              required={!(state?.googleAuth || auth.currentUser)}
+              disabled={state?.googleAuth || auth.currentUser}
             />
             {passwordError && (
               <p className="text-red-500 text-sm">Passwords do not match.</p>

@@ -1,22 +1,15 @@
 import "../App.css";
-import { useParams } from "react-router-dom";
-import { Link } from "react-router-dom";
-import availableAccounts from "../constants";
-import categoryAccounts from "../constants/category";
+import { useParams, Link } from "react-router-dom";
 import NavBar from "../components/NavBar";
+import BackButton from "../components/BackButton";
 import { AdminIcon } from "../utils";
 import { useEffect, useState } from "react";
-import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
-import { BsCartPlusFill } from "react-icons/bs";
-import { BsFillCartCheckFill } from "react-icons/bs";
-import { PiShoppingBagOpenFill } from "react-icons/pi";
-import { PiShoppingBagFill } from "react-icons/pi";
+import { FaArrowLeft, FaArrowRight, FaEye, FaEyeSlash } from "react-icons/fa";
+import { BsCartPlusFill, BsFillCartCheckFill } from "react-icons/bs";
+import { PiShoppingBagOpenFill, PiShoppingBagFill } from "react-icons/pi";
 import { GiCancel } from "react-icons/gi";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../database/firebaseConfig";
-import { useCart } from '../context/CartContext';
-import BackButton from "../components/BackButton";
-import { Toaster, toast } from 'sonner';
+import { Toaster, toast } from "sonner";
+import { fetchAccountByIdWithImages } from "../utils/firebaseUtils";
 
 const AccountDetails = () => {
   const { slug } = useParams();
@@ -26,73 +19,43 @@ const AccountDetails = () => {
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState([]);
   const [isPurchased, setIsPurchased] = useState(false);
-  const { addToCart, cartItems } = useCart();
+  const [showCredentials, setShowCredentials] = useState(false);
 
   useEffect(() => {
     const fetchAccountData = async () => {
       setLoading(true);
       console.log("Fetching account data for slug:", slug);
 
-      // Check static accounts first
-      let foundAccount = availableAccounts.find((acc) => acc.slug === slug);
-      if (!foundAccount) {
-        for (const category of categoryAccounts) {
-          const foundGame = category.games.find((game) => game.slug === slug);
-          if (foundGame) {
-            foundAccount = foundGame;
-            break;
-          }
-        }
-      }
+      // Note: Removed static account fetching for simplicity, assuming Firestore is primary
+      let foundAccount = null;
 
-      // Check Firestore if not found in static data
-      if (!foundAccount) {
-        try {
-          const accountsRef = collection(db, "accounts");
-          const querySnapshot = await getDocs(accountsRef);
-          const accounts = querySnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          console.log("All Firestore accounts:", accounts);
+      // Check Firestore
+      const firestoreAccount = await fetchAccountByIdWithImages(slug);
+      console.log("Fetched Firestore account:", firestoreAccount);
 
-          const firestoreAccount = accounts.find(
-            (acc) =>
-              acc.id === slug ||
-              (acc.accountName &&
-                acc.accountName.replace(/\s+/g, "-").toLowerCase() === slug)
-          );
-          console.log("Matched Firestore account:", firestoreAccount);
-
-          if (firestoreAccount) {
-            foundAccount = {
-              id: firestoreAccount.id,
-              title: firestoreAccount.accountName || "Untitled Account",
-              img: firestoreAccount.accountImage || AdminIcon,
-              details:
-                firestoreAccount.accountDescription || "No details available",
-              views: firestoreAccount.views || 0,
-              accountWorth: firestoreAccount.accountWorth,
-              accountCredential: firestoreAccount.accountCredential,
-              createdAt: firestoreAccount.createdAt,
-              username: firestoreAccount.username || "Ghost",
-              screenShots: Array.isArray(firestoreAccount.screenshots)
-                ? firestoreAccount.screenshots.map((url, index) => ({
-                  id: `screenshot-${index}`,
-                  img: url,
-                }))
-                : [],
-            };
-            console.log(
-              "Mapped Firestore account with username:",
-              foundAccount
-            );
-          } else {
-            console.log("No Firestore account matched the slug:", slug);
-          }
-        } catch (error) {
-          console.error("Error fetching account from Firestore:", error);
-        }
+      if (firestoreAccount) {
+        foundAccount = {
+          id: firestoreAccount.id,
+          title: firestoreAccount.accountName || "Untitled Account",
+          img: firestoreAccount.accountImage || AdminIcon,
+          details:
+            firestoreAccount.accountDescription || "No details available",
+          views: firestoreAccount.views || 0,
+          accountWorth: firestoreAccount.accountWorth,
+          accountCredential: firestoreAccount.accountCredential,
+          createdAt: firestoreAccount.createdAt,
+          username: firestoreAccount.username || "Ghost",
+          userId: firestoreAccount.userId, // Added userId
+          userProfilePic: firestoreAccount.userProfilePic || AdminIcon,
+          screenShots: Array.isArray(firestoreAccount.screenshots)
+            ? firestoreAccount.screenshots.map((url, index) => ({
+                id: `screenshot-${index}`,
+                img: url,
+              }))
+            : [],
+          isFromFirestore: true,
+        };
+        console.log("Mapped Firestore account:", foundAccount);
       }
 
       console.log("Final mapped account:", foundAccount);
@@ -108,31 +71,45 @@ const AccountDetails = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // Reset credentials visibility when purchase status changes
+  useEffect(() => {
+    if (!isPurchased) {
+      setShowCredentials(false);
+    }
+  }, [isPurchased]);
+
   const handleImageClick = (index) => setSelectedImage(index);
 
   const handleNext = () =>
     account?.screenShots?.length > 0 &&
     setSelectedImage((prev) => (prev + 1) % account.screenShots.length);
 
-  const handlePrev = () =>
+  const handlePrev = () => {
     account?.screenShots?.length > 0 &&
-    setSelectedImage(
-      (prev) =>
-        (prev - 1 + account.screenShots.length) % account.screenShots.length
-    );
+      setSelectedImage(
+        (prev) =>
+          (prev - 1 + account.screenShots.length) % account.screenShots.length
+      );
+  }
 
   const handleAddToCart = () => {
+    const existingCart = JSON.parse(localStorage.getItem("ghost_cart")) || [];
+
+    const alreadyInCart = existingCart.some(
+      (item) => (item.slug || item.id) === (account.slug || account.id)
+    );
+  
     if (
-      cartItems.some(
-        (item) => (item.slug || item.id) === (account.slug || account.id)
-      )
+      alreadyInCart
     ) {
       toast.warning(`${account.title} is already in your cart!`);
     } else {
-      setCart([...cart, account]);
+      const updatedCart = [...existingCart, account];
+      localStorage.setItem("ghost_cart", JSON.stringify(updatedCart));
+      setCart(updatedCart);
       toast.success(`${account.title} added to cart!`);
-      addToCart(account);
-      console.log("Cart updated:", [...cartItems, account]);
+
+      console.log("🧃 Saved to localStorage:", updatedCart);
     }
   };
 
@@ -152,12 +129,72 @@ const AccountDetails = () => {
     );
   };
 
+  const toggleCredentialVisibility = () => {
+    if (isPurchased) {
+      setShowCredentials(!showCredentials);
+    } else {
+      toast.error("You must purchase this account to view credentials");
+    }
+  };
+
+  const renderCredentials = () => {
+    if (!account.accountCredential) return null;
+
+    return (
+      <div className="mt-4 relative">
+        <h3 className="text-lg font-semibold">Account Credentials</h3>
+        <div className="flex items-center">
+          <p
+            className={`text-gray-300 ${
+              !isPurchased || (isPurchased && !showCredentials)
+                ? "blur-sm select-none"
+                : ""
+            }`}
+          >
+            {account.accountCredential}
+          </p>
+          {isPurchased && (
+            <button
+              onClick={toggleCredentialVisibility}
+              className="ml-2 p-2 bg-gray-700 hover:bg-gray-600 rounded-full"
+              aria-label={
+                showCredentials ? "Hide credentials" : "Show credentials"
+              }
+              title={showCredentials ? "Hide credentials" : "Show credentials"}
+            >
+              {showCredentials ? (
+                <FaEyeSlash className="text-gray-300" />
+              ) : (
+                <FaEye className="text-gray-300" />
+              )}
+            </button>
+          )}
+        </div>
+        {isPurchased && !showCredentials && (
+          <p className="text-xs text-gray-400 mt-1">
+            Click the eye icon to reveal credentials
+          </p>
+        )}
+        {!isPurchased && (
+          <p className="text-xs text-yellow-400 mt-1">
+            Purchase this account to view credentials
+          </p>
+        )}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <>
         <NavBar />
         <div className="flex justify-center items-center h-screen bg-gray-900">
-          <div className="category-loader w-24 h-24 rounded-full animate-spin"></div>
+          <div className="flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-l-4 border-r-4 border-t-[#4426B9] border-b-[#4426B9] border-l-transparent border-r-transparent"></div>
+            <p className="text-white text-lg font-semibold">
+              Loading Account...
+            </p>
+          </div>
         </div>
       </>
     );
@@ -172,7 +209,7 @@ const AccountDetails = () => {
             Account not found
           </div>
           <Link
-            to="/categories"
+            to="/categories" // Corrected to match App.jsx
             className="bg-blue-500 text-white px-4 py-2 rounded-md"
           >
             Return to Browse
@@ -186,7 +223,7 @@ const AccountDetails = () => {
     <>
       <NavBar />
       <div className="p-5 min-h-screen text-white">
-        <div className="px-4 mt-4 md:hidden">
+        <div className="px-4 mt-4">
           <BackButton />
         </div>
 
@@ -214,11 +251,20 @@ const AccountDetails = () => {
                   <p className="text-gray-400 mr-44">
                     {account.views || 0} Total Views
                   </p>
-                  <Link to={"/profilevisit"}>
+                  <Link to={`/profilevisit/${account.userId}`}>
                     <img
-                      src={AdminIcon}
-                      alt="admin"
-                      className="w-8 md:w-10 hover:cursor-pointer"
+                      src={
+                        account.isFromFirestore
+                          ? account.userProfilePic || AdminIcon
+                          : AdminIcon
+                      }
+                      alt="User Profile"
+                      className="w-8 md:w-10 h-8 md:h-10 rounded-full object-cover hover:cursor-pointer"
+                      onError={() =>
+                        console.error(
+                          `Failed to load profile pic for ${account.username}`
+                        )
+                      }
                     />
                   </Link>
                 </span>
@@ -241,12 +287,7 @@ const AccountDetails = () => {
                 </p>
               </div>
             )}
-            {account.accountCredential && (
-              <div className="mt-4">
-                <h3 className="text-lg font-semibold">Account Credentials</h3>
-                <p className="text-gray-300">{account.accountCredential}</p>
-              </div>
-            )}
+            {renderCredentials()}
           </div>
         </div>
 
@@ -258,27 +299,30 @@ const AccountDetails = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 cursor-pointer">
               {loadingImages
                 ? Array.from({ length: account.screenShots.length }).map(
-                  (_, index) => (
-                    <div
-                      key={index}
-                      className="w-full h-40 bg-gray-300 animate-pulse rounded-md flex items-center justify-center"
-                    >
-                      <div className="category-loader w-10 h-10 rounded-full animate-spin"></div>
-                    </div>
+                    (_, index) => (
+                      <div
+                        key={index}
+                        className="relative w-full h-40 bg-gray-700 rounded-md flex items-center justify-center"
+                      >
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-l-2 border-r-2 border-t-[#4426B9] border-b-[#4426B9] border-l-transparent border-r-transparent"></div>
+                          <p className="text-gray-400 text-sm">Loading...</p>
+                        </div>
+                      </div>
+                    )
                   )
-                )
                 : account.screenShots.map((shot, index) => (
-                  <img
-                    key={shot.id || `shot-${index}`}
-                    src={shot.img}
-                    alt={`Screenshot ${index + 1}`}
-                    className="w-full h-40 object-cover rounded-md"
-                    onClick={() => handleImageClick(index)}
-                    onError={() =>
-                      console.error(`Failed to load screenshot ${index + 1}`)
-                    }
-                  />
-                ))}
+                    <img
+                      key={shot.id || `shot-${index}`}
+                      src={shot.img}
+                      alt={`Screenshot ${index + 1}`}
+                      className="w-full h-40 object-cover rounded-md"
+                      onClick={() => handleImageClick(index)}
+                      onError={() =>
+                        console.error(`Failed to load screenshot ${index + 1}`)
+                      }
+                    />
+                  ))}
             </div>
           </div>
         )}
@@ -295,7 +339,6 @@ const AccountDetails = () => {
             </p>
           </div>
         )}
-
 
         {selectedImage !== null && account.screenShots?.length > 0 && (
           <div className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-50">
@@ -325,63 +368,63 @@ const AccountDetails = () => {
           </div>
         )}
 
-        <div className="flex flex-col md:flex-row justify-between items-end md:items-center px-4 py-6 gap-4">
-          <div className="hidden md:block">
-            <BackButton />
-          </div>
-
-          <div className="flex flex-row gap-4 justify-end w-full">
-            <Toaster richColors position="top-center" closeIcon={false} />
+        <div className="flex flex-col md:flex-row justify-end items-start md:items-center px-4 py-6 gap-4">
+          <Toaster richColors position="top-center" />
+          <div className="flex flex-col sm:flex-row gap-4">
             <button
               onClick={handleAddToCart}
-              className={`flex text-white px-4 py-2 gap-2 rounded-md transition cursor-pointer ${cart.some((item) => (item.slug || item.id) === (account.slug || account.id))
+              className={`flex text-white px-4 py-2 gap-2 rounded-md transition cursor-pointer ${
+                cart.some(
+                  (item) =>
+                    (item.slug || item.id) === (account.slug || account.id)
+                )
                   ? "bg-[#4B5564] cursor-not-allowed"
                   : "bg-[#1C275E]"
-                }`}
-              disabled={cartItems.some((item) => (item.slug || item.id) === (account.slug || account.id))}
+              }`}
+              disabled={cart.some(
+                (item) => (item.slug || item.id) === (account.slug || item.id)
+              )}
             >
-              {cartItems.some((item) => (item.slug || item.id) === (account.slug || account.id))
-                ?
+              {cart.some(
+                (item) =>
+                  (item.slug || item.id) === (account.slug || account.id)
+              ) ? (
                 <>
                   <span className="text-gray-300">In Cart</span>
                   <BsFillCartCheckFill className="self-center" />
                 </>
-                :
+              ) : (
                 <>
                   <span className="text-white">Add to Cart</span>
                   <BsCartPlusFill className="self-center" />
                 </>
-              }
+              )}
             </button>
 
             <button
               onClick={handlePurchase}
-              className={`flex text-white px-4 py-2 gap-2 rounded-md transition cursor-pointer ${isPurchased
-                ? "bg-[#A299C4] cursor-not-allowed"
-                : "bg-[#4426B9]"
-                }`}
+              className={`flex text-white px-4 py-2 gap-2 rounded-md transition cursor-pointer ${
+                isPurchased ? "bg-[#A299C4] cursor-not-allowed" : "bg-[#4426B9]"
+              }`}
               disabled={isPurchased}
             >
-              {isPurchased
-                ?
+              {isPurchased ? (
                 <>
                   <span className="text-gray-300">Purchased</span>
                   <PiShoppingBagOpenFill className="self-center" />
                 </>
-                :
+              ) : (
                 <>
                   <span className="text-white">Purchase</span>
                   <PiShoppingBagFill className="self-center" />
                 </>
-              }
+              )}
             </button>
           </div>
         </div>
       </div>
     </>
-
   );
-
 };
 
 export default AccountDetails;
