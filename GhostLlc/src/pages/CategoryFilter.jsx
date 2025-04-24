@@ -285,9 +285,13 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
                     ) : (
                       <div></div> // Empty div to maintain spacing
                     )}
-                    <button className="cursor-pointer self-center bg-blue-500 text-white px-2 py-1 rounded-md text-xs md:text-sm flex items-center gap-1">
-                      <FaHeart className="text-white text-2xl" />
-                    </button>
+
+                    {/* Only show favorite button for user-uploaded accounts */}
+                    {game.isFromFirestore && (
+                      <button className="cursor-pointer self-center bg-blue-500 text-white px-2 py-1 rounded-md text-xs md:text-sm flex items-center gap-1">
+                        <FaHeart className="text-white text-2xl" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))
