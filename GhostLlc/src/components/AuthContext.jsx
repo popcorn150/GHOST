@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }) => {
         `AuthContext checkUserExists failed for UID=${uid}:`,
         error
       );
-      return false; // Changed to false - don't assume user exists on error
+      return false;
     }
   }, []);
 
@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }) => {
       const defaultUserData = {
         uid: user.uid,
         email: user.email || "",
-        displayName: user.displayName || user.email?.split("@")[0] || "",
+        displayName: user.email?.split("@")[0] || "",
         photoURL: user.photoURL || "",
         createdAt: new Date().toISOString(),
         setupComplete: false,
@@ -101,7 +101,7 @@ export const AuthProvider = ({ children }) => {
       }
       setCurrentUser(null);
       setUserDetails(null);
-      setLastProcessedUid(null); // Clear to allow reprocessing
+      setLastProcessedUid(null);
       await signOut(auth);
       navigate("/login");
     } catch (error) {
@@ -141,20 +141,28 @@ export const AuthProvider = ({ children }) => {
         setLastProcessedUid(user.uid);
         setCurrentUser(user);
 
-        // Check if the user exists in Firestore
         const userExists = await checkUserExists(user.uid);
         console.log(
           `Navigation check: userExists=${userExists}, setupComplete=${userDetails?.setupComplete}, path=${location.pathname}`
         );
 
         if (!userExists) {
-          // Don't navigate - just let the user stay on the current page
-          // They will see an error message on login/signup pages
-          console.log("User authenticated but no Firestore record exists");
-
-          // Only force navigation if they're trying to access protected routes
-          const publicRoutes = ["/", "/login", "/sign-up"];
-          if (!publicRoutes.includes(location.pathname)) {
+          const publicRoutes = [
+            "/",
+            "/login",
+            "/sign-up",
+            "/privacy-policy",
+            "/terms-of-service",
+            "/about",
+            "/contact",
+            "/faq",
+          ];
+          const isAccountDetailsRoute =
+            location.pathname.match(/^\/account\/[^/]+$/);
+          if (
+            !publicRoutes.includes(location.pathname) &&
+            !isAccountDetailsRoute
+          ) {
             navigate("/login");
           }
         } else if (
@@ -167,14 +175,26 @@ export const AuthProvider = ({ children }) => {
           navigate("/sign-up");
         }
       } else {
-        // User is not authenticated
         setCurrentUser(null);
         setUserDetails(null);
         setLastProcessedUid(null);
 
-        // Only redirect from protected routes
-        const publicRoutes = ["/", "/login", "/sign-up"];
-        if (!publicRoutes.includes(location.pathname)) {
+        const publicRoutes = [
+          "/",
+          "/login",
+          "/sign-up",
+          "/privacy-policy",
+          "/terms-of-service",
+          "/about",
+          "/contact",
+          "/faq",
+        ];
+        const isAccountDetailsRoute =
+          location.pathname.match(/^\/account\/[^/]+$/);
+        if (
+          !publicRoutes.includes(location.pathname) &&
+          !isAccountDetailsRoute
+        ) {
           navigate("/login");
         }
       }

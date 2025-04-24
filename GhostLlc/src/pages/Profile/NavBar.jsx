@@ -1,181 +1,156 @@
 import { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { signOut } from "firebase/auth";
-import { auth } from "../../database/firebaseConfig";
+import { Link, useNavigate } from "react-router-dom";
 import { X, Menu, User, Settings, LogOut } from "lucide-react";
-import { NavLogo } from "../../utils";
-import {
-  IoCartOutline,
-  IoHomeOutline, 
-  IoGlobeOutline,
-  IoWalletOutline,
-} from "react-icons/io5";
+import { NavLogo, ProfileIcon } from "../../utils";
+import { IoCartOutline } from "react-icons/io5";
+import { IoGlobeOutline } from "react-icons/io5";
+import { IoWalletOutline } from "react-icons/io5";
 import { MdOutlinePolicy } from "react-icons/md";
 import { HiOutlineFolderOpen } from "react-icons/hi2";
+import { IoHomeOutline } from "react-icons/io5";
 import { HiOutlineQuestionMarkCircle } from "react-icons/hi";
+import { useAuth } from "../../components/AuthContext";
+import { toast, Toaster } from "sonner";
 
-const NavBar = ({ profileImage }) => {
+const NavBar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
+  const { currentUser } = useAuth();
 
-  // Handle Logout
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      setDropdownOpen(false); // Close dropdown
-      navigate("/login"); // Redirect to login page
-    } catch (error) {
-      console.error("Logout failed:", error.message);
+  // Navigation links for authenticated users
+  const authLinks = [
+    { to: "/categories", label: "Home", icon: IoHomeOutline },
+    { to: "/cart", label: "Cart", icon: IoCartOutline },
+    { to: "/doc", label: "Doc", icon: HiOutlineFolderOpen },
+    { to: "/faqs", label: "FAQs", icon: HiOutlineQuestionMarkCircle },
+    { to: "/community", label: "Community", icon: IoGlobeOutline },
+    { to: "/withdraw", label: "Withdrawal", icon: IoWalletOutline },
+    { to: "/privacy-policy", label: "Privacy Policy", icon: MdOutlinePolicy },
+  ];
+
+  // Navigation links for unauthenticated visitors
+  const visitorLinks = [
+    { to: "/privacy-policy", label: "Privacy Policy", icon: MdOutlinePolicy },
+    { to: "/doc", label: "Doc", icon: HiOutlineFolderOpen },
+    { to: "/faqs", label: "FAQs", icon: HiOutlineQuestionMarkCircle },
+  ];
+
+  // Select links based on authentication status
+  const navLinks = currentUser ? authLinks : visitorLinks;
+
+  const handleLinkClick = (to, label) => {
+    if (!currentUser) {
+      toast.error(`Please log in to view ${label}.`);
+      navigate("/login");
+    } else {
+      navigate(to);
     }
-  };
-
-  // Close dropdown when a link is clicked
-  const handleLinkClick = () => {
-    setDropdownOpen(false);
     setMenuOpen(false);
   };
 
   return (
     <nav className="sticky top-0 bg-[#0E1115] text-white flex items-center justify-between p-4 shadow-md z-50">
-      {/* Mobile Menu Button */}
+      <Toaster richColors position="top-center" />
       <button
         onClick={() => setMenuOpen(!menuOpen)}
         className="hover:cursor-pointer"
+        aria-label={menuOpen ? "Close menu" : "Open menu"}
       >
         {menuOpen ? <X size={30} /> : <Menu size={30} />}
       </button>
 
-      {/* Mobile Menu */}
       {menuOpen && (
         <div className="fixed inset-0 bg-[#0E1115] bg-opacity-80 z-50 flex flex-col w-64 p-6">
           <button
             onClick={() => setMenuOpen(false)}
             className="self-end mb-4 cursor-pointer"
+            aria-label="Close menu"
           >
             <X size={24} />
           </button>
           <ul className="space-y-4">
-            <li>
-              <Link
-                to="/categories"
-                className="flex gap-2 hover:text-gray-400"
-                onClick={handleLinkClick}
-              >
-                Home <IoHomeOutline  className="self-center w-5 h-5" />
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/cart"
-                className="flex gap-2 hover:text-gray-400"
-                onClick={handleLinkClick}
-              >
-                Cart <IoCartOutline className="self-center w-5 h-5" />
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/doc"
-                className="flex gap-2 hover:text-gray-400"
-                onClick={handleLinkClick}
-              >
-                Doc <HiOutlineFolderOpen className="self-center w-5 h-5" />
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/faqs"
-                className="flex gap-2 hover:text-gray-400"
-                onClick={handleLinkClick}
-              >
-                FAQs{" "}
-                <HiOutlineQuestionMarkCircle className="self-center w-5 h-5" />
-              </Link>
-            </li>
-            {/* <li>
-              <Link
-                to="/store"
-                className="flex gap-2 hover:text-gray-400"
-                onClick={handleLinkClick}
-              >
-                Store <IoStorefrontOutline className="self-center w-5 h-5" />
-              </Link>
-            </li> */}
-            <li>
-              <Link
-                to="/community"
-                className="flex gap-2 hover:text-gray-400"
-                onClick={handleLinkClick}
-              >
-                Community <IoGlobeOutline className="self-center w-5 h-5" />
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/withdraw"
-                className="flex gap-2 hover:text-gray-400"
-                onClick={handleLinkClick}
-              >
-                Withdrawal <IoWalletOutline className="self-center w-5 h-5" />
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/privacy-policy"
-                className="flex gap-2 hover:text-gray-400"
-                onClick={handleLinkClick}
-              >
-                Privacy Policy{" "}
-                <MdOutlinePolicy className="self-center w-5 h-5" />
-              </Link>
-            </li>
+            {navLinks.map((link) => (
+              <li key={link.to}>
+                <button
+                  onClick={() => handleLinkClick(link.to, link.label)}
+                  className="flex gap-2 hover:text-gray-400 w-full text-left"
+                  aria-label={`Navigate to ${link.label}`}
+                >
+                  {link.label}
+                  <link.icon className="self-center w-5 h-5" />
+                </button>
+              </li>
+            ))}
           </ul>
         </div>
       )}
 
-      {/* Navbar Logo */}
-      <img src={NavLogo} alt="Navbar" className="w-40 h-8 md:h-10 mx-auto" />
+      <img
+        src={NavLogo}
+        alt="Navbar Logo"
+        className="w-40 h-8 md:h-10 mx-auto"
+      />
 
-      {/* Profile Dropdown */}
       <div className="relative">
-        <button
-          onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="hover:cursor-pointer"
-        >
-          <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#0576FF]">
+        {currentUser ? (
+          <>
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="hover:cursor-pointer"
+              aria-label="Toggle profile menu"
+            >
+              <img
+                src={ProfileIcon}
+                alt="Profile"
+                className="w-14 items-center rounded-lg"
+              />
+            </button>
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-2 bg-gray-800 p-4 rounded-lg w-40 shadow-lg">
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2">
+                    <User size={16} />
+                    <Link to="/profile" onClick={() => setDropdownOpen(false)}>
+                      Account
+                    </Link>
+                  </li>
+                  <li
+                    className="flex items-center gap-2 cursor-pointer"
+                    onClick={() => {
+                      navigate("/settings");
+                      setDropdownOpen(false);
+                    }}
+                  >
+                    <Settings size={16} />
+                    <span>Settings</span>
+                  </li>
+                  <li
+                    className="flex items-center gap-2 cursor-pointer"
+                    onClick={() => {
+                      navigate("/login"); // Replace with actual logout logic
+                      setDropdownOpen(false);
+                    }}
+                  >
+                    <LogOut size={16} />
+                    <span>Logout</span>
+                  </li>
+                </ul>
+              </div>
+            )}
+          </>
+        ) : (
+          <Link
+            to="/login"
+            className="flex items-center gap-2 hover:text-gray-400"
+            aria-label="Log in"
+          >
             <img
-              src={profileImage}
-              alt="profile"
-              className="w-full h-full object-cover"
+              src={ProfileIcon}
+              alt="Login"
+              className="w-14 items-center rounded-lg"
             />
-          </div>
-        </button>
-
-        {dropdownOpen && (
-          <div className="absolute right-0 mt-2 bg-gray-800 p-4 rounded-lg w-40 shadow-lg z-50">
-            <ul className="space-y-2">
-              <li className="flex items-center gap-2">
-                <User size={16} />
-                <Link to="/categories" onClick={handleLinkClick}>
-                  Categories
-                </Link>
-              </li>
-              <li className="flex items-center gap-2">
-                <Settings size={16} />
-                <Link to="/settings" onClick={handleLinkClick}>
-                  Settings
-                </Link>
-              </li>
-              <li className="flex items-center gap-2">
-                <LogOut size={16} />
-                <button className="hover:cursor-pointer" onClick={handleLogout}>
-                  Logout
-                </button>
-              </li>
-            </ul>
-          </div>
+          </Link>
         )}
       </div>
     </nav>

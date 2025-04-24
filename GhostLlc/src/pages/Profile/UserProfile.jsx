@@ -10,13 +10,10 @@ import {
   FaTiktok,
   FaImage,
   FaShareAlt,
+  FaLink,
+  FaWhatsapp,
 } from "react-icons/fa";
-import {
-  UploadCloud,
-  User,
-  Heart,
-  Trophy,
-} from "lucide-react";
+import { UploadCloud, User, Heart, Trophy } from "lucide-react";
 import { FaSquareFacebook, FaXTwitter } from "react-icons/fa6";
 import { IoAdd } from "react-icons/io5";
 import { LuUpload } from "react-icons/lu";
@@ -33,6 +30,7 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  writeBatch,
 } from "firebase/firestore";
 import { toast } from "sonner";
 
@@ -48,7 +46,6 @@ const tabs = [
   { name: "Favorites", icon: Trophy },
 ];
 
-
 const Layout = ({
   activeTab,
   setActiveTab,
@@ -56,6 +53,13 @@ const Layout = ({
   username,
   profileImage,
   handleImageChange,
+  isEditingUsername,
+  setIsEditingUsername,
+  tempUsername,
+  setTempUsername,
+  handleSaveUsername,
+  handleDiscardUsername,
+  isUpdatingUsername,
 }) => {
   const [isProcessingProfileImage, setIsProcessingProfileImage] =
     useState(false);
@@ -78,6 +82,14 @@ const Layout = ({
     <>
       <NavBar profileImage={profileImage || "/default-profile.png"} />
       <div className="flex flex-col items-center justify-center p-2 bg-[#010409]">
+        {isUpdatingUsername && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+            <div className="flex flex-col items-center gap-3">
+              <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-l-4 border-r-4 border-t-[#0576FF] border-b-[#0576FF] border-l-transparent border-r-transparent"></div>
+              <p className="text-white text-lg font-semibold">Processing...</p>
+            </div>
+          </div>
+        )}
         <div className="w-full flex justify-start">
           <BackButton />
         </div>
@@ -105,48 +117,90 @@ const Layout = ({
           {isProcessingProfileImage && (
             <button
               onClick={handleCancelProfileImage}
-              className="absolute bottom-2 ultras2 left-2 bg-[#EB3223] p-2 rounded-full cursor-pointer hover:bg-[#B71C1C] transition"
+              className="absolute bottom-2 left-2 bg-[#EB3223] p-2 rounded-full cursor-pointer hover:bg-[#B71C1C] transition"
               aria-label="Cancel profile image upload"
             >
               <FaTrashAlt className="text-white w-5 h-5" />
             </button>
           )}
         </div>
-        <h2 className="text-white text-xl font-semibold mb-4">
-          {username || "User"}
-        </h2>
+        <div className="flex items-center gap-2 mb-4">
+          {isEditingUsername ? (
+            <div className="flex flex-col sm:flex-row gap-2 items-center">
+              <input
+                type="text"
+                value={tempUsername}
+                onChange={(e) => setTempUsername(e.target.value)}
+                className="p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#0576FF] text-xl font-semibold"
+                aria-label="Edit username"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSaveUsername();
+                  if (e.key === "Escape") handleDiscardUsername();
+                }}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveUsername}
+                  className="flex items-center gap-2 bg-[#4426B9] text-white px-3 py-1 rounded-md hover:bg-[#2F1A7F] transition"
+                  aria-label="Save username"
+                >
+                  <FaSave className="w-4 h-4" /> Save
+                </button>
+                <button
+                  onClick={handleDiscardUsername}
+                  className="flex items-center gap-2 bg-[#EB3223] text-white px-3 py-1 rounded-md hover:bg-[#B71C1C] transition"
+                  aria-label="Discard username changes"
+                >
+                  <FaTrashAlt className="w-4 h-4" /> Discard
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <h2 className="text-white text-xl font-semibold">
+                {username || "User"}
+              </h2>
+              <button
+                onClick={() => setIsEditingUsername(true)}
+                className="flex items-center gap-2 border-2 border-[#0576FF] text-white px-2 py-1 rounded-md hover:bg-[#0576FF]/20 transition"
+                aria-label="Edit username"
+              >
+                <BsPencilSquare className="w-4 h-4" />
+              </button>
+            </>
+          )}
+        </div>
         <div className="w-full px-4 sm:px-12 md:px-24 mx-auto">
-      <div className="flex justify-between border-b relative">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.name}
-              onClick={() => setActiveTab(tab.name)}
-              className={`py-2 flex-1 text-center cursor-pointer flex items-center justify-center gap-1 ${
-                activeTab === tab.name
-                  ? "text-white font-semibold"
-                  : "text-gray-400"
-              }`}
-            >
-              <Icon className="w-5 h-5" />
-              <span className="hidden sm:inline text-sm">{tab.name}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="relative w-full h-1 bg-[#0E1115] border-none">
-        <div
-          className="h-full bg-purple-500 transition-all duration-300"
-          style={{
-            width: "20%",
-            transform: `translateX(${
-              tabs.findIndex((tab) => tab.name === activeTab) * 135
-            }%)`,
-          }}
-        ></div>
-      </div>
+          <div className="flex justify-between border-b relative">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.name}
+                  onClick={() => setActiveTab(tab.name)}
+                  className={`py-2 flex-1 text-center cursor-pointer flex items-center justify-center gap-1 ${
+                    activeTab === tab.name
+                      ? "text-white font-semibold"
+                      : "text-gray-400"
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="hidden sm:inline text-sm">{tab.name}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="relative w-full h-1 bg-[#0E1115] border-none">
+            <div
+              className="h-full bg-purple-500 transition-all duration-   duration-300"
+              style={{
+                width: "20%",
+                transform: `translateX(${
+                  tabs.findIndex((tab) => tab.name === activeTab) * 135
+                }%)`,
+              }}
+            ></div>
+          </div>
           <div className="w-full">{children}</div>
         </div>
       </div>
@@ -154,7 +208,14 @@ const Layout = ({
   );
 };
 
-const Uploads = ({ profileImage }) => {
+const Uploads = ({
+  profileImage,
+  uploadedAccounts,
+  setUploadedAccounts,
+  fetchAccounts,
+  username,
+  userCurrency,
+}) => {
   const [accountImage, setAccountImage] = useState(null);
   const [accountName, setAccountName] = useState("");
   const [accountCredential, setAccountCredential] = useState("");
@@ -162,67 +223,24 @@ const Uploads = ({ profileImage }) => {
   const [accountDescription, setAccountDescription] = useState("");
   const [screenshots, setScreenshots] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadedAccounts, setUploadedAccounts] = useState([]);
-  const [userCurrency, setUserCurrency] = useState("USD");
-  const [username, setUsername] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
-  const [editingAccount, setEditingAccount] = useState(null); // State for editing
+  const [editingAccount, setEditingAccount] = useState(null);
+  const [showShareModal, setShowShareModal] = useState(null);
+  const [accountCategory, setAccountCategory] = useState("");
   const minScreenshots = 3;
   const maxScreenshots = 5;
   const maxDescriptionWords = 100;
-  const [accountCategory, setAccountCategory] = useState("");
   const accountImageInputRef = useRef(null);
   const screenshotInputRef = useRef(null);
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (auth.currentUser) {
-        try {
-          const userDocRef = doc(db, "users", auth.currentUser.uid);
-          const userDocSnap = await getDoc(userDocRef);
-          if (userDocSnap.exists() && userDocSnap.data().username) {
-            setUsername(userDocSnap.data().username);
-          } else {
-            setUsername(auth.currentUser.displayName || "Unnamed User");
-            await setDoc(
-              userDocRef,
-              { username: auth.currentUser.displayName || "Unnamed User" },
-              { merge: true }
-            );
-          }
-
-          if (userDocSnap.exists() && userDocSnap.data().currency) {
-            setUserCurrency(userDocSnap.data().currency);
-          } else {
-            const response = await fetch("https://ipapi.co/json/");
-            const data = await response.json();
-            if (data.currency) {
-              setUserCurrency(data.currency);
-              await setDoc(
-                userDocRef,
-                { currency: data.currency },
-                { merge: true }
-              );
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-          setUsername("Unnamed User");
-        }
-      }
-    };
-    fetchUserData();
-  }, []);
+  const shareModalRef = useRef(null);
 
   const compressImage = async (file) => {
-    const { default: imageCompression } = await import("browser-image-compression");
     const options = {
       maxSizeMB: 0.5,
       maxWidthOrHeight: 1024,
       useWebWorker: true,
     };
-
     try {
       const compressedFile = await imageCompression(file, options);
       const reader = new FileReader();
@@ -244,7 +262,7 @@ const Uploads = ({ profileImage }) => {
         const compressedImage = await compressImage(file);
         setAccountImage(compressedImage);
       } catch (error) {
-        alert("Failed to process account image.");
+        toast.error("Failed to process account image.");
       } finally {
         setIsProcessing(false);
       }
@@ -267,7 +285,7 @@ const Uploads = ({ profileImage }) => {
           const compressedImage = await compressImage(file);
           setScreenshots([...screenshots, compressedImage]);
         } catch (error) {
-          alert("Failed to process screenshot.");
+          toast.error("Failed to process screenshot.");
         } finally {
           setIsProcessing(false);
         }
@@ -282,53 +300,13 @@ const Uploads = ({ profileImage }) => {
     }
   };
 
-  const fetchAccounts = async () => {
-    if (auth.currentUser) {
-      try {
-        const q = query(
-          collection(db, "accounts"),
-          where("userId", "==", auth.currentUser.uid)
-        );
-        const querySnapshot = await getDocs(q);
-        const accounts = [];
-        for (const docSnap of querySnapshot.docs) {
-          const accountData = { id: docSnap.id, ...docSnap.data() };
-          try {
-            const imagesRef = collection(db, `accounts/${docSnap.id}/images`);
-            const imagesSnap = await getDocs(imagesRef);
-            const images = {};
-            imagesSnap.forEach((imgDoc) => {
-              images[imgDoc.id] = imgDoc.data().image || null;
-            });
-            accounts.push({ ...accountData, images });
-          } catch (error) {
-            console.error(
-              `Error fetching images for account ${docSnap.id}:`,
-              error
-            );
-            accounts.push({ ...accountData, images: {} });
-          }
-        }
-        setUploadedAccounts(accounts);
-      } catch (err) {
-        console.error("Error fetching accounts:", err);
-        setUploadedAccounts([]);
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (auth.currentUser) {
-      fetchAccounts();
-    }
-  }, []);
-
   const handleEdit = (account) => {
     setEditingAccount(account);
     setAccountName(account.accountName);
     setAccountCredential(account.accountCredential);
     setAccountWorth(account.accountWorth);
     setAccountDescription(account.accountDescription);
+    setAccountCategory(account.category || "");
     setAccountImage(account.images?.accountImage || null);
     setScreenshots(
       Object.keys(account.images || {})
@@ -346,18 +324,19 @@ const Uploads = ({ profileImage }) => {
       !accountName ||
       !accountCredential ||
       !accountWorth ||
-      !accountDescription
+      !accountDescription ||
+      !accountCategory
     ) {
-      alert("Please fill out all required fields.");
+      toast.error("Please fill out all required fields.");
       return;
     }
     if (screenshots.length < minScreenshots) {
-      alert(`Please upload at least ${minScreenshots} screenshots.`);
+      toast.error(`Please upload at least ${minScreenshots} screenshots.`);
       return;
     }
     const wordCount = accountDescription.trim().split(/\s+/).length;
     if (wordCount > maxDescriptionWords) {
-      alert(
+      toast.error(
         `Description exceeds ${maxDescriptionWords} words (current: ${wordCount}).`
       );
       return;
@@ -371,6 +350,7 @@ const Uploads = ({ profileImage }) => {
         accountCredential,
         accountWorth,
         accountDescription,
+        category: accountCategory,
         updatedAt: new Date(),
       });
 
@@ -395,27 +375,90 @@ const Uploads = ({ profileImage }) => {
       resetForm();
       setEditingAccount(null);
       fetchAccounts();
-      alert("Account updated successfully!");
+      toast.success("Account updated successfully!");
     } catch (err) {
       console.error("Update error:", err);
-      alert("Failed to update account: " + err.message);
+      toast.error("Failed to update account: " + err.message);
     } finally {
       setIsProcessing(false);
     }
   };
 
   const handleShare = (account) => {
-    const shareUrl = `${window.location.origin}/account/${account.id}?public=true`;
+    setShowShareModal(account);
+  };
 
-    navigator.clipboard
-      .writeText(shareUrl)
-      .then(() => {
-        toast.success("🎉 Public link copied!");
-      })
-      .catch((err) => {
-        console.error("Failed to copy link:", err);
-        toast.error("Failed to copy link. Please try again.");
-      });
+  const copyLink = (account) => {
+    const shareUrl = `${window.location.origin}/account/${account.id}`;
+    if (
+      window.location.protocol !== "https:" &&
+      window.location.hostname !== "localhost"
+    ) {
+      console.warn("Clipboard API requires HTTPS or localhost.");
+      toast.error("Copy link requires a secure context. Please copy manually.");
+      return;
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(shareUrl)
+        .then(() => {
+          toast.success(`Link for ${account.accountName} copied!`);
+        })
+        .catch((err) => {
+          console.error("Clipboard error:", err);
+          fallbackCopyLink(shareUrl, account.accountName);
+        });
+    } else {
+      fallbackCopyLink(shareUrl, account.accountName);
+    }
+  };
+
+  const fallbackCopyLink = (text, accountName) => {
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      toast.success(`Link for ${accountName} copied!`);
+    } catch (err) {
+      console.error("Fallback copy failed:", err);
+      toast.error(`Failed to copy link for ${accountName}.`);
+    }
+  };
+
+  const shareToSocial = (platform, account) => {
+    const shareUrl = `${window.location.origin}/account/${account.id}`;
+    const text = `Check out "${account.accountName}" on our platform!`;
+    let url = "";
+
+    switch (platform) {
+      case "facebook":
+        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+          shareUrl
+        )}&quote=${encodeURIComponent(text)}`;
+        break;
+      case "twitter":
+        url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(
+          shareUrl
+        )}&text=${encodeURIComponent(text)}`;
+        break;
+      case "whatsapp":
+        url = `https://api.whatsapp.com/send?text=${encodeURIComponent(
+          text + " " + shareUrl
+        )}`;
+        break;
+      default:
+        return;
+    }
+
+    window.open(url, "_blank", "noopener,noreferrer");
+    setShowShareModal(null);
   };
 
   const handleUpload = async () => {
@@ -423,25 +466,26 @@ const Uploads = ({ profileImage }) => {
       await handleUpdate();
     } else {
       if (!auth.currentUser) {
-        alert("Please log in to upload an account.");
+        toast.error("Please log in to upload an account.");
         return;
       }
       if (
         !accountName ||
         !accountCredential ||
         !accountWorth ||
-        !accountDescription
+        !accountDescription ||
+        !accountCategory
       ) {
-        alert("Please fill out all required fields.");
+        toast.error("Please fill out all required fields.");
         return;
       }
       if (screenshots.length < minScreenshots) {
-        alert(`Please upload at least ${minScreenshots} screenshots.`);
+        toast.error(`Please upload at least ${minScreenshots} screenshots.`);
         return;
       }
       const wordCount = accountDescription.trim().split(/\s+/).length;
       if (wordCount > maxDescriptionWords) {
-        alert(
+        toast.error(
           `Description exceeds ${maxDescriptionWords} words (current: ${wordCount}).`
         );
         return;
@@ -457,9 +501,9 @@ const Uploads = ({ profileImage }) => {
           accountCredential,
           accountWorth,
           accountDescription,
+          category: accountCategory,
           createdAt: new Date(),
           currency: userCurrency,
-          category: "User Uploads",
         };
         const accountDocRef = await addDoc(
           collection(db, "accounts"),
@@ -478,10 +522,10 @@ const Uploads = ({ profileImage }) => {
 
         resetForm();
         fetchAccounts();
-        alert("Account uploaded successfully!");
+        toast.success("Account uploaded successfully!");
       } catch (err) {
         console.error("Upload error:", err.code, err.message);
-        alert("Failed to upload account: " + err.message);
+        toast.error("Failed to upload account: " + err.message);
       } finally {
         setIsProcessing(false);
       }
@@ -493,10 +537,10 @@ const Uploads = ({ profileImage }) => {
       setIsProcessing(true);
       await deleteDoc(doc(db, "accounts", account.id));
       fetchAccounts();
-      alert("Account deleted successfully!");
+      toast.success("Account deleted successfully!");
     } catch (err) {
       console.error("Delete error:", err);
-      alert("Failed to delete account: " + err.message);
+      toast.error("Failed to delete account: " + err.message);
     } finally {
       setIsProcessing(false);
       setShowDeleteConfirm(null);
@@ -508,6 +552,7 @@ const Uploads = ({ profileImage }) => {
     setAccountCredential("");
     setAccountWorth("");
     setAccountDescription("");
+    setAccountCategory("");
     setAccountImage(null);
     setScreenshots([]);
     setIsUploading(false);
@@ -519,6 +564,17 @@ const Uploads = ({ profileImage }) => {
       screenshotInputRef.current.value = null;
     }
   };
+
+  // Handle Escape key to close share modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && showShareModal) {
+        setShowShareModal(null);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [showShareModal]);
 
   return (
     <div className="p-2">
@@ -554,6 +610,87 @@ const Uploads = ({ profileImage }) => {
                 aria-label="Confirm deletion"
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showShareModal && (
+        <div
+          className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
+          ref={shareModalRef}
+        >
+          <div className="bg-[#161B22] p-6 rounded-xl border border-gray-800 max-w-sm w-full mx-4">
+            <h3 className="text-white text-lg font-semibold mb-4">
+              Share {showShareModal.accountName}
+            </h3>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => copyLink(showShareModal)}
+                className="flex items-center gap-2 bg-[#0576FF] text-white px-4 py-2 rounded-md hover:bg-[#045FCC] transition"
+                aria-label={`Copy link for ${showShareModal.accountName}`}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    copyLink(showShareModal);
+                  }
+                }}
+              >
+                <FaLink className="w-4 h-4" /> Copy Link
+              </button>
+              <button
+                onClick={() => shareToSocial("facebook", showShareModal)}
+                className="flex items-center gap-2 bg-[#4267B2] text-white px-4 py-2 rounded-md hover:bg-[#365899] transition"
+                aria-label={`Share ${showShareModal.accountName} to Facebook`}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    shareToSocial("facebook", showShareModal);
+                  }
+                }}
+              >
+                <FaSquareFacebook className="w-4 h-4" /> Facebook
+              </button>
+              <button
+                onClick={() => shareToSocial("twitter", showShareModal)}
+                className="flex items-center gap-2 bg-[#000000] text-white px-4 py-2 rounded-md hover:bg-[#333333] transition"
+                aria-label={`Share ${showShareModal.accountName} to Twitter`}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    shareToSocial("twitter", showShareModal);
+                  }
+                }}
+              >
+                <FaXTwitter className="w-4 h-4" /> Twitter
+              </button>
+              <button
+                onClick={() => shareToSocial("whatsapp", showShareModal)}
+                className="flex items-center gap-2 bg-[#25D366] text-white px-4 py-2 rounded-md hover:bg-[#20B158] transition"
+                aria-label={`Share ${showShareModal.accountName} to WhatsApp`}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    shareToSocial("whatsapp", showShareModal);
+                  }
+                }}
+              >
+                <FaWhatsapp className="w-4 h-4" /> WhatsApp
+              </button>
+            </div>
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={() => setShowShareModal(null)}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition"
+                aria-label="Close share modal"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    setShowShareModal(null);
+                  }
+                }}
+              >
+                Close
               </button>
             </div>
           </div>
@@ -648,51 +785,24 @@ const Uploads = ({ profileImage }) => {
                   required
                   aria-label={`Account worth in ${userCurrency}`}
                 />
+                <select
+                  value={accountCategory}
+                  onChange={(e) => setAccountCategory(e.target.value)}
+                  className="w-full max-w-[450px] mx-auto p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] text-sm"
+                  required
+                  aria-label="Account category"
+                >
+                  <option value="">Select Account Category</option>
+                  <option value="Shooter">Shooter</option>
+                  <option value="Action">Action</option>
+                  <option value="Racing">Racing</option>
+                  <option value="Sports">Sports</option>
+                  <option value="Fighting">Fighting</option>
+                  <option value="User Uploads">User Uploads</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
-              
-  <input
-    type="text"
-    placeholder="Name of Account"
-    value={accountName}
-    onChange={(e) => setAccountName(e.target.value)}
-    className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
-    required
-  />
-  <input
-    type="text"
-    placeholder="Account Credential"
-    value={accountCredential}
-    onChange={(e) => setAccountCredential(e.target.value)}
-    className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
-    required
-  />
-  <input
-    type="number"
-    placeholder={`Account's Worth (in ${userCurrency})`}
-    value={accountWorth}
-    onChange={(e) => setAccountWorth(e.target.value)}
-    className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
-    required
-  />
-
-  {/* Category Dropdown */}
-  <select
-    value={accountCategory}
-    onChange={(e) => setAccountCategory(e.target.value)}
-    className="w-full mt-1 p-2 rounded bg-[#0E1115] text-gray-400  border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] h-11"
-    required
-  >
-    <option value="">Select Account Category</option>
-    <option value="Shooter">Shooter</option>
-    <option value="Action">Action</option>
-    <option value="Racing">Racing</option>
-    <option value="Sports">Sports</option>
-    <option value="Fighting">Fighting</option>
-    <option value="User Uploads">User Uploads</option>
-    <option value="Other">Other</option>
-  </select>
-</div>
-
+            </div>
             <div className="flex-1">
               <textarea
                 placeholder={`Full Account Description (max ${maxDescriptionWords} words)`}
@@ -826,7 +936,9 @@ const Uploads = ({ profileImage }) => {
                     <span className="text-[#0576FF] font-light uppercase text-xs">
                       Credential:
                     </span>{" "}
-                    <span className="font-medium break-all">{acc.accountCredential}</span>
+                    <span className="font-medium break-all">
+                      {acc.accountCredential}
+                    </span>
                   </p>
                   <p className="text-gray-200 text-xs sm:text-sm tracking-wider leading-relaxed">
                     <span className="text-[#0576FF] font-light uppercase text-xs">
@@ -845,11 +957,11 @@ const Uploads = ({ profileImage }) => {
                 </div>
 
                 {acc.images &&
-                  Object.keys(acc.images).filter((key) =>
-                    key.startsWith("screenshot")
-                  ).length > 0 ? (
+                Object.keys(acc.images).filter((key) =>
+                  key.startsWith("screenshot")
+                ).length > 0 ? (
                   <div className="mb-4">
-                    <p className="text-gray-200 text-xs sm:text-sm font-light uppercase tracking-wider mb-2">
+                    <p className="text-gray-200 text-xs sm:text-sm font-light uppercase tracking-wider mb-4">
                       Screenshots:
                     </p>
                     <div className="grid grid-cols-2 gap-2">
@@ -891,6 +1003,12 @@ const Uploads = ({ profileImage }) => {
                     onClick={() => handleShare(acc)}
                     className="flex items-center justify-center bg-[#0576FF]/80 text-white p-1.5 sm:p-2 rounded-full hover:bg-[#0576FF] active:bg-[#045FCC] transition-all duration-300 w-8 h-8 sm:w-9 sm:h-9"
                     aria-label={`Share account ${acc.accountName}`}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        handleShare(acc);
+                      }
+                    }}
                   >
                     <FaShareAlt className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
@@ -946,8 +1064,10 @@ const About = () => {
         await updateDoc(userDocRef, {
           bio: tempText,
         });
+        toast.success("Bio updated successfully!");
       } catch (error) {
         console.error("Error saving bio:", error);
+        toast.error("Failed to save bio: " + error.message);
       }
     }
   };
@@ -1038,8 +1158,10 @@ const Socials = () => {
         await updateDoc(userDocRef, {
           socials: tempSocials,
         });
+        toast.success("Social media links updated successfully!");
       } catch (error) {
         console.error("Error saving socials:", error);
+        toast.error("Failed to save social media links: " + error.message);
       }
     }
   };
@@ -1252,11 +1374,11 @@ const Favorites = () => {
           });
 
           setFavorites(favorites.filter((fav) => fav.id !== accountId));
-          alert("Account removed from favorites!");
+          toast.success("Account removed from favorites!");
         }
       } catch (error) {
         console.error("Error removing favorite:", error);
-        alert("Failed to remove favorite: " + error.message);
+        toast.error("Failed to remove favorite: " + error.message);
       } finally {
         setShowDeleteConfirm(null);
       }
@@ -1389,6 +1511,46 @@ const UserProfile = () => {
   const [activeTab, setActiveTab] = useState("Uploads");
   const [username, setUsername] = useState("");
   const [profileImage, setProfileImage] = useState(null);
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [tempUsername, setTempUsername] = useState("");
+  const [uploadedAccounts, setUploadedAccounts] = useState([]);
+  const [userCurrency, setUserCurrency] = useState("USD");
+  const [isUpdatingUsername, setIsUpdatingUsername] = useState(false);
+
+  const fetchAccounts = async () => {
+    if (auth.currentUser) {
+      try {
+        const q = query(
+          collection(db, "accounts"),
+          where("userId", "==", auth.currentUser.uid)
+        );
+        const querySnapshot = await getDocs(q);
+        const accounts = [];
+        for (const docSnap of querySnapshot.docs) {
+          const accountData = { id: docSnap.id, ...docSnap.data() };
+          try {
+            const imagesRef = collection(db, `accounts/${docSnap.id}/images`);
+            const imagesSnap = await getDocs(imagesRef);
+            const images = {};
+            imagesSnap.forEach((imgDoc) => {
+              images[imgDoc.id] = imgDoc.data().image || null;
+            });
+            accounts.push({ ...accountData, images });
+          } catch (error) {
+            console.error(
+              `Error fetching images for account ${docSnap.id}:`,
+              error
+            );
+            accounts.push({ ...accountData, images: {} });
+          }
+        }
+        setUploadedAccounts(accounts);
+      } catch (err) {
+        console.error("Error fetching accounts:", err);
+        setUploadedAccounts([]);
+      }
+    }
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -1400,19 +1562,50 @@ const UserProfile = () => {
           if (userDocSnap.exists()) {
             if (userDocSnap.data().username) {
               setUsername(userDocSnap.data().username);
+              setTempUsername(userDocSnap.data().username);
             } else {
               setUsername(auth.currentUser.displayName || "User");
+              setTempUsername(auth.currentUser.displayName || "User");
+              await setDoc(
+                userDocRef,
+                { username: auth.currentUser.displayName || "User" },
+                { merge: true }
+              );
             }
 
             if (userDocSnap.data().profileImage) {
               setProfileImage(userDocSnap.data().profileImage);
             }
+
+            if (userDocSnap.data().currency) {
+              setUserCurrency(userDocSnap.data().currency);
+            } else {
+              const response = await fetch("https://ipapi.co/json/");
+              const data = await response.json();
+              if (data.currency) {
+                setUserCurrency(data.currency);
+                await setDoc(
+                  userDocRef,
+                  { currency: data.currency },
+                  { merge: true }
+                );
+              }
+            }
           } else {
             setUsername(auth.currentUser.displayName || "User");
+            setTempUsername(auth.currentUser.displayName || "User");
+            await setDoc(
+              userDocRef,
+              { username: auth.currentUser.displayName || "User" },
+              { merge: true }
+            );
           }
+
+          fetchAccounts();
         } catch (error) {
           console.error("Error fetching user data:", error);
           setUsername(auth.currentUser.displayName || "User");
+          setTempUsername(auth.currentUser.displayName || "User");
         }
       }
     };
@@ -1421,7 +1614,6 @@ const UserProfile = () => {
   }, []);
 
   const handleImageChange = async (event) => {
-    const { default: imageCompression } = await import("browser-image-compression");
     const file = event.target.files[0];
     if (file) {
       try {
@@ -1430,7 +1622,6 @@ const UserProfile = () => {
           maxWidthOrHeight: 400,
           useWebWorker: true,
         };
-
         const compressedFile = await imageCompression(file, options);
         const reader = new FileReader();
 
@@ -1445,9 +1636,10 @@ const UserProfile = () => {
                 await updateDoc(userDocRef, {
                   profileImage: imageBase64,
                 });
+                toast.success("Profile image updated successfully!");
               } catch (error) {
                 console.error("Error saving profile image:", error);
-                alert("Failed to save profile image. Please try again.");
+                toast.error("Failed to save profile image. Please try again.");
               }
             }
             resolve();
@@ -1457,15 +1649,72 @@ const UserProfile = () => {
         });
       } catch (error) {
         console.error("Error processing image:", error);
-        alert("Failed to process image. Please try again.");
+        toast.error("Failed to process image. Please try again.");
       }
     }
+  };
+
+  const handleSaveUsername = async () => {
+    if (!tempUsername.trim()) {
+      toast.error("Username cannot be empty.");
+      return;
+    }
+
+    setIsUpdatingUsername(true);
+    try {
+      if (auth.currentUser) {
+        const userDocRef = doc(db, "users", auth.currentUser.uid);
+        const newUsername = tempUsername.trim();
+
+        await updateDoc(userDocRef, {
+          username: newUsername,
+        });
+
+        const q = query(
+          collection(db, "accounts"),
+          where("userId", "==", auth.currentUser.uid)
+        );
+        const querySnapshot = await getDocs(q);
+        const batch = writeBatch(db);
+
+        querySnapshot.forEach((docSnap) => {
+          const accountRef = doc(db, "accounts", docSnap.id);
+          batch.update(accountRef, { username: newUsername });
+        });
+
+        await batch.commit();
+
+        setUsername(newUsername);
+        setIsEditingUsername(false);
+        fetchAccounts();
+        toast.success("Username updated successfully!");
+      }
+    } catch (error) {
+      console.error("Error saving username:", error);
+      toast.error("Failed to save username. Please try again.");
+    } finally {
+      setIsUpdatingUsername(false);
+    }
+  };
+
+  const handleDiscardUsername = () => {
+    setTempUsername(username);
+    setIsEditingUsername(false);
   };
 
   const renderTabContent = () => {
     switch (activeTab) {
       case "Uploads":
-        return <Uploads profileImage={profileImage} />;
+        return (
+          <Uploads
+            profileImage={profileImage}
+            uploadedAccounts={uploadedAccounts}
+            setUploadedAccounts={setUploadedAccounts}
+            fetchAccounts={fetchAccounts}
+            username={username}
+            userCurrency={userCurrency}
+          />
+        );
       case "Bio":
         return <About />;
       case "Socials":
@@ -1473,7 +1722,16 @@ const UserProfile = () => {
       case "Favorites":
         return <Favorites />;
       default:
-        return <Uploads profileImage={profileImage} />;
+        return (
+          <Uploads
+            profileImage={profileImage}
+            uploadedAccounts={uploadedAccounts}
+            setUploadedAccounts={setUploadedAccounts}
+            fetchAccounts={fetchAccounts}
+            username={username}
+            userCurrency={userCurrency}
+          />
+        );
     }
   };
 
@@ -1484,6 +1742,13 @@ const UserProfile = () => {
       username={username}
       profileImage={profileImage}
       handleImageChange={handleImageChange}
+      isEditingUsername={isEditingUsername}
+      setIsEditingUsername={setIsEditingUsername}
+      tempUsername={tempUsername}
+      setTempUsername={setTempUsername}
+      handleSaveUsername={handleSaveUsername}
+      handleDiscardUsername={handleDiscardUsername}
+      isUpdatingUsername={isUpdatingUsername}
     >
       {renderTabContent()}
     </Layout>
