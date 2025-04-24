@@ -27,6 +27,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import Community from "./pages/Community";
 import Withdrawal from "./pages/Withdrawal";
 import Cart from "./pages/Cart";
+import AchievementsGrid from "./pages/AchievementsGrid";
 
 // Session timeout wrapper component
 const SessionTimeoutWrapper = ({ children }) => {
@@ -123,6 +124,7 @@ const App = () => {
             <Route path="/doc" element={<Doc />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/withdraw" element={<Withdrawal />} />
+            <Route path="/achievements" element={<AchievementsGrid />} />
 
             {/* Protected Routes */}
             <Route element={<ProtectedRoute />}>
