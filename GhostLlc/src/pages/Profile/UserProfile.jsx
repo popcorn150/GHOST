@@ -1,24 +1,3 @@
-
-import BackButton from "../../components/BackButton";
-import NavBar from "./NavBar";
-import { Link } from "react-router-dom";
-import { MdOutlineCameraEnhance } from "react-icons/md";
-import { BsPencilSquare } from "react-icons/bs";
-import {
-  FaSave,
-  FaTrashAlt,
-  FaStar,
-  FaInstagram,
-  FaTiktok,
-  FaImage,
-  FaShareAlt,
-  FaLink,
-  FaWhatsapp,
-} from "react-icons/fa";
-import { UploadCloud, User, Heart, Trophy } from "lucide-react";
-import { FaSquareFacebook, FaXTwitter } from "react-icons/fa6";
-import { IoAdd } from "react-icons/io5";
-import { LuUpload } from "react-icons/lu";
 import { useState, useEffect, useRef } from "react";
 import { auth, db } from "../../database/firebaseConfig";
 import {
@@ -36,8 +15,34 @@ import {
 } from "firebase/firestore";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import NavBar from "../../components/NavBar";
+import BackButton from "../../components/BackButton";
+import { Link } from "react-router-dom";
+import { MdOutlineCameraEnhance } from "react-icons/md";
+import { BsPencilSquare } from "react-icons/bs";
+import {
+  FaSave,
+  FaTrashAlt,
+  FaStar,
+  FaInstagram,
+  FaTiktok,
+  FaImage,
+  FaShareAlt,
+  FaLink,
+  FaWhatsapp,
+  FaCheckCircle,
+  FaTimesCircle,
+} from "react-icons/fa";
+import { UploadCloud, User, Heart, Trophy } from "lucide-react";
+import { FaSquareFacebook, FaXTwitter } from "react-icons/fa6";
+import { IoAdd } from "react-icons/io5";
+import { LuUpload } from "react-icons/lu";
 
-// Allowed categories for uploads and filtering
+let imageCompression;
+import("browser-image-compression").then((mod) => {
+  imageCompression = mod.default;
+});
+
 const ALLOWED_CATEGORIES = [
   "Fighting",
   "Shooter",
@@ -47,11 +52,6 @@ const ALLOWED_CATEGORIES = [
   "Racing",
   "Others",
 ];
-
-let imageCompression;
-import("browser-image-compression").then((mod) => {
-  imageCompression = mod.default;
-});
 
 const tabs = [
   { name: "Uploads", icon: UploadCloud },
@@ -191,10 +191,13 @@ const Layout = ({
                 <button
                   key={tab.name}
                   onClick={() => setActiveTab(tab.name)}
-                  className={`py-2 flex-1 text-center cursor-pointer flex items-center justify-center gap-1 ${activeTab === tab.name
+                  className={`py-2 flex-1 text-center cursor-pointer flex items-center justify-center gap-1 ${
+                    activeTab === tab.name
                       ? "text-white font-semibold"
                       : "text-gray-400"
-                    }`}
+                  }`}
+                  aria-label={tab.name}
+                  title={tab.name}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="hidden sm:inline text-sm">{tab.name}</span>
@@ -206,9 +209,8 @@ const Layout = ({
             <div
               className="h-full bg-purple-500 transition-all duration-300"
               style={{
-                width: "20%",
-                transform: `translateX(${tabs.findIndex((tab) => tab.name === activeTab) * 135
-                  }%)`,
+                width: `${100 / tabs.length}%`,
+                transform: `translateX(${tabs.findIndex((tab) => tab.name === activeTab) * 100}%)`,
               }}
             ></div>
           </div>
@@ -230,7 +232,7 @@ const Uploads = ({
   const [accountImage, setAccountImage] = useState(null);
   const [accountName, setAccountName] = useState("");
   const [accountCredential, setAccountCredential] = useState("");
-  const [accountWorth, setAccountWorth] = useState(""); // Stores raw number as string
+  const [accountWorth, setAccountWorth] = useState("");
   const [accountDescription, setAccountDescription] = useState("");
   const [screenshots, setScreenshots] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -247,10 +249,8 @@ const Uploads = ({
   const shareModalRef = useRef(null);
   const navigate = useNavigate();
 
-  // Function to format number with commas
   const formatNumberWithCommas = (value) => {
     if (!value) return "";
-    // Remove non-numeric characters except decimal point
     const cleanedValue = value.replace(/[^0-9.]/g, "");
     const parts = cleanedValue.split(".");
     const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -258,16 +258,14 @@ const Uploads = ({
     return integerPart + decimalPart;
   };
 
-  // Handle account worth input change
   const handleAccountWorthChange = (e) => {
-    const rawValue = e.target.value.replace(/,/g, ""); // Remove commas for raw value
-    setAccountWorth(rawValue); // Store raw value
+    const rawValue = e.target.value.replace(/,/g, "");
+    setAccountWorth(rawValue);
   };
 
-  // Format account worth when editing an account
   useEffect(() => {
     if (editingAccount && editingAccount.accountWorth) {
-      setAccountWorth(editingAccount.accountWorth.toString()); // Ensure raw value
+      setAccountWorth(editingAccount.accountWorth.toString());
     }
   }, [editingAccount]);
 
@@ -340,7 +338,7 @@ const Uploads = ({
     setEditingAccount(account);
     setAccountName(account.accountName);
     setAccountCredential(account.accountCredential);
-    setAccountWorth(account.accountWorth.toString()); // Ensure raw value
+    setAccountWorth(account.accountWorth.toString());
     setAccountDescription(account.accountDescription);
     setAccountCategory(account.category || "");
     setAccountImage(account.images?.accountImage || null);
@@ -388,12 +386,11 @@ const Uploads = ({
 
     try {
       setIsProcessing(true);
-      console.log("Selected category for update:", accountCategory);
       const accountDocRef = doc(db, "accounts", editingAccount.id);
       await updateDoc(accountDocRef, {
         accountName,
         accountCredential,
-        accountWorth: parseFloat(accountWorth), // Store as number
+        accountWorth: parseFloat(accountWorth),
         accountDescription,
         category: accountCategory,
         updatedAt: new Date(),
@@ -486,7 +483,7 @@ const Uploads = ({
       case "facebook":
         url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
           shareUrl
-        )}&quote=${encodeURIComponent(text)}`;
+        )}"e=${encodeURIComponent(text)}`;
         break;
       case "twitter":
         url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(
@@ -546,18 +543,18 @@ const Uploads = ({
 
       try {
         setIsProcessing(true);
-        console.log("Selected category for upload:", accountCategory);
         const userId = auth.currentUser.uid;
         const uploadData = {
           userId,
           username,
           accountName,
           accountCredential,
-          accountWorth: parseFloat(accountWorth), // Store as number
+          accountWorth: parseFloat(accountWorth),
           accountDescription,
           category: accountCategory,
           createdAt: new Date(),
           currency: userCurrency,
+          views: 0,
         };
         const accountDocRef = await addDoc(
           collection(db, "accounts"),
@@ -573,6 +570,23 @@ const Uploads = ({
             image: screenshots[i],
           });
         }
+
+        // Update "Entrepreneur" achievement (ID 3)
+        const userDocRef = doc(db, "users", userId);
+        const userDoc = await getDoc(userDocRef);
+        let totalAccountsUploaded = 0;
+        if (userDoc.exists()) {
+          totalAccountsUploaded =
+            (userDoc.data().totalAccountsUploaded || 0) + 1;
+        } else {
+          totalAccountsUploaded = 1;
+        }
+        const progress = Math.min((totalAccountsUploaded / 10) * 100, 100);
+        await updateDoc(userDocRef, {
+          totalAccountsUploaded,
+          [`achievementStatuses.3.progress`]: progress,
+          [`achievementStatuses.3.earned`]: progress >= 100,
+        });
 
         resetForm();
         fetchAccounts();
@@ -619,7 +633,6 @@ const Uploads = ({
     }
   };
 
-  // Handle Escape key to close share modal
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape" && showShareModal) {
@@ -630,7 +643,6 @@ const Uploads = ({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [showShareModal]);
 
-  // Navigate to Categories page
   const handleNavigateToCategories = () => {
     navigate("/categories");
   };
@@ -836,10 +848,10 @@ const Uploads = ({
                   aria-label="Account credential"
                 />
                 <input
-                  type="text" // Changed to text for comma formatting
+                  type="text"
                   placeholder={`Account's Worth (in ${userCurrency})`}
-                  value={formatNumberWithCommas(accountWorth)} // Display formatted value
-                  onChange={handleAccountWorthChange} // Custom handler
+                  value={formatNumberWithCommas(accountWorth)}
+                  onChange={handleAccountWorthChange}
                   className="w-full max-w-[450px] mx-auto p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] text-sm"
                   required
                   aria-label={`Account worth in ${userCurrency}`}
@@ -883,7 +895,7 @@ const Uploads = ({
               {screenshots.map((src, index) => (
                 <div key={index} className="relative">
                   <img
-                    src={src || null}
+                    src={src}
                     alt={`Screenshot ${index + 1}`}
                     className="w-full h-24 sm:h-28 lg:h-32 object-cover rounded-md"
                   />
@@ -1019,9 +1031,9 @@ const Uploads = ({
                 </div>
 
                 {acc.images &&
-                  Object.keys(acc.images).filter((key) =>
-                    key.startsWith("screenshot")
-                  ).length > 0 ? (
+                Object.keys(acc.images).filter((key) =>
+                  key.startsWith("screenshot")
+                ).length > 0 ? (
                   <div className="mb-4">
                     <p className="text-gray-200 text-xs sm:text-sm font-light uppercase tracking-wider mb-4">
                       Screenshots:
@@ -1113,7 +1125,7 @@ const Uploads = ({
   );
 };
 
-const About = () => {
+const About = ({ handleSaveBio }) => {
   const [aboutText, setAboutText] = useState(
     "Write a little something about yourself. It helps communicate with your visitors."
   );
@@ -1135,6 +1147,7 @@ const About = () => {
         await updateDoc(userDocRef, {
           bio: tempText,
         });
+        await handleSaveBio(tempText);
         toast.success("Bio updated successfully!");
       } catch (error) {
         console.error("Error saving bio:", error);
@@ -1202,13 +1215,17 @@ const About = () => {
   );
 };
 
-const Socials = () => {
+const Socials = ({ handleSaveSocials, profileData }) => {
   const [socialLinks, setSocialLinks] = useState({
     instagram: "",
     tiktok: "",
+    twitter: "",
+    facebook: "",
   });
   const [tempLinks, setTempLinks] = useState(socialLinks);
   const [isEditing, setIsEditing] = useState(false);
+  const [showAlert, setShowAlert] = useState(true);
+  const navigate = useNavigate();
 
   const handleEdit = () => setIsEditing(true);
   const handleDiscard = () => {
@@ -1218,20 +1235,36 @@ const Socials = () => {
   const handleSave = async () => {
     setSocialLinks(tempLinks);
     setIsEditing(false);
-
-    if (auth.currentUser) {
-      try {
-        const userDocRef = doc(db, "users", auth.currentUser.uid);
-        await updateDoc(userDocRef, {
-          socials: tempLinks,
-        });
-        toast.success("Social links updated successfully!");
-      } catch (error) {
-        console.error("Error saving social links:", error);
-        toast.error("Failed to save social links: " + error.message);
-      }
-    }
+    await handleSaveSocials(tempLinks);
   };
+
+  const handleChange = (platform, value) => {
+    setTempLinks({ ...tempLinks, [platform]: value });
+  };
+
+  const getProgressIndicators = () => {
+    const indicators = [
+      {
+        label: "Username",
+        completed: !!profileData.username && profileData.username !== "UnnamedUser",
+      },
+      {
+        label: "Profile Image",
+        completed: !!profileData.profileImage,
+      },
+      {
+        label: "Bio",
+        completed: !!profileData.bio && profileData.bio.trim() !== "",
+      },
+      {
+        label: "Socials",
+        completed: Object.values(socialLinks).some((val) => val && val.trim() !== ""),
+      },
+    ];
+    return indicators;
+  };
+
+  const isAlfredEarned = getProgressIndicators().every((indicator) => indicator.completed);
 
   useEffect(() => {
     const fetchSocials = async () => {
@@ -1252,75 +1285,184 @@ const Socials = () => {
   }, []);
 
   return (
-    <div className="p-5">
-      <div className="space-y-4">
-        <div>
-          <label className="text-gray-200 text-sm font-medium mb-2 flex items-center gap-2">
-            <FaInstagram className="w-5 h-5" /> Instagram
-          </label>
-          <input
-            type="text"
-            placeholder="Instagram URL"
-            value={tempLinks.instagram}
-            onChange={(e) =>
-              setTempLinks({ ...tempLinks, instagram: e.target.value })
-            }
-            readOnly={!isEditing}
-            className="w-full p-3 border border-gray-600 rounded-md bg-[#0E1115] text-sm text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0576FF]"
-            aria-label="Instagram URL"
-          />
+    <div className="mt-16 mb-20 p-4 xs:p-5 sm:p-6 md:p-7 lg:p-8 xl:p-10 bg-gradient-to-br from-[#0E1115] via-[#1A1F29] to-[#252A36] rounded-2xl border border-gray-800">
+      <h2 className="text-gray-100 text-lg xs:text-xl sm:text-2xl md:text-2xl lg:text-3xl font-semibold tracking-wider mb-10 sm:mb-12 lg:mb-14">
+        Socials
+      </h2>
+      {showAlert && (
+        <div className="mb-6 p-4 bg-[#1A1F29] border border-[#0576FF] rounded-md flex justify-between items-center">
+          <div>
+            <p className="text-white font-semibold">Alfred Achievement Progress</p>
+            <p className="text-gray-300 text-sm">
+              Complete your profile to earn the Alfred achievement!
+            </p>
+          </div>
+          <button
+            onClick={() => setShowAlert(false)}
+            className="text-gray-400 hover:text-white transition"
+            aria-label="Dismiss alert"
+          >
+            <FaTimesCircle className="w-5 h-5" />
+          </button>
         </div>
-        <div>
-          <label className="text-gray-200 text-sm font-medium mb-2 flex items-center gap-2">
-            <FaTiktok className="w-5 h-5" /> TikTok
-          </label>
-          <input
-            type="text"
-            placeholder="TikTok URL"
-            value={tempLinks.tiktok}
-            onChange={(e) =>
-              setTempLinks({ ...tempLinks, tiktok: e.target.value })
-            }
-            readOnly={!isEditing}
-            className="w-full p-3 border border-gray-600 rounded-md bg-[#0E1115] text-sm text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0576FF]"
-            aria-label="TikTok URL"
-          />
+      )}
+      <div className="mb-6">
+        <div className="flex flex-wrap gap-4">
+          {getProgressIndicators().map((indicator, index) => (
+            <div
+              key={index}
+              className="flex items-center gap-2 text-sm text-gray-300"
+            >
+              {indicator.completed ? (
+                <FaCheckCircle className="text-green-500 w-4 h-4" />
+              ) : (
+                <FaTimesCircle className="text-red-500 w-4 h-4" />
+              )}
+              <span>{indicator.label}</span>
+            </div>
+          ))}
         </div>
       </div>
-      <div className="mt-4 flex justify-end gap-3">
-        {isEditing ? (
-          <>
+      {isEditing ? (
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex items-center gap-2">
+              <FaInstagram className="text-pink-500 w-6 h-6" />
+              <input
+                type="text"
+                placeholder="Instagram handle"
+                value={tempLinks.instagram}
+                onChange={(e) => handleChange("instagram", e.target.value)}
+                className="w-full p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#0576FF] text-sm"
+                aria-label="Instagram handle"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <FaTiktok className="text-white w-6 h-6" />
+              <input
+                type="text"
+                placeholder="TikTok handle"
+                value={tempLinks.tiktok}
+                onChange={(e) => handleChange("tiktok", e.target.value)}
+                className="w-full p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#0576FF] text-sm"
+                aria-label="TikTok handle"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <FaXTwitter className="text-blue-400 w-6 h-6" />
+              <input
+                type="text"
+                placeholder="Twitter handle"
+                value={tempLinks.twitter}
+                onChange={(e) => handleChange("twitter", e.target.value)}
+                className="w-full p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#0576FF] text-sm"
+                aria-label="Twitter handle"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <FaSquareFacebook className="text-blue-600 w-6 h-6" />
+              <input
+                type="text"
+                placeholder="Facebook handle"
+                value={tempLinks.facebook}
+                onChange={(e) => handleChange("facebook", e.target.value)}
+                className="w-full p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#0576FF] text-sm"
+                aria-label="Facebook handle"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
             <button
               onClick={handleDiscard}
-              className="flex items-center gap-2 bg-[#EB3223] text-white px-4 py-2 rounded-md cursor-pointer hover:bg-[#B71C1C] transition"
-              aria-label="Discard social link changes"
+              className="flex items-center gap-2 bg-[#EB3223] text-white px-4 py-2 rounded-md hover:bg-[#B71C1C] transition"
+              aria-label="Discard socials changes"
             >
-              <FaTrashAlt /> Discard
+              <FaTrashAlt className="w-4 h-4" /> Discard
             </button>
             <button
               onClick={handleSave}
-              className="flex items-center gap-2 bg-[#4426B9] text-white px-4 py-2 rounded-md cursor-pointer hover:bg-[#2F1A7F] transition"
-              aria-label="Save social links"
+              className="flex items-center gap-2 bg-[#4426B9] text-white px-4 py-2 rounded-md hover:bg-[#2F1A7F] transition"
+              aria-label="Save socials"
             >
-              <FaSave /> Save
+              <FaSave className="w-4 h-4" /> Save
             </button>
-          </>
-        ) : (
-          <button
-            onClick={handleEdit}
-            className="flex items-center gap-2 bg-[#0576FF] text-white px-4 py-2 rounded-md cursor-pointer hover:bg-[#045FCC] transition"
-            aria-label="Edit social links"
-          >
-            <BsPencilSquare /> Edit
-          </button>
-        )}
-      </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {socialLinks.instagram && (
+              <a
+                href={`https://instagram.com/${socialLinks.instagram}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-gray-300 hover:text-pink-500 transition"
+              >
+                <FaInstagram className="w-6 h-6" />
+                <span>{socialLinks.instagram}</span>
+              </a>
+            )}
+            {socialLinks.tiktok && (
+              <a
+                href={`https://tiktok.com/@${socialLinks.tiktok}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-gray-300 hover:text-white transition"
+              >
+                <FaTiktok className="w-6 h-6" />
+                <span>{socialLinks.tiktok}</span>
+              </a>
+            )}
+            {socialLinks.twitter && (
+              <a
+                href={`https://twitter.com/${socialLinks.twitter}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-gray-300 hover:text-blue-400 transition"
+              >
+                <FaXTwitter className="w-6 h-6" />
+                <span>{socialLinks.twitter}</span>
+              </a>
+            )}
+            {socialLinks.facebook && (
+              <a
+                href={`https://facebook.com/${socialLinks.facebook}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-gray-300 hover:text-blue-600 transition"
+              >
+                <FaSquareFacebook className="w-6 h-6" />
+                <span>{socialLinks.facebook}</span>
+              </a>
+            )}
+          </div>
+          <div className="flex gap-4">
+            <button
+              onClick={handleEdit}
+              className="flex items-center gap-2 bg-[#0576FF] text-white px-4 py-2 rounded-md hover:bg-[#045FCC] transition"
+              aria-label="Edit socials"
+            >
+              <BsPencilSquare className="w-4 h-4" /> Edit Socials
+            </button>
+            {isAlfredEarned && (
+              <button
+                onClick={() => navigate("/achievements")}
+                className="flex items-center gap-2 bg-[#4426B9] text-white px-4 py-2 rounded-md hover:bg-[#2F1A7F] transition"
+                aria-label="View Achievements"
+              >
+                <FaStar className="w-4 h-4" /> View Achievements
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 const Favorites = ({ favoriteAccounts, setFavoriteAccounts, userCurrency }) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const navigate = useNavigate();
 
   const handleToggleFavorite = async (account) => {
     if (!auth.currentUser) {
@@ -1444,12 +1586,12 @@ const Favorites = ({ favoriteAccounts, setFavoriteAccounts, userCurrency }) => {
           <p className="text-gray-400 text-center">
             You haven't added any accounts to your favorites yet.
           </p>
-
-          <Link to='/achievements'>
-            <button className="m-5 p-5 bg-blue-500 text-white rounded-full">
-              Achievements
-            </button>
-          </Link>
+          <button
+            onClick={() => navigate("/achievements")}
+            className="m-5 p-5 bg-blue-500 text-white rounded-full"
+          >
+            Achievements
+          </button>
         </div>
       )}
     </div>
@@ -1466,6 +1608,16 @@ const UserProfile = () => {
   const [favoriteAccounts, setFavoriteAccounts] = useState([]);
   const [userCurrency, setUserCurrency] = useState("USD");
   const [isUpdatingUsername, setIsUpdatingUsername] = useState(false);
+  const [showAlfredAlert, setShowAlfredAlert] = useState(false);
+  const [bio, setBio] = useState("");
+  const [socials, setSocials] = useState({
+    instagram: "",
+    tiktok: "",
+    twitter: "",
+    facebook: "",
+  });
+
+  const navigate = useNavigate();
 
   const compressImage = async (file) => {
     const options = {
@@ -1486,6 +1638,41 @@ const UserProfile = () => {
     }
   };
 
+  const checkProfileCompletion = async (userData) => {
+    try {
+      const userId = auth.currentUser.uid;
+      const userDocRef = doc(db, "users", userId);
+      const hasUsername =
+        userData.username && userData.username !== "UnnamedUser";
+      const hasProfileImage = !!userData.profileImage;
+      const hasBio = !!userData.bio && userData.bio.trim() !== "";
+      const hasSocials = Object.values(userData.socials || {}).some(
+        (val) => val && val.trim() !== ""
+      );
+      const completedFields = [
+        hasUsername,
+        hasProfileImage,
+        hasBio,
+        hasSocials,
+      ].filter(Boolean).length;
+      const progress = (completedFields / 4) * 100;
+      const earned = completedFields === 4;
+
+      await updateDoc(userDocRef, {
+        [`achievementStatuses.5.progress`]: progress,
+        [`achievementStatuses.5.earned`]: earned,
+      });
+
+      if (earned && !userData.achievementStatuses?.[5]?.earned) {
+        setShowAlfredAlert(true);
+        toast.success("Congratulations! You've earned the Alfred achievement!");
+      }
+    } catch (err) {
+      console.error("Error updating profile completion:", err);
+      toast.error("Failed to update profile completion.");
+    }
+  };
+
   const handleImageChange = async (event) => {
     const file = event.target.files[0];
     if (file && auth.currentUser) {
@@ -1496,6 +1683,13 @@ const UserProfile = () => {
           profileImage: compressedImage,
         });
         setProfileImage(compressedImage);
+        const userDoc = await getDoc(userDocRef);
+        await checkProfileCompletion({
+          ...userDoc.data(),
+          profileImage: compressedImage,
+          bio,
+          socials,
+        });
         toast.success("Profile image updated successfully!");
       } catch (error) {
         console.error("Error uploading image:", error);
@@ -1530,12 +1724,53 @@ const UserProfile = () => {
 
       setUsername(tempUsername.trim());
       setIsEditingUsername(false);
+      await checkProfileCompletion({
+        username: tempUsername.trim(),
+        profileImage,
+        bio,
+        socials,
+      });
       toast.success("Username updated successfully!");
     } catch (error) {
       console.error("Error saving username:", error);
       toast.error("Failed to save username: " + error.message);
     } finally {
       setIsUpdatingUsername(false);
+    }
+  };
+
+  const handleSaveBio = async (newBio) => {
+    setBio(newBio);
+    if (auth.currentUser) {
+      const userDocRef = doc(db, "users", auth.currentUser.uid);
+      await checkProfileCompletion({
+        username,
+        profileImage,
+        bio: newBio,
+        socials,
+      });
+    }
+  };
+
+  const handleSaveSocials = async (newSocials) => {
+    setSocials(newSocials);
+    if (auth.currentUser) {
+      try {
+        const userDocRef = doc(db, "users", auth.currentUser.uid);
+        await updateDoc(userDocRef, {
+          socials: newSocials,
+        });
+        await checkProfileCompletion({
+          username,
+          profileImage,
+          bio,
+          socials: newSocials,
+        });
+        toast.success("Social links updated successfully!");
+      } catch (error) {
+        console.error("Error saving social links:", error);
+        toast.error("Failed to save social links: " + error.message);
+      }
     }
   };
 
@@ -1554,7 +1789,10 @@ const UserProfile = () => {
         const accountsSnapshot = await getDocs(accountsQuery);
         const accountsData = await Promise.all(
           accountsSnapshot.docs.map(async (accountDoc) => {
-            const imagesRef = collection(db, `accounts/${accountDoc.id}/images`);
+            const imagesRef = collection(
+              db,
+              `accounts/${accountDoc.id}/images`
+            );
             const imagesSnapshot = await getDocs(imagesRef);
             const images = {};
             imagesSnapshot.forEach((imgDoc) => {
@@ -1583,8 +1821,8 @@ const UserProfile = () => {
           `users/${auth.currentUser.uid}/favorites`
         );
         const favoritesSnapshot = await getDocs(favoritesRef);
-        const favoriteIds = favoritesSnapshot.docs.map((doc) =>
-          doc.data().accountId
+        const favoriteIds = favoritesSnapshot.docs.map(
+          (doc) => doc.data().accountId
         );
 
         const favoriteAccountsData = await Promise.all(
@@ -1624,10 +1862,20 @@ const UserProfile = () => {
           const userDoc = await getDoc(userDocRef);
           if (userDoc.exists()) {
             const userData = userDoc.data();
-            setUsername(userData.username || "");
-            setTempUsername(userData.username || "");
+            setUsername(userData.username || "UnnamedUser");
+            setTempUsername(userData.username || "UnnamedUser");
             setProfileImage(userData.profileImage || null);
             setUserCurrency(userData.currency || "USD");
+            setBio(userData.bio || "");
+            setSocials(
+              userData.socials || {
+                instagram: "",
+                tiktok: "",
+                twitter: "",
+                facebook: "",
+              }
+            );
+            await checkProfileCompletion(userData);
           }
         } catch (error) {
           console.error("Error fetching user data:", error);
@@ -1642,40 +1890,69 @@ const UserProfile = () => {
   }, []);
 
   return (
-    <Layout
-      activeTab={activeTab}
-      setActiveTab={setActiveTab}
-      username={username}
-      profileImage={profileImage}
-      handleImageChange={handleImageChange}
-      isEditingUsername={isEditingUsername}
-      setIsEditingUsername={setIsEditingUsername}
-      tempUsername={tempUsername}
-      setTempUsername={setTempUsername}
-      handleSaveUsername={handleSaveUsername}
-      handleDiscardUsername={handleDiscardUsername}
-      isUpdatingUsername={isUpdatingUsername}
-    >
-      {activeTab === "Uploads" && (
-        <Uploads
-          profileImage={profileImage}
-          uploadedAccounts={uploadedAccounts}
-          setUploadedAccounts={setUploadedAccounts}
-          fetchAccounts={fetchAccounts}
-          username={username}
-          userCurrency={userCurrency}
-        />
+    <>
+      {showAlfredAlert && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+          <div className="bg-[#161B22] p-6 rounded-xl border border-gray-800 max-w-sm w-full mx-4">
+            <h3 className="text-white text-lg font-semibold mb-4">
+              Achievement Unlocked: Alfred!
+            </h3>
+            <p className="text-gray-300 mb-6">
+              Congratulations! You've completed your profile by adding a
+              username, profile image, bio, and social links.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowAlfredAlert(false)}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition"
+                aria-label="Dismiss Alfred achievement alert"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
-      {activeTab === "Bio" && <About />}
-      {activeTab === "Socials" && <Socials />}
-      {activeTab === "Favorites" && (
-        <Favorites
-          favoriteAccounts={favoriteAccounts}
-          setFavoriteAccounts={setFavoriteAccounts}
-          userCurrency={userCurrency}
-        />
-      )}
-    </Layout>
+      <Layout
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        username={username}
+        profileImage={profileImage}
+        handleImageChange={handleImageChange}
+        isEditingUsername={isEditingUsername}
+        setIsEditingUsername={setIsEditingUsername}
+        tempUsername={tempUsername}
+        setTempUsername={setTempUsername}
+        handleSaveUsername={handleSaveUsername}
+        handleDiscardUsername={handleDiscardUsername}
+        isUpdatingUsername={isUpdatingUsername}
+      >
+        {activeTab === "Uploads" && (
+          <Uploads
+            profileImage={profileImage}
+            uploadedAccounts={uploadedAccounts}
+            setUploadedAccounts={setUploadedAccounts}
+            fetchAccounts={fetchAccounts}
+            username={username}
+            userCurrency={userCurrency}
+          />
+        )}
+        {activeTab === "Bio" && <About handleSaveBio={handleSaveBio} />}
+        {activeTab === "Socials" && (
+          <Socials
+            handleSaveSocials={handleSaveSocials}
+            profileData={{ username, profileImage, bio, socials }}
+          />
+        )}
+        {activeTab === "Favorites" && (
+          <Favorites
+            favoriteAccounts={favoriteAccounts}
+            setFavoriteAccounts={setFavoriteAccounts}
+            userCurrency={userCurrency}
+          />
+        )}
+      </Layout>
+    </>
   );
 };
 

@@ -7,15 +7,16 @@ import availableAccounts from "../constants";
 import { fetchAccountsWithImages } from "../utils/firebaseUtils";
 import { useAuth } from "../components/AuthContext";
 import { db } from "../database/firebaseConfig";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
 
 const Category = () => {
   const { currentUser: user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [profileImage, setProfileImage] = useState(null);
   const [accounts, setAccounts] = useState([]);
-  const [loading, setLoading] = useState(true); // 🚨 loader state
+  const [loading, setLoading] = useState(true);
   const carouselRef = useRef(null);
+  const viewedAccounts = useRef(new Set()); // Track viewed accounts in session
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -36,9 +37,9 @@ const Category = () => {
 
   useEffect(() => {
     const fetchUploadedAccounts = async () => {
-      setLoading(true); // Show loader while fetching
+      setLoading(true);
       if (!user) {
-        setAccounts([]); // No accounts if no user
+        setAccounts([]);
         setLoading(false);
         return;
       }
@@ -65,18 +66,54 @@ const Category = () => {
               id: `screenshot-${index}-${idx}`,
               img: img || AdminIcon,
             })),
-            isFromFirestore: true, // Mark as user-uploaded
+            isFromFirestore: true,
             category: account.category || "Other",
+            userId: account.userId, // Include userId for achievement tracking
           }));
+
+          // Increment views for each account (only once per session)
+          for (const account of mappedAccounts) {
+            if (
+              account.isFromFirestore &&
+              !viewedAccounts.current.has(account.id)
+            ) {
+              try {
+                const accountDocRef = doc(db, "accounts", account.id);
+                await updateDoc(accountDocRef, {
+                  views: increment(1),
+                });
+                viewedAccounts.current.add(account.id); // Mark as viewed
+
+                // Check for "Peacock" achievement (ID 2)
+                const updatedAccountDoc = await getDoc(accountDocRef);
+                if (
+                  updatedAccountDoc.exists() &&
+                  updatedAccountDoc.data().views >= 50
+                ) {
+                  const uploaderDocRef = doc(db, "users", account.userId);
+                  await updateDoc(uploaderDocRef, {
+                    [`achievementStatuses.2.progress`]: 100,
+                    [`achievementStatuses.2.earned`]: true,
+                  });
+                }
+              } catch (error) {
+                console.error(
+                  `Error incrementing views for account ${account.id}:`,
+                  error
+                );
+              }
+            }
+          }
+
           setAccounts(mappedAccounts);
         } else {
-          setAccounts([]); // If no accounts, set empty array
+          setAccounts([]);
         }
       } catch (error) {
         console.error("Error fetching accounts:", error);
-        setAccounts([]); // Set empty array on error
+        setAccounts([]);
       } finally {
-        setLoading(false); // ✅ stop loading after fetching
+        setLoading(false);
       }
     };
 
@@ -86,7 +123,7 @@ const Category = () => {
   // Add isFromFirestore:false to each available account
   const modifiedAvailableAccounts = availableAccounts.map((account) => ({
     ...account,
-    isFromFirestore: false, // Mark as not user-uploaded
+    isFromFirestore: false,
   }));
 
   const combinedAccounts = [...modifiedAvailableAccounts, ...accounts];
@@ -119,7 +156,7 @@ const Category = () => {
             border-radius: 50%;
             width: 50px;
             height: 50px;
-            animation: spin 1s linear infinite;
+            animation: spin 1s linearinfinite;
             margin: 0 auto;
           }
           @keyframes spin {
@@ -183,7 +220,6 @@ const Category = () => {
                           className="w-8 h-8 rounded-full object-cover border border-gray-700"
                         />
                       </div>
-                      {/* Only show View Details button for user-uploaded accounts */}
                       {account.isFromFirestore ? (
                         <Link
                           to={`/account/${account.slug || account.id}`}

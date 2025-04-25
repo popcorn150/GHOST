@@ -5,10 +5,18 @@ import BackButton from "../components/BackButton";
 import { AdminIcon } from "../AdminIcon";
 import { fetchAccountByIdWithImages } from "../utils/firebaseUtils";
 import { useAuth } from "../components/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { FaArrowLeft, FaArrowRight, FaEye, FaEyeSlash } from "react-icons/fa";
 import { GiCancel } from "react-icons/gi";
 import { Toaster, toast } from "sonner";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  writeBatch,
+  increment,
+} from "firebase/firestore";
+import { auth, db } from "../database/firebaseConfig";
 
 // Fallback image URL if AdminIcon is undefined
 const FALLBACK_IMAGE = "https://via.placeholder.com/150?text=Placeholder";
@@ -24,6 +32,23 @@ const AccountDetails = () => {
   const [cart, setCart] = useState([]);
   const [isPurchased, setIsPurchased] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
+  const hasViewed = useRef(false); // Track if this account has been viewed in session
+
+  // Helper function to check if purchase is within an hour of upload
+  const isWithinOneHour = (createdAt) => {
+    if (!createdAt) return false;
+    const uploadTime = createdAt.seconds
+      ? createdAt.seconds * 1000
+      : new Date(createdAt).getTime();
+    const currentTime = new Date().getTime();
+    const oneHourInMs = 60 * 60 * 1000;
+    return currentTime - uploadTime <= oneHourInMs;
+  };
+
+  // Helper function to get today's date as YYYY-MM-DD
+  const getTodayDate = () => {
+    return new Date().toISOString().split("T")[0];
+  };
 
   // Log imports to debug
   useEffect(() => {
@@ -68,6 +93,39 @@ const AccountDetails = () => {
           };
           console.log("Mapped Firestore account:", foundAccount);
           setAccount(foundAccount);
+
+          // Increment views (only once per session)
+          if (!hasViewed.current) {
+            try {
+              const accountDocRef = doc(db, "accounts", firestoreAccount.id);
+              await updateDoc(accountDocRef, {
+                views: increment(1),
+              });
+              hasViewed.current = true; // Mark as viewed
+
+              // Check "Peacock" achievement (ID 2) for the uploader
+              const updatedAccountDoc = await getDoc(accountDocRef);
+              if (
+                updatedAccountDoc.exists() &&
+                updatedAccountDoc.data().views >= 50
+              ) {
+                const uploaderDocRef = doc(
+                  db,
+                  "users",
+                  firestoreAccount.userId
+                );
+                await updateDoc(uploaderDocRef, {
+                  [`achievementStatuses.2.progress`]: 100,
+                  [`achievementStatuses.2.earned`]: true,
+                });
+              }
+            } catch (error) {
+              console.error(
+                `Error incrementing views for account ${firestoreAccount.id}:`,
+                error
+              );
+            }
+          }
         } else {
           toast.error("Account not found.");
           navigate("/categories");
@@ -136,26 +194,114 @@ const AccountDetails = () => {
     }
   };
 
-  const handlePurchase = () => {
+  const handlePurchase = async () => {
     if (!currentUser) {
       toast.error("Please log in to purchase.");
       navigate("/login");
       return;
     }
 
-    toast.promise(
-      new Promise((resolve) => {
-        setTimeout(() => {
-          setIsPurchased(true);
-          resolve();
-        }, 2000);
-      }),
-      {
-        loading: `Processing purchase for ${account.title}...`,
-        success: `${account.title} purchased successfully!`,
-        error: `Failed to purchase ${account.title}`,
-      }
-    );
+    try {
+      toast.promise(
+        new Promise(async (resolve, reject) => {
+          try {
+            setIsPurchased(true);
+
+            const buyerDocRef = doc(db, "users", currentUser.uid);
+            const sellerDocRef = doc(db, "users", account.userId);
+            const batch = writeBatch(db);
+
+            // Get buyer's data
+            const buyerDoc = await getDoc(buyerDocRef);
+            let dailyPurchases = 0;
+            let lastPurchaseDate = "";
+            let totalPurchases = 0;
+
+            if (buyerDoc.exists()) {
+              const buyerData = buyerDoc.data();
+              dailyPurchases = buyerData.dailyPurchases || 0;
+              lastPurchaseDate = buyerData.lastPurchaseDate || "";
+              totalPurchases = buyerData.totalPurchases || 0;
+            }
+
+            // Reset daily purchases if it's a new day
+            const today = getTodayDate();
+            if (lastPurchaseDate !== today) {
+              dailyPurchases = 0;
+            }
+
+            // Increment purchase counters
+            dailyPurchases += 1;
+            totalPurchases += 1;
+
+            // Update "Flex" achievement (ID 1)
+            const flexProgress = Math.min((dailyPurchases / 5) * 100, 100);
+            batch.update(buyerDocRef, {
+              dailyPurchases,
+              lastPurchaseDate: today,
+              totalPurchases,
+              [`achievementStatuses.1.progress`]: flexProgress,
+            });
+
+            // Update "Big Spender" achievement (ID 4)
+            if (account.accountWorth >= 1000) {
+              batch.update(buyerDocRef, {
+                [`achievementStatuses.4.progress`]: 100,
+                [`achievementStatuses.4.earned`]: true,
+              });
+            }
+
+            // Update "Hawk Eye" achievement (ID 6)
+            if (isWithinOneHour(account.createdAt)) {
+              batch.update(buyerDocRef, {
+                [`achievementStatuses.6.progress`]: 100,
+                [`achievementStatuses.6.earned`]: true,
+              });
+            }
+
+            // Update "Splendid Taste" achievement (ID 8)
+            if (account.views >= 50) {
+              batch.update(buyerDocRef, {
+                [`achievementStatuses.8.progress`]: 100,
+                [`achievementStatuses.8.earned`]: true,
+              });
+            }
+
+            // Update "Hustler" achievement (ID 7) for the seller
+            if (account.userId) {
+              const sellerDoc = await getDoc(sellerDocRef);
+              let totalAccountsSold = 0;
+              if (sellerDoc.exists()) {
+                totalAccountsSold = sellerDoc.data().totalAccountsSold || 0;
+              }
+              totalAccountsSold += 1;
+              const hustlerProgress = Math.min(
+                (totalAccountsSold / 10) * 100,
+                100
+              ); // Assuming 10 sales for completion
+              batch.update(sellerDocRef, {
+                totalAccountsSold,
+                [`achievementStatuses.7.progress`]: hustlerProgress,
+              });
+            }
+
+            // Commit batch
+            await batch.commit();
+            resolve();
+          } catch (error) {
+            reject(error);
+          }
+        }),
+        {
+          loading: `Processing purchase for ${account.title}...`,
+          success: `${account.title} purchased successfully!`,
+          error: `Failed to purchase ${account.title}`,
+        }
+      );
+    } catch (error) {
+      console.error("Purchase error:", error);
+      setIsPurchased(false);
+    }
   };
 
   const toggleCredentialVisibility = () => {
@@ -370,12 +516,10 @@ const AccountDetails = () => {
                 </div>
               )}
 
-              {/* REFINED BUTTONS - More subtle and elegant styling */}
               {currentUser && (
                 <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
                   <Toaster richColors position="top-center" />
 
-                  {/* Cart Button - Refined */}
                   <button
                     onClick={handleAddToCart}
                     disabled={isInCart}
@@ -427,7 +571,6 @@ const AccountDetails = () => {
                     )}
                   </button>
 
-                  {/* Purchase Button - Refined */}
                   <button
                     onClick={handlePurchase}
                     disabled={isPurchased}
@@ -480,7 +623,6 @@ const AccountDetails = () => {
                   </button>
                 </div>
               )}
-              {/* END REFINED BUTTONS */}
             </div>
           </div>
           {selectedImage !== null && account.screenShots?.length > 0 && (
