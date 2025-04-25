@@ -111,6 +111,24 @@ import Instagram from "../assets/imgs/instagram-icon.svg"
 import Twitter from "../assets/imgs/twitter-icon.svg"
 import Youtube from "../assets/imgs/youtube-icon.svg"
 
+import Flex from "../assets/imgs/Flex.png"
+import Peacock from "../assets/imgs/Peacock.png"
+import Entrepreneur from "../assets/imgs/Entrepreneur.png"
+import Richh from "../assets/imgs/Ricch.png"
+import Alfred from "../assets/imgs/Alfred.png"
+import Hawk from "../assets/imgs/Hawk.png"
+import Muscle from "../assets/imgs/Muscle.png"
+import Splendid from "../assets/imgs/Splendid.png"
+
+export const FlexIcon = Flex
+export const PeacockIcon = Peacock
+export const EntrepreneurIcon = Entrepreneur
+export const RichhIcon = Richh
+export const AlfredIcon = Alfred
+export const HawkIcon = Hawk
+export const MuscleIcon = Muscle
+export const SplendidIcon = Splendid
+
 export const BackGround_ = Background
 export const Title = GhostTitle
 export const Logo = GhostLogo

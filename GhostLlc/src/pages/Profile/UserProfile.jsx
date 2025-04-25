@@ -1,5 +1,6 @@
 import BackButton from "../../components/BackButton";
 import NavBar from "./NavBar";
+import { Link } from "react-router-dom";
 import { MdOutlineCameraEnhance } from "react-icons/md";
 import { BsPencilSquare } from "react-icons/bs";
 import {
@@ -178,11 +179,10 @@ const Layout = ({
                 <button
                   key={tab.name}
                   onClick={() => setActiveTab(tab.name)}
-                  className={`py-2 flex-1 text-center cursor-pointer flex items-center justify-center gap-1 ${
-                    activeTab === tab.name
+                  className={`py-2 flex-1 text-center cursor-pointer flex items-center justify-center gap-1 ${activeTab === tab.name
                       ? "text-white font-semibold"
                       : "text-gray-400"
-                  }`}
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="hidden sm:inline text-sm">{tab.name}</span>
@@ -195,9 +195,8 @@ const Layout = ({
               className="h-full bg-purple-500 transition-all duration-   duration-300"
               style={{
                 width: "20%",
-                transform: `translateX(${
-                  tabs.findIndex((tab) => tab.name === activeTab) * 135
-                }%)`,
+                transform: `translateX(${tabs.findIndex((tab) => tab.name === activeTab) * 135
+                  }%)`,
               }}
             ></div>
           </div>
@@ -957,9 +956,9 @@ const Uploads = ({
                 </div>
 
                 {acc.images &&
-                Object.keys(acc.images).filter((key) =>
-                  key.startsWith("screenshot")
-                ).length > 0 ? (
+                  Object.keys(acc.images).filter((key) =>
+                    key.startsWith("screenshot")
+                  ).length > 0 ? (
                   <div className="mb-4">
                     <p className="text-gray-200 text-xs sm:text-sm font-light uppercase tracking-wider mb-4">
                       Screenshots:
@@ -1501,6 +1500,12 @@ const Favorites = () => {
           <p className="text-gray-400 text-center">
             You haven't added any accounts to your favorites yet.
           </p>
+
+          <Link to='/achievements'>
+            <button className="m-5 p-5 bg-blue-500 text-white rounded-full">
+              Achievements
+            </button>
+          </Link>
         </div>
       )}
     </div>
