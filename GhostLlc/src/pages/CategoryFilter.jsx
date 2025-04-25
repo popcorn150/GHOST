@@ -1,3 +1,4 @@
+
 import "../App.css";
 import { useState, useMemo } from "react";
 import categoryAccounts from "../constants/category";
@@ -5,7 +6,7 @@ import { Link } from "react-router-dom";
 import { AdminIcon } from "../utils";
 import { FaHeart } from "react-icons/fa6";
 
-// Define only the specific categories we want - changed Fighter to Fighting and added Racing
+// Define allowed categories, including "Others"
 const ALLOWED_CATEGORIES = [
   "Fighting",
   "Shooter",
@@ -13,6 +14,7 @@ const ALLOWED_CATEGORIES = [
   "Sport",
   "Adventure",
   "Racing",
+  "Others",
 ];
 
 const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
@@ -38,76 +40,93 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
         ).toLowerCase();
         const existingCategory = (account.category || "").toLowerCase();
 
-        // First try to match the existing category
-        if (existingCategory.includes("fight")) return "Fighting";
-        if (existingCategory.includes("shoot")) return "Shooter";
-        if (existingCategory.includes("sport")) return "Sport";
-        if (existingCategory.includes("adventure")) return "Adventure";
-        if (existingCategory.includes("action")) return "Action";
+        // Prioritize existing category from Firestore if valid
+        if (ALLOWED_CATEGORIES.includes(account.category)) {
+          return account.category;
+        }
+
+        // Normalize legacy categories
+        if (existingCategory.includes("fight") || existingCategory === "fighter") {
+          return "Fighting";
+        }
+        if (existingCategory.includes("shoot")) {
+          return "Shooter";
+        }
+        if (existingCategory.includes("sport")) {
+          return "Sport";
+        }
+        if (existingCategory.includes("adventure")) {
+          return "Adventure";
+        }
+        if (existingCategory.includes("action")) {
+          return "Action";
+        }
         if (
           existingCategory.includes("rac") ||
           existingCategory.includes("driv")
-        )
+        ) {
           return "Racing";
+        }
 
-        // If no match from existing category, try to infer from title
+        // Fallback to title-based inference if no valid category
         if (
           title.includes("fight") ||
           title.includes("combat") ||
           title.includes("battle") ||
           title.includes("wrestling") ||
           title.includes("martial")
-        )
+        ) {
           return "Fighting";
+        }
         if (
           title.includes("shoot") ||
           title.includes("gun") ||
           title.includes("fps")
-        )
+        ) {
           return "Shooter";
+        }
         if (
           title.includes("sport") ||
           title.includes("soccer") ||
           title.includes("basketball") ||
           title.includes("football") ||
           title.includes("tennis")
-        )
+        ) {
           return "Sport";
+        }
         if (
           title.includes("adventure") ||
           title.includes("explore") ||
           title.includes("quest")
-        )
+        ) {
           return "Adventure";
-        if (title.includes("action") || title.includes("mission"))
+        }
+        if (title.includes("action") || title.includes("mission")) {
           return "Action";
+        }
         if (
           title.includes("rac") ||
           title.includes("driv") ||
           title.includes("car") ||
           title.includes("speed")
-        )
+        ) {
           return "Racing";
+        }
 
-        // Default category if no matches
-        return "Action";
+        // Default to "Others" if no matches
+        return "Others";
       };
 
       // Process each account and assign to appropriate category
       combinedAccounts.forEach((account) => {
-        // Map "Fighter" category to "Fighting" for existing accounts
-        if (account.category === "Fighter") {
-          account.category = "Fighting";
-        }
-
         const category = mapAccountToCategory(account);
 
         const gameData = {
           title: account.title || account.accountName || "Untitled Account",
           slug: account.slug || account.id || `account-${Date.now()}`,
-          img: account.img || account.accountImage || AdminIcon,
+          img: account.img || account.accountImage || account.images?.accountImage || AdminIcon,
           views: account.views || 0,
-          userProfilePic: account.userProfilePic || null,
+          userProfilePic: account.userProfilePic || AdminIcon,
           username: account.username || "Unknown",
           category: category, // Store the mapped category with the game data
           isFromFirestore: account.isFromFirestore || false, // Pass through whether this account was uploaded by the user
@@ -285,7 +304,6 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
                     ) : (
                       <div></div> // Empty div to maintain spacing
                     )}
-
                     {/* Only show favorite button for user-uploaded accounts */}
                     {game.isFromFirestore && (
                       <button className="cursor-pointer self-center bg-blue-500 text-white px-2 py-1 rounded-md text-xs md:text-sm flex items-center gap-1">
