@@ -118,11 +118,11 @@ const Uploads = ({ profileImage, userId }) => {
 
   return (
     <div className="mt-16 mb-20 p-4 xs:p-5 sm:p-6 md:p-7 lg:p-8 xl:p-10 bg-gradient-to-br from-[#0E1115] via-[#1A1F29] to-[#252A36] rounded-2xl border border-gray-800">
-      <h2 className="text-gray-100 text-lg xs:text-xl sm:text-2xl md:text-2xl lg:text-3xl font-semibold tracking-wider mb-10 sm:mb-12 lg:mb-14">
+      <h2 className="text-gray-100 text-lg xs:text-xl sm:text-2xl md:text-2xl lg:text-3xl font-semibold tracking-wider mb-7">
         Accounts Uploaded
       </h2>
       {uploadedAccounts.length > 0 ? (
-        <div className="grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 sm:gap-8 lg:gap-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 xs:gap-5 sm:gap-6 lg:gap-8">
           {uploadedAccounts.map((acc) => (
             <div
               key={acc.id}
@@ -168,15 +168,15 @@ const Uploads = ({ profileImage, userId }) => {
 
               <div className="space-y-2 mb-4">
                 <p className="text-gray-200 text-xs sm:text-sm tracking-wider leading-relaxed">
-                  <span className="text-[#0576FF] font-light uppercase text-xs">
+                  <span className="text-[#0576FF] font-bold text-xs">
                     Credential:
                   </span>{" "}
-                  <span className="font-medium blur-sm">
+                  <span className="font-normal text-xs blur-sm">
                     {acc.accountCredential || "N/A"}
                   </span>
                 </p>
                 <p className="text-gray-200 text-xs sm:text-sm tracking-wider leading-relaxed">
-                  <span className="text-[#0576FF] font-light uppercase text-xs">
+                  <span className="text-[#0576FF] font-bold text-xs">
                     Worth:
                   </span>{" "}
                   <span className="font-medium">
@@ -186,10 +186,10 @@ const Uploads = ({ profileImage, userId }) => {
                   </span>
                 </p>
                 <p className="text-gray-200 text-xs sm:text-sm tracking-wider leading-relaxed line-clamp-2">
-                  <span className="text-[#0576FF] font-light uppercase text-xs">
+                  <span className="text-[#0576FF] font-bold text-xs">
                     Description:
                   </span>{" "}
-                  <span className="font-light">
+                  <span className="font-normal text-xs">
                     {acc.accountDescription || "No description provided."}
                   </span>
                 </p>
@@ -200,7 +200,7 @@ const Uploads = ({ profileImage, userId }) => {
                 key.startsWith("screenshot")
               ).length > 0 ? (
                 <div className="mb-2">
-                  <p className="text-gray-200 text-xs sm:text-sm font-light uppercase tracking-wider mb-2">
+                  <p className="text-gray-200 text-xs sm:text-sm font-bold tracking-wider mb-2">
                     Screenshots:
                   </p>
                   <div className="grid grid-cols-2 gap-2">

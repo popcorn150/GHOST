@@ -51,7 +51,7 @@ const Category = () => {
             slug: account.id,
             title: account.accountName || "Untitled",
             accountName: account.accountName || "Untitled",
-            username: account.username || "Unknown",
+            username: account.username || "Ghost",
             img: account.accountImage || AdminIcon,
             accountImage: account.accountImage || AdminIcon,
             userProfilePic: account.userProfilePic || AdminIcon,
@@ -159,11 +159,11 @@ const Category = () => {
                     key={`${account.id || account.slug}-${index}`}
                     className="relative w-64 flex-shrink-0 bg-[#1C1F26] rounded-xl shadow-xl hover:scale-105 hover:shadow-2xl transition-all duration-300 ease-in-out cursor-pointer"
                   >
-                    <div className="overflow-hidden rounded-t-xl">
+                    <div className="overflow-hidden rounded-t-xl p-2">
                       <img
                         src={imageSrc}
                         alt={account.title || account.accountName || "Untitled"}
-                        className="w-full h-40 object-cover transform hover:scale-110 transition duration-500 ease-in-out"
+                        className="w-full h-40 object-cover rounded-md transform hover:scale-110 transition duration-500 ease-in-out"
                       />
                     </div>
                     <div className="p-4">
@@ -173,7 +173,7 @@ const Category = () => {
                       <p className="text-sm text-gray-400 mb-2">
                         {account.username
                           ? `By ${account.username}`
-                          : "By Unknown"}
+                          : "By Ghost"}
                       </p>
                       <div className="flex items-center justify-between text-sm text-gray-400 mb-3">
                         <span>{account.views || 0} Views</span>

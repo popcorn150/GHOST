@@ -94,7 +94,7 @@ const Layout = ({
   return (
     <>
       <NavBar profileImage={profileImage || "/default-profile.png"} />
-      <div className="flex flex-col items-center justify-center p-2 bg-[#010409]">
+      <div className="flex flex-col items-center justify-center p-2">
         {isUpdatingUsername && (
           <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
             <div className="flex flex-col items-center gap-3">
@@ -183,7 +183,7 @@ const Layout = ({
             </>
           )}
         </div>
-        <div className="w-full px-4 sm:px-12 md:px-24 mx-auto">
+        <div className="w-full px-4 sm:px-7 mx-auto">
           <div className="flex justify-between border-b relative">
             {tabs.map((tab) => {
               const Icon = tab.icon;
@@ -947,7 +947,7 @@ const Uploads = ({
           Accounts Uploaded
         </h2>
         {uploadedAccounts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
             {uploadedAccounts.map((acc) => (
               <div
                 key={acc.id}
@@ -994,27 +994,27 @@ const Uploads = ({
 
                 <div className="space-y-2 mb-4">
                   <p className="text-gray-200 text-xs sm:text-sm tracking-wider leading-relaxed">
-                    <span className="text-[#0576FF] font-light uppercase text-xs">
+                    <span className="text-[#0576FF] font-bold text-xs">
                       Credential:
                     </span>{" "}
-                    <span className="font-medium break-all">
+                    <span className="text-xs break-all">
                       {acc.accountCredential}
                     </span>
                   </p>
                   <p className="text-gray-200 text-xs sm:text-sm tracking-wider leading-relaxed">
-                    <span className="text-[#0576FF] font-light uppercase text-xs">
+                    <span className="text-[#0576FF] font-bold text-xs">
                       Worth:
                     </span>{" "}
-                    <span className="font-medium">
+                    <span className="text-xs">
                       {formatNumberWithCommas(acc.accountWorth.toString())} (
                       {acc.currency || userCurrency})
                     </span>
                   </p>
                   <p className="text-gray-200 text-xs sm:text-sm tracking-wider leading-relaxed line-clamp-2">
-                    <span className="text-[#0576FF] font-light uppercase text-xs">
+                    <span className="text-[#0576FF] font-bold text-xs">
                       Description:
                     </span>{" "}
-                    <span className="font-light">{acc.accountDescription}</span>
+                    <span className="text-xs">{acc.accountDescription}</span>
                   </p>
                 </div>
 
@@ -1022,8 +1022,8 @@ const Uploads = ({
                   Object.keys(acc.images).filter((key) =>
                     key.startsWith("screenshot")
                   ).length > 0 ? (
-                  <div className="mb-4">
-                    <p className="text-gray-200 text-xs sm:text-sm font-light uppercase tracking-wider mb-4">
+                  <div className="mb-2">
+                    <p className="text-gray-200 text-xs md:text-sm font-bold tracking-wider mb-2">
                       Screenshots:
                     </p>
                     <div className="grid grid-cols-2 gap-2">
@@ -1038,7 +1038,7 @@ const Uploads = ({
                               <img
                                 src={acc.images[key]}
                                 alt={`Screenshot ${index + 1}`}
-                                className="w-full h-16 sm:h-18 md:h-20 object-cover rounded-md shadow-sm transition-transform duration-300 group-hover/screenshot:scale-105"
+                                className="w-full h-16 md:h-20 object-cover rounded-md shadow-sm transition-transform duration-300 group-hover/screenshot:scale-105"
                                 style={{ aspectRatio: "4/3" }}
                               />
                               <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/screenshot:opacity-100 transition-opacity duration-300 rounded-md"></div>
@@ -1046,16 +1046,16 @@ const Uploads = ({
                           ) : (
                             <div
                               key={index}
-                              className="w-full h-16 sm:h-18 md:h-20 bg-gradient-to-br from-[#1A1F29] to-[#252A36] flex items-center justify-center rounded-md shadow-sm"
+                              className="w-full h-16 md:h-20 bg-gradient-to-br from-[#1A1F29] to-[#252A36] flex items-center justify-center rounded-md shadow-sm"
                             >
-                              <FaImage className="text-gray-500 w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                              <FaImage className="text-gray-500 w-4 h-4 md:w-6 md:h-6" />
                             </div>
                           )
                         )}
                     </div>
                   </div>
                 ) : (
-                  <p className="text-gray-400 text-xs sm:text-sm font-light tracking-wider mb-4">
+                  <p className="text-gray-400 text-xs md:text-sm font-light tracking-wider mb-2">
                     No screenshots available.
                   </p>
                 )}
@@ -1391,7 +1391,7 @@ const Favorites = ({ favoriteAccounts, setFavoriteAccounts, userCurrency }) => {
                     {acc.accountName}
                   </h3>
                   <p className="text-gray-400 text-sm tracking-wider">
-                    <span className="text-[#0576FF] font-light uppercase">
+                    <span className="text-[#0576FF] font-bold">
                       Uploaded by:
                     </span>{" "}
                     {acc.username || "Unknown"}
@@ -1408,13 +1408,13 @@ const Favorites = ({ favoriteAccounts, setFavoriteAccounts, userCurrency }) => {
               )}
               <div className="space-y-2 mb-4">
                 <p className="text-gray-200 text-sm tracking-wider">
-                  <span className="text-[#0576FF] font-light uppercase">
+                  <span className="text-[#0576FF] font-bold">
                     Credential:
                   </span>{" "}
                   <span className="font-medium">{acc.accountCredential}</span>
                 </p>
                 <p className="text-gray-200 text-sm tracking-wider">
-                  <span className="text-[#0576FF] font-light uppercase">
+                  <span className="text-[#0576FF] font-bold">
                     Worth:
                   </span>{" "}
                   <span className="font-medium">
@@ -1422,10 +1422,10 @@ const Favorites = ({ favoriteAccounts, setFavoriteAccounts, userCurrency }) => {
                   </span>
                 </p>
                 <p className="text-gray-200 text-sm tracking-wider line-clamp-2">
-                  <span className="text-[#0576FF] font-light uppercase">
+                  <span className="text-[#0576FF] font-bold uppercase">
                     Description:
                   </span>{" "}
-                  <span className="font-light">{acc.accountDescription}</span>
+                  <span className="font-normal">{acc.accountDescription}</span>
                 </p>
               </div>
               <button

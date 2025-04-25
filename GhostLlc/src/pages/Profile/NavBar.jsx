@@ -110,9 +110,9 @@ const NavBar = () => {
               <div className="absolute right-0 mt-2 bg-gray-800 p-4 rounded-lg w-40 shadow-lg">
                 <ul className="space-y-2">
                   <li className="flex items-center gap-2">
-                    <User size={16} />
-                    <Link to="/profile" onClick={() => setDropdownOpen(false)}>
-                      Account
+                    <IoHomeOutline size={16} />
+                    <Link to="/categories" onClick={() => setDropdownOpen(false)}>
+                      Home
                     </Link>
                   </li>
                   <li

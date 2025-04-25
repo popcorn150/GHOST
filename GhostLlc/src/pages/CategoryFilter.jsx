@@ -4,7 +4,6 @@ import { useState, useMemo } from "react";
 import categoryAccounts from "../constants/category";
 import { Link } from "react-router-dom";
 import { AdminIcon } from "../utils";
-import { FaHeart } from "react-icons/fa6";
 
 // Define allowed categories, including "Others"
 const ALLOWED_CATEGORIES = [
@@ -127,7 +126,7 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
           img: account.img || account.accountImage || account.images?.accountImage || AdminIcon,
           views: account.views || 0,
           userProfilePic: account.userProfilePic || AdminIcon,
-          username: account.username || "Unknown",
+          username: account.username || "Ghost",
           category: category, // Store the mapped category with the game data
           isFromFirestore: account.isFromFirestore || false, // Pass through whether this account was uploaded by the user
         };
@@ -303,12 +302,6 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
                       </Link>
                     ) : (
                       <div></div> // Empty div to maintain spacing
-                    )}
-                    {/* Only show favorite button for user-uploaded accounts */}
-                    {game.isFromFirestore && (
-                      <button className="cursor-pointer self-center bg-blue-500 text-white px-2 py-1 rounded-md text-xs md:text-sm flex items-center gap-1">
-                        <FaHeart className="text-white text-2xl" />
-                      </button>
                     )}
                   </div>
                 </div>
