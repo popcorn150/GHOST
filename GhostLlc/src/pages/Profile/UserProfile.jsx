@@ -1,3 +1,4 @@
+
 import BackButton from "../../components/BackButton";
 import NavBar from "./NavBar";
 import { Link } from "react-router-dom";
@@ -34,6 +35,18 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+
+// Allowed categories for uploads and filtering
+const ALLOWED_CATEGORIES = [
+  "Fighting",
+  "Shooter",
+  "Action",
+  "Sport",
+  "Adventure",
+  "Racing",
+  "Others",
+];
 
 let imageCompression;
 import("browser-image-compression").then((mod) => {
@@ -62,8 +75,7 @@ const Layout = ({
   handleDiscardUsername,
   isUpdatingUsername,
 }) => {
-  const [isProcessingProfileImage, setIsProcessingProfileImage] =
-    useState(false);
+  const [isProcessingProfileImage, setIsProcessingProfileImage] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleImageChangeWrapper = async (event) => {
@@ -192,7 +204,7 @@ const Layout = ({
           </div>
           <div className="relative w-full h-1 bg-[#0E1115] border-none">
             <div
-              className="h-full bg-purple-500 transition-all duration-   duration-300"
+              className="h-full bg-purple-500 transition-all duration-300"
               style={{
                 width: "20%",
                 transform: `translateX(${tabs.findIndex((tab) => tab.name === activeTab) * 135
@@ -218,7 +230,7 @@ const Uploads = ({
   const [accountImage, setAccountImage] = useState(null);
   const [accountName, setAccountName] = useState("");
   const [accountCredential, setAccountCredential] = useState("");
-  const [accountWorth, setAccountWorth] = useState("");
+  const [accountWorth, setAccountWorth] = useState(""); // Stores raw number as string
   const [accountDescription, setAccountDescription] = useState("");
   const [screenshots, setScreenshots] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -233,6 +245,31 @@ const Uploads = ({
   const accountImageInputRef = useRef(null);
   const screenshotInputRef = useRef(null);
   const shareModalRef = useRef(null);
+  const navigate = useNavigate();
+
+  // Function to format number with commas
+  const formatNumberWithCommas = (value) => {
+    if (!value) return "";
+    // Remove non-numeric characters except decimal point
+    const cleanedValue = value.replace(/[^0-9.]/g, "");
+    const parts = cleanedValue.split(".");
+    const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    const decimalPart = parts.length > 1 ? `.${parts[1]}` : "";
+    return integerPart + decimalPart;
+  };
+
+  // Handle account worth input change
+  const handleAccountWorthChange = (e) => {
+    const rawValue = e.target.value.replace(/,/g, ""); // Remove commas for raw value
+    setAccountWorth(rawValue); // Store raw value
+  };
+
+  // Format account worth when editing an account
+  useEffect(() => {
+    if (editingAccount && editingAccount.accountWorth) {
+      setAccountWorth(editingAccount.accountWorth.toString()); // Ensure raw value
+    }
+  }, [editingAccount]);
 
   const compressImage = async (file) => {
     const options = {
@@ -303,7 +340,7 @@ const Uploads = ({
     setEditingAccount(account);
     setAccountName(account.accountName);
     setAccountCredential(account.accountCredential);
-    setAccountWorth(account.accountWorth);
+    setAccountWorth(account.accountWorth.toString()); // Ensure raw value
     setAccountDescription(account.accountDescription);
     setAccountCategory(account.category || "");
     setAccountImage(account.images?.accountImage || null);
@@ -329,6 +366,10 @@ const Uploads = ({
       toast.error("Please fill out all required fields.");
       return;
     }
+    if (!ALLOWED_CATEGORIES.includes(accountCategory)) {
+      toast.error("Please select a valid category.");
+      return;
+    }
     if (screenshots.length < minScreenshots) {
       toast.error(`Please upload at least ${minScreenshots} screenshots.`);
       return;
@@ -340,14 +381,19 @@ const Uploads = ({
       );
       return;
     }
+    if (isNaN(parseFloat(accountWorth))) {
+      toast.error("Account worth must be a valid number.");
+      return;
+    }
 
     try {
       setIsProcessing(true);
+      console.log("Selected category for update:", accountCategory);
       const accountDocRef = doc(db, "accounts", editingAccount.id);
       await updateDoc(accountDocRef, {
         accountName,
         accountCredential,
-        accountWorth,
+        accountWorth: parseFloat(accountWorth), // Store as number
         accountDescription,
         category: accountCategory,
         updatedAt: new Date(),
@@ -388,7 +434,7 @@ const Uploads = ({
   };
 
   const copyLink = (account) => {
-    const shareUrl = `${window.location.origin}/account/${account.id}`;
+    const shareUrl = `${window.location.origin}/categories`;
     if (
       window.location.protocol !== "https:" &&
       window.location.hostname !== "localhost"
@@ -432,7 +478,7 @@ const Uploads = ({
   };
 
   const shareToSocial = (platform, account) => {
-    const shareUrl = `${window.location.origin}/account/${account.id}`;
+    const shareUrl = `${window.location.origin}/categories`;
     const text = `Check out "${account.accountName}" on our platform!`;
     let url = "";
 
@@ -478,6 +524,10 @@ const Uploads = ({
         toast.error("Please fill out all required fields.");
         return;
       }
+      if (!ALLOWED_CATEGORIES.includes(accountCategory)) {
+        toast.error("Please select a valid category.");
+        return;
+      }
       if (screenshots.length < minScreenshots) {
         toast.error(`Please upload at least ${minScreenshots} screenshots.`);
         return;
@@ -489,16 +539,21 @@ const Uploads = ({
         );
         return;
       }
+      if (isNaN(parseFloat(accountWorth))) {
+        toast.error("Account worth must be a valid number.");
+        return;
+      }
 
       try {
         setIsProcessing(true);
+        console.log("Selected category for upload:", accountCategory);
         const userId = auth.currentUser.uid;
         const uploadData = {
           userId,
           username,
           accountName,
           accountCredential,
-          accountWorth,
+          accountWorth: parseFloat(accountWorth), // Store as number
           accountDescription,
           category: accountCategory,
           createdAt: new Date(),
@@ -574,6 +629,11 @@ const Uploads = ({
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [showShareModal]);
+
+  // Navigate to Categories page
+  const handleNavigateToCategories = () => {
+    navigate("/categories");
+  };
 
   return (
     <div className="p-2">
@@ -776,10 +836,10 @@ const Uploads = ({
                   aria-label="Account credential"
                 />
                 <input
-                  type="number"
+                  type="text" // Changed to text for comma formatting
                   placeholder={`Account's Worth (in ${userCurrency})`}
-                  value={accountWorth}
-                  onChange={(e) => setAccountWorth(e.target.value)}
+                  value={formatNumberWithCommas(accountWorth)} // Display formatted value
+                  onChange={handleAccountWorthChange} // Custom handler
                   className="w-full max-w-[450px] mx-auto p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] text-sm"
                   required
                   aria-label={`Account worth in ${userCurrency}`}
@@ -792,14 +852,15 @@ const Uploads = ({
                   aria-label="Account category"
                 >
                   <option value="">Select Account Category</option>
-                  <option value="Shooter">Shooter</option>
-                  <option value="Action">Action</option>
-                  <option value="Racing">Racing</option>
-                  <option value="Sports">Sports</option>
-                  <option value="Fighting">Fighting</option>
-                  <option value="User Uploads">User Uploads</option>
-                  <option value="Other">Other</option>
+                  {ALLOWED_CATEGORIES.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
                 </select>
+                <div className="mt-2 text-gray-400 text-sm">
+                  Selected Category: {accountCategory || "None"}
+                </div>
               </div>
             </div>
             <div className="flex-1">
@@ -890,7 +951,8 @@ const Uploads = ({
             {uploadedAccounts.map((acc) => (
               <div
                 key={acc.id}
-                className="w-full min-w-[240px] bg-[#161B22]/80 p-4 rounded-xl shadow-lg border border-gray-800 active:scale-95 transition-all duration-300 group"
+                className="w-full min-w-[240px] bg-[#161B22]/80 p-4 rounded-xl shadow-lg border border-gray-800 active:scale-95 transition-all duration-300 group cursor-pointer"
+                onClick={handleNavigateToCategories}
               >
                 <div className="flex items-center mb-4">
                   <img
@@ -944,7 +1006,8 @@ const Uploads = ({
                       Worth:
                     </span>{" "}
                     <span className="font-medium">
-                      {acc.accountWorth} ({acc.currency || userCurrency})
+                      {formatNumberWithCommas(acc.accountWorth.toString())} (
+                      {acc.currency || userCurrency})
                     </span>
                   </p>
                   <p className="text-gray-200 text-xs sm:text-sm tracking-wider leading-relaxed line-clamp-2">
@@ -999,7 +1062,10 @@ const Uploads = ({
 
                 <div className="flex justify-between items-center">
                   <button
-                    onClick={() => handleShare(acc)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleShare(acc);
+                    }}
                     className="flex items-center justify-center bg-[#0576FF]/80 text-white p-1.5 sm:p-2 rounded-full hover:bg-[#0576FF] active:bg-[#045FCC] transition-all duration-300 w-8 h-8 sm:w-9 sm:h-9"
                     aria-label={`Share account ${acc.accountName}`}
                     tabIndex={0}
@@ -1013,14 +1079,20 @@ const Uploads = ({
                   </button>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => handleEdit(acc)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEdit(acc);
+                      }}
                       className="flex items-center justify-center bg-[#4426B9]/80 text-white p-1.5 sm:p-2 rounded-full hover:bg-[#4426B9] active:bg-[#2F1A7F] transition-all duration-300 w-8 h-8 sm:w-9 sm:h-9"
                       aria-label={`Edit account ${acc.accountName}`}
                     >
                       <BsPencilSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
                     <button
-                      onClick={() => setShowDeleteConfirm(acc)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDeleteConfirm(acc);
+                      }}
                       className="flex items-center justify-center bg-[#EB3223]/80 text-white p-1.5 sm:p-2 rounded-full hover:bg-[#EB3223] active:bg-[#B71C1C] transition-all duration-300 w-8 h-8 sm:w-9 sm:h-9"
                       aria-label={`Delete account ${acc.accountName}`}
                     >
@@ -1119,7 +1191,7 @@ const About = () => {
         ) : (
           <button
             onClick={handleEdit}
-            className="flex items-center gap-2 border-2 border-[#0576FF] text-white px-4 py-2 rounded-md cursor-pointer hover:bg-[#0576FF]/20 transition"
+            className="flex items-center gap-2 bg-[#0576FF] text-white px-4 py-2 rounded-md cursor-pointer hover:bg-[#045FCC] transition"
             aria-label="Edit bio"
           >
             <BsPencilSquare /> Edit
@@ -1131,36 +1203,32 @@ const About = () => {
 };
 
 const Socials = () => {
-  const [socials, setSocials] = useState({
-    facebook: "",
+  const [socialLinks, setSocialLinks] = useState({
     instagram: "",
     tiktok: "",
-    twitter: "",
   });
-  const [tempSocials, setTempSocials] = useState({ ...socials });
+  const [tempLinks, setTempLinks] = useState(socialLinks);
   const [isEditing, setIsEditing] = useState(false);
 
   const handleEdit = () => setIsEditing(true);
-
   const handleDiscard = () => {
-    setTempSocials({ ...socials });
+    setTempLinks(socialLinks);
     setIsEditing(false);
   };
-
   const handleSave = async () => {
-    setSocials({ ...tempSocials });
+    setSocialLinks(tempLinks);
     setIsEditing(false);
 
     if (auth.currentUser) {
       try {
         const userDocRef = doc(db, "users", auth.currentUser.uid);
         await updateDoc(userDocRef, {
-          socials: tempSocials,
+          socials: tempLinks,
         });
-        toast.success("Social media links updated successfully!");
+        toast.success("Social links updated successfully!");
       } catch (error) {
-        console.error("Error saving socials:", error);
-        toast.error("Failed to save social media links: " + error.message);
+        console.error("Error saving social links:", error);
+        toast.error("Failed to save social links: " + error.message);
       }
     }
   };
@@ -1172,11 +1240,11 @@ const Socials = () => {
           const userDocRef = doc(db, "users", auth.currentUser.uid);
           const userDoc = await getDoc(userDocRef);
           if (userDoc.exists() && userDoc.data().socials) {
-            setSocials(userDoc.data().socials);
-            setTempSocials(userDoc.data().socials);
+            setSocialLinks(userDoc.data().socials);
+            setTempLinks(userDoc.data().socials);
           }
         } catch (error) {
-          console.error("Error fetching socials:", error);
+          console.error("Error fetching social links:", error);
         }
       }
     };
@@ -1185,91 +1253,37 @@ const Socials = () => {
 
   return (
     <div className="p-5">
-      <div className="mb-4">
-        <label className="block text-gray-300 mb-2" htmlFor="facebook-input">
-          Facebook
-        </label>
-        <div className="flex">
-          <span className="inline-flex items-center px-3 bg-[#1A1F29] border border-r-0 border-gray-600 rounded-l-md">
-            <FaSquareFacebook className="text-blue-500" />
-          </span>
+      <div className="space-y-4">
+        <div>
+          <label className="text-gray-200 text-sm font-medium mb-2 flex items-center gap-2">
+            <FaInstagram className="w-5 h-5" /> Instagram
+          </label>
           <input
-            id="facebook-input"
             type="text"
-            value={tempSocials.facebook}
+            placeholder="Instagram URL"
+            value={tempLinks.instagram}
             onChange={(e) =>
-              setTempSocials({ ...tempSocials, facebook: e.target.value })
+              setTempLinks({ ...tempLinks, instagram: e.target.value })
             }
-            className="flex-1 px-3 py-2 border border-gray-600 rounded-r-md bg-[#0E1115] text-white focus:outline-none focus:ring-2 focus:ring-[#0576FF]"
-            placeholder="Your Facebook profile URL"
             readOnly={!isEditing}
-            aria-label="Facebook profile URL"
+            className="w-full p-3 border border-gray-600 rounded-md bg-[#0E1115] text-sm text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0576FF]"
+            aria-label="Instagram URL"
           />
         </div>
-      </div>
-      <div className="mb-4">
-        <label className="block text-gray-300 mb-2" htmlFor="instagram-input">
-          Instagram
-        </label>
-        <div className="flex">
-          <span className="inline-flex items-center px-3 bg-[#1A1F29] border border-r-0 border-gray-600 rounded-l-md">
-            <FaInstagram className="text-pink-500" />
-          </span>
+        <div>
+          <label className="text-gray-200 text-sm font-medium mb-2 flex items-center gap-2">
+            <FaTiktok className="w-5 h-5" /> TikTok
+          </label>
           <input
-            id="instagram-input"
             type="text"
-            value={tempSocials.instagram}
+            placeholder="TikTok URL"
+            value={tempLinks.tiktok}
             onChange={(e) =>
-              setTempSocials({ ...tempSocials, instagram: e.target.value })
+              setTempLinks({ ...tempLinks, tiktok: e.target.value })
             }
-            className="flex-1 px-3 py-2 border border-gray-600 rounded-r-md bg-[#0E1115] text-white focus:outline-none focus:ring-2 focus:ring-[#0576FF]"
-            placeholder="Your Instagram profile URL"
             readOnly={!isEditing}
-            aria-label="Instagram profile URL"
-          />
-        </div>
-      </div>
-      <div className="mb-4">
-        <label className="block text-gray-300 mb-2" htmlFor="tiktok-input">
-          TikTok
-        </label>
-        <div className="flex">
-          <span className="inline-flex items-center px-3 bg-[#1A1F29] border border-r-0 border-gray-600 rounded-l-md">
-            <FaTiktok className="text-gray-200" />
-          </span>
-          <input
-            id="tiktok-input"
-            type="text"
-            value={tempSocials.tiktok}
-            onChange={(e) =>
-              setTempSocials({ ...tempSocials, tiktok: e.target.value })
-            }
-            className="flex-1 px-3 py-2 border border-gray-600 rounded-r-md bg-[#0E1115] text-white focus:outline-none focus:ring-2 focus:ring-[#0576FF]"
-            placeholder="Your TikTok profile URL"
-            readOnly={!isEditing}
-            aria-label="TikTok profile URL"
-          />
-        </div>
-      </div>
-      <div className="mb-4">
-        <label className="block text-gray-300 mb-2" htmlFor="twitter-input">
-          Twitter
-        </label>
-        <div className="flex">
-          <span className="inline-flex items-center px-3 bg-[#1A1F29] border border-r-0 border-gray-600 rounded-l-md">
-            <FaXTwitter className="text-gray-200" />
-          </span>
-          <input
-            id="twitter-input"
-            type="text"
-            value={tempSocials.twitter}
-            onChange={(e) =>
-              setTempSocials({ ...tempSocials, twitter: e.target.value })
-            }
-            className="flex-1 px-3 py-2 border border-gray-600 rounded-r-md bg-[#0E1115] text-white focus:outline-none focus:ring-2 focus:ring-[#0576FF]"
-            placeholder="Your Twitter profile URL"
-            readOnly={!isEditing}
-            aria-label="Twitter profile URL"
+            className="w-full p-3 border border-gray-600 rounded-md bg-[#0E1115] text-sm text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0576FF]"
+            aria-label="TikTok URL"
           />
         </div>
       </div>
@@ -1279,14 +1293,14 @@ const Socials = () => {
             <button
               onClick={handleDiscard}
               className="flex items-center gap-2 bg-[#EB3223] text-white px-4 py-2 rounded-md cursor-pointer hover:bg-[#B71C1C] transition"
-              aria-label="Discard social media changes"
+              aria-label="Discard social link changes"
             >
               <FaTrashAlt /> Discard
             </button>
             <button
               onClick={handleSave}
               className="flex items-center gap-2 bg-[#4426B9] text-white px-4 py-2 rounded-md cursor-pointer hover:bg-[#2F1A7F] transition"
-              aria-label="Save social media links"
+              aria-label="Save social links"
             >
               <FaSave /> Save
             </button>
@@ -1294,8 +1308,8 @@ const Socials = () => {
         ) : (
           <button
             onClick={handleEdit}
-            className="flex items-center gap-2 border-2 border-[#0576FF] text-white px-4 py-2 rounded-md cursor-pointer hover:bg-[#0576FF]/20 transition"
-            aria-label="Edit social media links"
+            className="flex items-center gap-2 bg-[#0576FF] text-white px-4 py-2 rounded-md cursor-pointer hover:bg-[#045FCC] transition"
+            aria-label="Edit social links"
           >
             <BsPencilSquare /> Edit
           </button>
@@ -1305,192 +1319,122 @@ const Socials = () => {
   );
 };
 
-const Favorites = () => {
-  const [favorites, setFavorites] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+const Favorites = ({ favoriteAccounts, setFavoriteAccounts, userCurrency }) => {
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  useEffect(() => {
-    const fetchFavorites = async () => {
-      if (auth.currentUser) {
-        try {
-          setIsLoading(true);
-          const userDocRef = doc(db, "users", auth.currentUser.uid);
-          const userDoc = await getDoc(userDocRef);
+  const handleToggleFavorite = async (account) => {
+    if (!auth.currentUser) {
+      toast.error("Please log in to manage favorites.");
+      return;
+    }
 
-          if (userDoc.exists() && userDoc.data().favorites) {
-            const favoritesIds = userDoc.data().favorites;
-            const favoritesData = [];
+    setIsProcessing(true);
+    try {
+      const favoriteRef = doc(
+        db,
+        `users/${auth.currentUser.uid}/favorites`,
+        account.id
+      );
+      const isFavorited = favoriteAccounts.some((fav) => fav.id === account.id);
 
-            for (const id of favoritesIds) {
-              const accountDocRef = doc(db, "accounts", id);
-              const accountDoc = await getDoc(accountDocRef);
-
-              if (accountDoc.exists()) {
-                const imagesRef = collection(db, `accounts/${id}/images`);
-                const imagesSnap = await getDocs(imagesRef);
-                const images = {};
-
-                imagesSnap.forEach((imgDoc) => {
-                  images[imgDoc.id] = imgDoc.data().image || null;
-                });
-
-                favoritesData.push({
-                  id,
-                  ...accountDoc.data(),
-                  images,
-                });
-              }
-            }
-
-            setFavorites(favoritesData);
-          }
-        } catch (error) {
-          console.error("Error fetching favorites:", error);
-        } finally {
-          setIsLoading(false);
-        }
+      if (isFavorited) {
+        await deleteDoc(favoriteRef);
+        setFavoriteAccounts(
+          favoriteAccounts.filter((fav) => fav.id !== account.id)
+        );
+        toast.success(`${account.accountName} removed from favorites!`);
+      } else {
+        await setDoc(favoriteRef, {
+          accountId: account.id,
+          accountName: account.accountName,
+          addedAt: new Date(),
+        });
+        setFavoriteAccounts([...favoriteAccounts, account]);
+        toast.success(`${account.accountName} added to favorites!`);
       }
-    };
-
-    fetchFavorites();
-  }, []);
-
-  const removeFavorite = async (accountId) => {
-    if (auth.currentUser) {
-      try {
-        const userDocRef = doc(db, "users", auth.currentUser.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (userDoc.exists() && userDoc.data().favorites) {
-          const currentFavorites = userDoc.data().favorites;
-          const updatedFavorites = currentFavorites.filter(
-            (id) => id !== accountId
-          );
-
-          await updateDoc(userDocRef, {
-            favorites: updatedFavorites,
-          });
-
-          setFavorites(favorites.filter((fav) => fav.id !== accountId));
-          toast.success("Account removed from favorites!");
-        }
-      } catch (error) {
-        console.error("Error removing favorite:", error);
-        toast.error("Failed to remove favorite: " + error.message);
-      } finally {
-        setShowDeleteConfirm(null);
-      }
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      toast.error("Failed to update favorites: " + error.message);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-60">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-l-4 border-r-4 border-t-[#0576FF] border-b-[#0576FF] border-l-transparent border-r-transparent"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="p-5">
-      {showDeleteConfirm && (
+      {isProcessing && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-          <div className="bg-[#161B22] p-6 rounded-xl border border-gray-800 max-w-sm w-full mx-4">
-            <h3 className="text-white text-lg font-semibold mb-4">
-              Confirm Removal
-            </h3>
-            <p className="text-gray-300 mb-6">
-              Are you sure you want to remove the account "
-              {showDeleteConfirm.accountName}" from your favorites?
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(null)}
-                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition"
-                aria-label="Cancel removal"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => removeFavorite(showDeleteConfirm.id)}
-                className="px-4 py-2 bg-[#EB3223] text-white rounded-md hover:bg-[#B71C1C] transition"
-                aria-label="Confirm removal"
-              >
-                Remove
-              </button>
-            </div>
+          <div className="flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-l-4 border-r-4 border-t-[#0576FF] border-b-[#0576FF] border-l-transparent border-r-transparent"></div>
+            <p className="text-white text-lg font-semibold">Processing...</p>
           </div>
         </div>
       )}
-      <h2 className="text-white text-xl font-semibold mb-6">
-        Your Favorite Accounts
+      <h2 className="text-gray-100 text-2xl font-semibold tracking-wider mb-6">
+        Favorite Accounts
       </h2>
-
-      {favorites.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {favorites.map((favorite) => (
+      {favoriteAccounts.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+          {favoriteAccounts.map((acc) => (
             <div
-              key={favorite.id}
-              className="bg-[#161B22] p-4 rounded-xl border border-gray-800 relative"
+              key={acc.id}
+              className="bg-[#161B22]/80 p-4 rounded-xl shadow-lg border border-gray-800"
             >
               <div className="flex items-center mb-4">
-                <div className="flex-1">
-                  <h3 className="text-gray-100 text-lg font-medium truncate">
-                    {favorite.accountName}
+                <img
+                  src={acc.images?.accountImage || "/default-profile.png"}
+                  alt={acc.accountName}
+                  className="w-10 h-10 rounded-full border-2 border-[#0576FF]/60 mr-3 object-cover"
+                />
+                <div>
+                  <h3 className="text-gray-100 text-lg font-medium tracking-wider">
+                    {acc.accountName}
                   </h3>
-                  <p className="text-gray-400 text-sm">
-                    <span className="text-[#0576FF]">By:</span>{" "}
-                    {favorite.username || "Unknown"}
+                  <p className="text-gray-400 text-sm tracking-wider">
+                    <span className="text-[#0576FF] font-light uppercase">
+                      Uploaded by:
+                    </span>{" "}
+                    {acc.username || "Unknown"}
                   </p>
                 </div>
-                <button
-                  onClick={() => setShowDeleteConfirm(favorite)}
-                  className="flex items-center justify-center bg-[#EB3223]/80 text-white p-1.5 sm:p-2 rounded-full hover:bg-[#EB3223] active:bg-[#B71C1C] transition-all duration-300 w-8 h-8 sm:w-9 sm:h-9"
-                  aria-label={`Remove ${favorite.accountName} from favorites`}
-                >
-                  <FaStar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </button>
               </div>
-
-              {favorite.images?.accountImage ? (
-                <div className="mb-4">
-                  <img
-                    src={favorite.images.accountImage}
-                    alt={favorite.accountName}
-                    className="w-full h-40 object-cover rounded-lg"
-                  />
-                </div>
-              ) : (
-                <div className="w-full h-40 bg-gray-800 flex items-center justify-center rounded-lg mb-4">
-                  <FaImage className="text-gray-500 w-8 h-8" />
-                </div>
+              {acc.images?.accountImage && (
+                <img
+                  src={acc.images.accountImage}
+                  alt={acc.accountName}
+                  className="w-full h-44 object-cover rounded-lg mb-4"
+                  style={{ aspectRatio: "16/9" }}
+                />
               )}
-
-              <div className="space-y-2">
-                <p className="text-gray-200 text-sm">
-                  <span className="text-[#0576FF] font-light uppercase text-xs">
+              <div className="space-y-2 mb-4">
+                <p className="text-gray-200 text-sm tracking-wider">
+                  <span className="text-[#0576FF] font-light uppercase">
                     Credential:
                   </span>{" "}
-                  <span className="font-medium">
-                    {favorite.accountCredential}
-                  </span>
+                  <span className="font-medium">{acc.accountCredential}</span>
                 </p>
-                <p className="text-gray-200 text-sm">
-                  <span className="text-[#0576FF] font-light uppercase text-xs">
+                <p className="text-gray-200 text-sm tracking-wider">
+                  <span className="text-[#0576FF] font-light uppercase">
                     Worth:
                   </span>{" "}
                   <span className="font-medium">
-                    {favorite.accountWorth} ({favorite.currency || "USD"})
+                    {acc.accountWorth} ({acc.currency || userCurrency})
                   </span>
                 </p>
-                <p className="text-gray-200 text-xs line-clamp-2">
-                  <span className="text-[#0576FF] font-light uppercase text-xs">
+                <p className="text-gray-200 text-sm tracking-wider line-clamp-2">
+                  <span className="text-[#0576FF] font-light uppercase">
                     Description:
                   </span>{" "}
-                  {favorite.accountDescription}
+                  <span className="font-light">{acc.accountDescription}</span>
                 </p>
               </div>
+              <button
+                onClick={() => handleToggleFavorite(acc)}
+                className="flex items-center justify-center bg-[#EB3223]/80 text-white p-2 rounded-full hover:bg-[#EB3223] transition w-9 h-9"
+                aria-label={`Remove ${acc.accountName} from favorites`}
+              >
+                <FaStar className="w-5 h-5 text-yellow-400" />
+              </button>
             </div>
           ))}
         </div>
@@ -1514,189 +1458,82 @@ const Favorites = () => {
 
 const UserProfile = () => {
   const [activeTab, setActiveTab] = useState("Uploads");
-  const [username, setUsername] = useState("");
   const [profileImage, setProfileImage] = useState(null);
-  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [username, setUsername] = useState("");
   const [tempUsername, setTempUsername] = useState("");
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [uploadedAccounts, setUploadedAccounts] = useState([]);
+  const [favoriteAccounts, setFavoriteAccounts] = useState([]);
   const [userCurrency, setUserCurrency] = useState("USD");
   const [isUpdatingUsername, setIsUpdatingUsername] = useState(false);
 
-  const fetchAccounts = async () => {
-    if (auth.currentUser) {
-      try {
-        const q = query(
-          collection(db, "accounts"),
-          where("userId", "==", auth.currentUser.uid)
-        );
-        const querySnapshot = await getDocs(q);
-        const accounts = [];
-        for (const docSnap of querySnapshot.docs) {
-          const accountData = { id: docSnap.id, ...docSnap.data() };
-          try {
-            const imagesRef = collection(db, `accounts/${docSnap.id}/images`);
-            const imagesSnap = await getDocs(imagesRef);
-            const images = {};
-            imagesSnap.forEach((imgDoc) => {
-              images[imgDoc.id] = imgDoc.data().image || null;
-            });
-            accounts.push({ ...accountData, images });
-          } catch (error) {
-            console.error(
-              `Error fetching images for account ${docSnap.id}:`,
-              error
-            );
-            accounts.push({ ...accountData, images: {} });
-          }
-        }
-        setUploadedAccounts(accounts);
-      } catch (err) {
-        console.error("Error fetching accounts:", err);
-        setUploadedAccounts([]);
-      }
+  const compressImage = async (file) => {
+    const options = {
+      maxSizeMB: 0.5,
+      maxWidthOrHeight: 1024,
+      useWebWorker: true,
+    };
+    try {
+      const compressedFile = await imageCompression(file, options);
+      const reader = new FileReader();
+      return new Promise((resolve) => {
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(compressedFile);
+      });
+    } catch (error) {
+      console.error("Error compressing image:", error);
+      throw error;
     }
   };
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (auth.currentUser) {
-        try {
-          const userDocRef = doc(db, "users", auth.currentUser.uid);
-          const userDocSnap = await getDoc(userDocRef);
-
-          if (userDocSnap.exists()) {
-            if (userDocSnap.data().username) {
-              setUsername(userDocSnap.data().username);
-              setTempUsername(userDocSnap.data().username);
-            } else {
-              setUsername(auth.currentUser.displayName || "User");
-              setTempUsername(auth.currentUser.displayName || "User");
-              await setDoc(
-                userDocRef,
-                { username: auth.currentUser.displayName || "User" },
-                { merge: true }
-              );
-            }
-
-            if (userDocSnap.data().profileImage) {
-              setProfileImage(userDocSnap.data().profileImage);
-            }
-
-            if (userDocSnap.data().currency) {
-              setUserCurrency(userDocSnap.data().currency);
-            } else {
-              const response = await fetch("https://ipapi.co/json/");
-              const data = await response.json();
-              if (data.currency) {
-                setUserCurrency(data.currency);
-                await setDoc(
-                  userDocRef,
-                  { currency: data.currency },
-                  { merge: true }
-                );
-              }
-            }
-          } else {
-            setUsername(auth.currentUser.displayName || "User");
-            setTempUsername(auth.currentUser.displayName || "User");
-            await setDoc(
-              userDocRef,
-              { username: auth.currentUser.displayName || "User" },
-              { merge: true }
-            );
-          }
-
-          fetchAccounts();
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-          setUsername(auth.currentUser.displayName || "User");
-          setTempUsername(auth.currentUser.displayName || "User");
-        }
-      }
-    };
-
-    fetchUserData();
-  }, []);
-
   const handleImageChange = async (event) => {
     const file = event.target.files[0];
-    if (file) {
+    if (file && auth.currentUser) {
       try {
-        const options = {
-          maxSizeMB: 0.5,
-          maxWidthOrHeight: 400,
-          useWebWorker: true,
-        };
-        const compressedFile = await imageCompression(file, options);
-        const reader = new FileReader();
-
-        return new Promise((resolve) => {
-          reader.onloadend = async () => {
-            const imageBase64 = reader.result;
-            setProfileImage(imageBase64);
-
-            if (auth.currentUser) {
-              try {
-                const userDocRef = doc(db, "users", auth.currentUser.uid);
-                await updateDoc(userDocRef, {
-                  profileImage: imageBase64,
-                });
-                toast.success("Profile image updated successfully!");
-              } catch (error) {
-                console.error("Error saving profile image:", error);
-                toast.error("Failed to save profile image. Please try again.");
-              }
-            }
-            resolve();
-          };
-
-          reader.readAsDataURL(compressedFile);
+        const compressedImage = await compressImage(file);
+        const userDocRef = doc(db, "users", auth.currentUser.uid);
+        await updateDoc(userDocRef, {
+          profileImage: compressedImage,
         });
+        setProfileImage(compressedImage);
+        toast.success("Profile image updated successfully!");
       } catch (error) {
-        console.error("Error processing image:", error);
-        toast.error("Failed to process image. Please try again.");
+        console.error("Error uploading image:", error);
+        toast.error("Failed to upload image: " + error.message);
       }
     }
   };
 
   const handleSaveUsername = async () => {
-    if (!tempUsername.trim()) {
+    if (!auth.currentUser || !tempUsername.trim()) {
       toast.error("Username cannot be empty.");
       return;
     }
 
     setIsUpdatingUsername(true);
     try {
-      if (auth.currentUser) {
-        const userDocRef = doc(db, "users", auth.currentUser.uid);
-        const newUsername = tempUsername.trim();
+      const userDocRef = doc(db, "users", auth.currentUser.uid);
+      await updateDoc(userDocRef, {
+        username: tempUsername.trim(),
+      });
 
-        await updateDoc(userDocRef, {
-          username: newUsername,
-        });
+      const accountsQuery = query(
+        collection(db, "accounts"),
+        where("userId", "==", auth.currentUser.uid)
+      );
+      const accountsSnapshot = await getDocs(accountsQuery);
+      const batch = writeBatch(db);
+      accountsSnapshot.forEach((doc) => {
+        batch.update(doc.ref, { username: tempUsername.trim() });
+      });
+      await batch.commit();
 
-        const q = query(
-          collection(db, "accounts"),
-          where("userId", "==", auth.currentUser.uid)
-        );
-        const querySnapshot = await getDocs(q);
-        const batch = writeBatch(db);
-
-        querySnapshot.forEach((docSnap) => {
-          const accountRef = doc(db, "accounts", docSnap.id);
-          batch.update(accountRef, { username: newUsername });
-        });
-
-        await batch.commit();
-
-        setUsername(newUsername);
-        setIsEditingUsername(false);
-        fetchAccounts();
-        toast.success("Username updated successfully!");
-      }
+      setUsername(tempUsername.trim());
+      setIsEditingUsername(false);
+      toast.success("Username updated successfully!");
     } catch (error) {
       console.error("Error saving username:", error);
-      toast.error("Failed to save username. Please try again.");
+      toast.error("Failed to save username: " + error.message);
     } finally {
       setIsUpdatingUsername(false);
     }
@@ -1707,38 +1544,102 @@ const UserProfile = () => {
     setIsEditingUsername(false);
   };
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case "Uploads":
-        return (
-          <Uploads
-            profileImage={profileImage}
-            uploadedAccounts={uploadedAccounts}
-            setUploadedAccounts={setUploadedAccounts}
-            fetchAccounts={fetchAccounts}
-            username={username}
-            userCurrency={userCurrency}
-          />
+  const fetchAccounts = async () => {
+    if (auth.currentUser) {
+      try {
+        const accountsQuery = query(
+          collection(db, "accounts"),
+          where("userId", "==", auth.currentUser.uid)
         );
-      case "Bio":
-        return <About />;
-      case "Socials":
-        return <Socials />;
-      case "Favorites":
-        return <Favorites />;
-      default:
-        return (
-          <Uploads
-            profileImage={profileImage}
-            uploadedAccounts={uploadedAccounts}
-            setUploadedAccounts={setUploadedAccounts}
-            fetchAccounts={fetchAccounts}
-            username={username}
-            userCurrency={userCurrency}
-          />
+        const accountsSnapshot = await getDocs(accountsQuery);
+        const accountsData = await Promise.all(
+          accountsSnapshot.docs.map(async (accountDoc) => {
+            const imagesRef = collection(db, `accounts/${accountDoc.id}/images`);
+            const imagesSnapshot = await getDocs(imagesRef);
+            const images = {};
+            imagesSnapshot.forEach((imgDoc) => {
+              images[imgDoc.id] = imgDoc.data().image;
+            });
+            return {
+              id: accountDoc.id,
+              ...accountDoc.data(),
+              images,
+            };
+          })
         );
+        setUploadedAccounts(accountsData);
+      } catch (error) {
+        console.error("Error fetching accounts:", error);
+        toast.error("Failed to fetch accounts: " + error.message);
+      }
     }
   };
+
+  const fetchFavorites = async () => {
+    if (auth.currentUser) {
+      try {
+        const favoritesRef = collection(
+          db,
+          `users/${auth.currentUser.uid}/favorites`
+        );
+        const favoritesSnapshot = await getDocs(favoritesRef);
+        const favoriteIds = favoritesSnapshot.docs.map((doc) =>
+          doc.data().accountId
+        );
+
+        const favoriteAccountsData = await Promise.all(
+          favoriteIds.map(async (accountId) => {
+            const accountDocRef = doc(db, "accounts", accountId);
+            const accountDoc = await getDoc(accountDocRef);
+            if (accountDoc.exists()) {
+              const imagesRef = collection(db, `accounts/${accountId}/images`);
+              const imagesSnapshot = await getDocs(imagesRef);
+              const images = {};
+              imagesSnapshot.forEach((imgDoc) => {
+                images[imgDoc.id] = imgDoc.data().image;
+              });
+              return {
+                id: accountDoc.id,
+                ...accountDoc.data(),
+                images,
+              };
+            }
+            return null;
+          })
+        );
+
+        setFavoriteAccounts(favoriteAccountsData.filter((acc) => acc !== null));
+      } catch (error) {
+        console.error("Error fetching favorites:", error);
+        toast.error("Failed to fetch favorites: " + error.message);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (auth.currentUser) {
+        try {
+          const userDocRef = doc(db, "users", auth.currentUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUsername(userData.username || "");
+            setTempUsername(userData.username || "");
+            setProfileImage(userData.profileImage || null);
+            setUserCurrency(userData.currency || "USD");
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          toast.error("Failed to fetch user data: " + error.message);
+        }
+      }
+    };
+
+    fetchUserData();
+    fetchAccounts();
+    fetchFavorites();
+  }, []);
 
   return (
     <Layout
@@ -1755,7 +1656,25 @@ const UserProfile = () => {
       handleDiscardUsername={handleDiscardUsername}
       isUpdatingUsername={isUpdatingUsername}
     >
-      {renderTabContent()}
+      {activeTab === "Uploads" && (
+        <Uploads
+          profileImage={profileImage}
+          uploadedAccounts={uploadedAccounts}
+          setUploadedAccounts={setUploadedAccounts}
+          fetchAccounts={fetchAccounts}
+          username={username}
+          userCurrency={userCurrency}
+        />
+      )}
+      {activeTab === "Bio" && <About />}
+      {activeTab === "Socials" && <Socials />}
+      {activeTab === "Favorites" && (
+        <Favorites
+          favoriteAccounts={favoriteAccounts}
+          setFavoriteAccounts={setFavoriteAccounts}
+          userCurrency={userCurrency}
+        />
+      )}
     </Layout>
   );
 };
