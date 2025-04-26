@@ -15,6 +15,9 @@ import {
   updateDoc,
   writeBatch,
   increment,
+  collection,
+  getDocs,
+  setDoc,
 } from "firebase/firestore";
 import { auth, db } from "../database/firebaseConfig";
 
@@ -32,7 +35,6 @@ const AccountDetails = () => {
   const [cart, setCart] = useState([]);
   const [isPurchased, setIsPurchased] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
-  const hasViewed = useRef(false); // Track if this account has been viewed in session
 
   // Helper function to check if purchase is within an hour of upload
   const isWithinOneHour = (createdAt) => {
@@ -58,6 +60,47 @@ const AccountDetails = () => {
       fetchAccountByIdWithImages
     );
   }, []);
+
+  const trackAccountView = async (accountId, userId, uploaderId) => {
+    if (!currentUser || currentUser.uid === uploaderId) return;
+
+    try {
+      const viewerId = currentUser.uid;
+      const accountDocRef = doc(db, "accounts", accountId);
+      const viewsRef = collection(db, `accounts/${accountId}/views`);
+      const viewerDocRef = doc(viewsRef, viewerId);
+
+      // Check if the viewer has already viewed
+      const viewerDoc = await getDoc(viewerDocRef);
+      if (viewerDoc.exists()) {
+        return; // Viewer already recorded, no further action needed
+      }
+
+      // Record the new viewer
+      await setDoc(viewerDocRef, { viewedAt: new Date() });
+
+      // Count unique viewers
+      const viewsSnapshot = await getDocs(viewsRef);
+      const uniqueViewers = viewsSnapshot.size;
+
+      // Update views count
+      await updateDoc(accountDocRef, {
+        views: uniqueViewers,
+      });
+
+      // Check "Peacock" achievement (ID 2) for the uploader
+      if (uniqueViewers >= 50) {
+        const uploaderDocRef = doc(db, "users", uploaderId);
+        await updateDoc(uploaderDocRef, {
+          [`achievementStatuses.2.progress`]: 100,
+          [`achievementStatuses.2.earned`]: true,
+        });
+      }
+    } catch (error) {
+      console.error("Error tracking account view:", error);
+      toast.error("Failed to track account view: " + error.message);
+    }
+  };
 
   useEffect(() => {
     const fetchAccountData = async () => {
@@ -94,37 +137,13 @@ const AccountDetails = () => {
           console.log("Mapped Firestore account:", foundAccount);
           setAccount(foundAccount);
 
-          // Increment views (only once per session)
-          if (!hasViewed.current) {
-            try {
-              const accountDocRef = doc(db, "accounts", firestoreAccount.id);
-              await updateDoc(accountDocRef, {
-                views: increment(1),
-              });
-              hasViewed.current = true; // Mark as viewed
-
-              // Check "Peacock" achievement (ID 2) for the uploader
-              const updatedAccountDoc = await getDoc(accountDocRef);
-              if (
-                updatedAccountDoc.exists() &&
-                updatedAccountDoc.data().views >= 50
-              ) {
-                const uploaderDocRef = doc(
-                  db,
-                  "users",
-                  firestoreAccount.userId
-                );
-                await updateDoc(uploaderDocRef, {
-                  [`achievementStatuses.2.progress`]: 100,
-                  [`achievementStatuses.2.earned`]: true,
-                });
-              }
-            } catch (error) {
-              console.error(
-                `Error incrementing views for account ${firestoreAccount.id}:`,
-                error
-              );
-            }
+          // Track account view
+          if (currentUser) {
+            await trackAccountView(
+              firestoreAccount.id,
+              currentUser.uid,
+              firestoreAccount.userId
+            );
           }
         } else {
           toast.error("Account not found.");
@@ -140,7 +159,7 @@ const AccountDetails = () => {
     };
 
     fetchAccountData();
-  }, [slug, navigate]);
+  }, [slug, navigate, currentUser]);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoadingImages(false), 2000);

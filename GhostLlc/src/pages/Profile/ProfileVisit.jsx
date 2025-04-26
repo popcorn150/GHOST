@@ -31,10 +31,11 @@ import {
   FaInstagram,
   FaTiktok,
   FaTwitter,
+  FaFacebook,
   FaCheckCircle,
 } from "react-icons/fa";
 
-// Updated tabs array to match UserProfile icons
+// Tabs array matching UserProfile
 const tabs = [
   { name: "Uploads", icon: UploadCloud },
   { name: "About", icon: User },
@@ -57,7 +58,6 @@ const Uploads = ({ profileImage, userId }) => {
         return;
       }
 
-      console.log("Fetching accounts for userId:", userId);
       try {
         setIsLoading(true);
         setError(null);
@@ -66,29 +66,19 @@ const Uploads = ({ profileImage, userId }) => {
           where("userId", "==", userId)
         );
         const querySnapshot = await getDocs(q);
-        console.log("Number of accounts found:", querySnapshot.size);
 
-        const accounts = [];
-        for (const docSnap of querySnapshot.docs) {
-          const accountData = { id: docSnap.id, ...docSnap.data() };
-          console.log("Processing account:", accountData.id);
-          try {
+        const accounts = await Promise.all(
+          querySnapshot.docs.map(async (docSnap) => {
+            const accountData = { id: docSnap.id, ...docSnap.data() };
             const imagesRef = collection(db, `accounts/${docSnap.id}/images`);
             const imagesSnap = await getDocs(imagesRef);
             const images = {};
             imagesSnap.forEach((imgDoc) => {
               images[imgDoc.id] = imgDoc.data().image || null;
             });
-            accounts.push({ ...accountData, images });
-          } catch (error) {
-            console.error(
-              `Error fetching images for account ${docSnap.id}:`,
-              error
-            );
-            accounts.push({ ...accountData, images: {} });
-          }
-        }
-        console.log("Fetched accounts:", accounts);
+            return { ...accountData, images };
+          })
+        );
         setUploadedAccounts(accounts);
       } catch (err) {
         console.error("Error fetching accounts:", err);
@@ -142,11 +132,11 @@ const Uploads = ({ profileImage, userId }) => {
 
   return (
     <div className="mt-16 mb-20 p-4 xs:p-5 sm:p-6 md:p-7 lg:p-8 xl:p-10 bg-gradient-to-br from-[#0E1115] via-[#1A1F29] to-[#252A36] rounded-2xl border border-gray-800">
-      <h2 className="text-gray-100 text-lg xs:text-xl sm:text-2xl md:text-2xl lg:text-3xl font-semibold tracking-wider mb-10 sm:mb-12 lg:mb-14">
+      <h2 className="text-gray-100 text-lg xs:text-xl sm:text-2xl md:text-2xl lg:text-3xl font-semibold tracking-wider mb-7">
         Accounts Uploaded
       </h2>
       {uploadedAccounts.length > 0 ? (
-        <div className="grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 sm:gap-8 lg:gap-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 xs:gap-5 sm:gap-6 lg:gap-8">
           {uploadedAccounts.map((acc) => (
             <div
               key={acc.id}
@@ -193,15 +183,15 @@ const Uploads = ({ profileImage, userId }) => {
 
               <div className="space-y-2 mb-4">
                 <p className="text-gray-200 text-xs sm:text-sm tracking-wider leading-relaxed">
-                  <span className="text-[#0576FF] font-light uppercase text-xs">
+                  <span className="text-[#0576FF] font-bold text-xs">
                     Credential:
                   </span>{" "}
-                  <span className="font-medium blur-sm">
+                  <span className="font-normal text-xs blur-sm">
                     {acc.accountCredential || "N/A"}
                   </span>
                 </p>
                 <p className="text-gray-200 text-xs sm:text-sm tracking-wider leading-relaxed">
-                  <span className="text-[#0576FF] font-light uppercase text-xs">
+                  <span className="text-[#0576FF] font-bold text-xs">
                     Worth:
                   </span>{" "}
                   <span className="font-medium">
@@ -213,10 +203,10 @@ const Uploads = ({ profileImage, userId }) => {
                   </span>
                 </p>
                 <p className="text-gray-200 text-xs sm:text-sm tracking-wider leading-relaxed line-clamp-2">
-                  <span className="text-[#0576FF] font-light uppercase text-xs">
+                  <span className="text-[#0576FF] font-bold text-xs">
                     Description:
                   </span>{" "}
-                  <span className="font-light">
+                  <span className="font-normal text-xs">
                     {acc.accountDescription || "No description provided."}
                   </span>
                 </p>
@@ -227,7 +217,7 @@ const Uploads = ({ profileImage, userId }) => {
                 key.startsWith("screenshot")
               ).length > 0 ? (
                 <div className="mb-2">
-                  <p className="text-gray-200 text-xs sm:text-sm font-light uppercase tracking-wider mb-2">
+                  <p className="text-gray-200 text-xs sm:text-sm font-bold tracking-wider mb-2">
                     Screenshots:
                   </p>
                   <div className="grid grid-cols-2 gap-2">
@@ -277,7 +267,6 @@ const Uploads = ({ profileImage, userId }) => {
   );
 };
 
-// Updated Achievements component
 const Achievements = ({ userId }) => {
   const [achievements, setAchievements] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -302,7 +291,7 @@ const Achievements = ({ userId }) => {
           const userData = userDocSnap.data();
           const achievementStatuses = userData.achievementStatuses || {};
 
-          // Define achievements (aligned with UserProfile and including Peacock)
+          // Define achievements consistent with UserProfile
           const achievementList = [
             {
               id: 3,
@@ -379,7 +368,9 @@ const Achievements = ({ userId }) => {
           {achievements.map((achievement) => (
             <div
               key={achievement.id}
-              className="bg-[#161B22]/80 p-4 rounded-xl shadow-lg border border-gray-800"
+              className={`bg-[#161B22]/80 p-4 rounded-xl shadow-lg border ${
+                achievement.earned ? "border-green-500" : "border-gray-800"
+              }`}
             >
               <div className="flex items-center mb-4">
                 <Trophy
@@ -433,11 +424,46 @@ const ProfileVisit = () => {
     username: "UnnamedUser",
     profileImage: null,
     bio: "",
-    socials: { youtube: "", instagram: "", tiktok: "", twitter: "" },
+    socials: {
+      youtube: "",
+      instagram: "",
+      tiktok: "",
+      twitter: "",
+      facebook: "",
+    },
   });
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserProfileImage, setCurrentUserProfileImage] = useState(null);
   const navigate = useNavigate();
+
+  const checkProfileCompletion = async (userData, userDocRef) => {
+    try {
+      const hasUsername =
+        userData.username && userData.username !== "UnnamedUser";
+      const hasProfileImage = !!userData.profileImage;
+      const hasBio = !!userData.bio && userData.bio.trim() !== "";
+      const hasSocials = Object.values(userData.socials || {}).some(
+        (val) => val && val.trim() !== ""
+      );
+      const completedFields = [
+        hasUsername,
+        hasProfileImage,
+        hasBio,
+        hasSocials,
+      ].filter(Boolean).length;
+      const progress = (completedFields / 4) * 100;
+      const isProfileComplete = completedFields === 4;
+
+      // Update "Alfred" achievement (ID 5) in Firestore
+      await updateDoc(userDocRef, {
+        [`achievementStatuses.5.progress`]: progress,
+        [`achievementStatuses.5.earned`]: isProfileComplete,
+      });
+    } catch (error) {
+      console.error("Error checking profile completion:", error);
+      toast.error("Failed to update profile completion: " + error.message);
+    }
+  };
 
   useEffect(() => {
     const fetchCurrentUserProfileImage = async () => {
@@ -466,26 +492,33 @@ const ProfileVisit = () => {
       const visitorsRef = collection(db, `users/${userId}/visitors`);
       const visitorDocRef = doc(visitorsRef, visitorId);
 
+      // Check if the visitor has already visited
       const visitorDoc = await getDoc(visitorDocRef);
-      if (!visitorDoc.exists()) {
-        await setDoc(visitorDocRef, { visitedAt: new Date() });
-        const visitorsSnapshot = await getDocs(visitorsRef);
-        const uniqueVisitors = visitorsSnapshot.size;
-        const progress = Math.min((uniqueVisitors / 10) * 100, 100);
-        await updateDoc(visitedUserDocRef, {
-          [`achievementStatuses.6.progress`]: progress,
-          [`achievementStatuses.6.earned`]: progress >= 100,
-        });
+      if (visitorDoc.exists()) {
+        return; // Visitor already recorded, no further action needed
       }
+
+      // Record the new visitor
+      await setDoc(visitorDocRef, { visitedAt: new Date() }, { merge: true });
+
+      // Count unique visitors
+      const visitorsSnapshot = await getDocs(visitorsRef);
+      const uniqueVisitors = visitorsSnapshot.size;
+      const progress = Math.min((uniqueVisitors / 10) * 100, 100);
+
+      // Update Peacock achievement
+      await updateDoc(visitedUserDocRef, {
+        [`achievementStatuses.6.progress`]: progress,
+        [`achievementStatuses.6.earned`]: progress >= 100,
+      });
     } catch (error) {
       console.error("Error tracking profile visit:", error);
-      toast.error("Failed to track profile visit.");
+      toast.error("Failed to track profile visit: " + error.message);
     }
   };
 
   useEffect(() => {
     const fetchProfileData = async () => {
-      console.log("Fetching profile for userId:", userId);
       try {
         if (!userId) {
           console.error("No userId provided to ProfileVisit");
@@ -500,8 +533,7 @@ const ProfileVisit = () => {
 
         if (userDocSnap.exists()) {
           const data = userDocSnap.data();
-          console.log("Profile data fetched:", data);
-          setProfileData({
+          const updatedProfileData = {
             username: data.username || "UnnamedUser",
             profileImage: data.profileImage || null,
             bio: data.bio || "No bio available.",
@@ -510,22 +542,21 @@ const ProfileVisit = () => {
               instagram: "",
               tiktok: "",
               twitter: "",
+              facebook: "",
             },
-          });
+          };
+          setProfileData(updatedProfileData);
+
+          // Check profile completion for Alfred achievement
+          await checkProfileCompletion(updatedProfileData, userDocRef);
 
           if (auth.currentUser) {
             const currentUserDocRef = doc(db, "users", auth.currentUser.uid);
             const currentUserDocSnap = await getDoc(currentUserDocRef);
-            if (
-              currentUserDocSnap.exists() &&
-              currentUserDocSnap.data().favorites
-            ) {
-              setInFavorites(
-                currentUserDocSnap.data().favorites.includes(userId)
-              );
+            if (currentUserDocSnap.exists()) {
+              const favorites = currentUserDocSnap.data().favorites || [];
+              setInFavorites(favorites.includes(userId));
             }
-          } else {
-            console.log("No authenticated user, skipping favorites check");
           }
 
           await trackProfileVisit();
@@ -545,26 +576,28 @@ const ProfileVisit = () => {
     fetchProfileData();
   }, [userId, navigate]);
 
-  const handleNotificationToggle = () => {
+  const handleNotificationToggle = async () => {
+    if (!auth.currentUser) {
+      toast.error("Please log in to manage notifications.");
+      return;
+    }
+
     const turningOn = !notificationOn;
 
-    toast.promise(
-      new Promise((resolve) => {
-        setTimeout(() => {
-          setNotificationOn(turningOn);
-          resolve();
-        }, 1500);
-      }),
-      {
-        loading: turningOn
-          ? "Turning on notifications..."
-          : "Turning off notifications...",
-        success: turningOn
-          ? "Notifications turned on!"
-          : "Notifications turned off!",
-        error: "Something went wrong. Failed to toggle notifications.",
-      }
-    );
+    try {
+      const userDocRef = doc(db, "users", auth.currentUser.uid);
+      const notifications = turningOn
+        ? arrayUnion(userId)
+        : arrayRemove(userId);
+      await updateDoc(userDocRef, { notifications });
+      setNotificationOn(turningOn);
+      toast.success(
+        turningOn ? "Notifications turned on!" : "Notifications turned off!"
+      );
+    } catch (error) {
+      console.error("Error toggling notifications:", error);
+      toast.error("Failed to toggle notifications.");
+    }
   };
 
   const handleFavorites = async () => {
@@ -575,36 +608,25 @@ const ProfileVisit = () => {
 
     const addingToFavorites = !inFavorites;
 
-    toast.promise(
-      new Promise(async (resolve, reject) => {
-        try {
-          const userDocRef = doc(db, "users", auth.currentUser.uid);
-          if (addingToFavorites) {
-            await updateDoc(userDocRef, {
-              favorites: arrayUnion(userId),
-            });
-          } else {
-            await updateDoc(userDocRef, {
-              favorites: arrayRemove(userId),
-            });
-          }
-          setInFavorites(addingToFavorites);
-          resolve();
-        } catch (error) {
-          console.error("Error updating favorites:", error);
-          reject(error);
-        }
-      }),
-      {
-        loading: addingToFavorites
-          ? "Adding to favorites..."
-          : "Removing from favorites...",
-        success: addingToFavorites
-          ? "Added to favorites!"
-          : "Removed from favorites!",
-        error: "Something went wrong. Failed to update favorites.",
+    try {
+      const userDocRef = doc(db, "users", auth.currentUser.uid);
+      if (addingToFavorites) {
+        await updateDoc(userDocRef, {
+          favorites: arrayUnion(userId),
+        });
+      } else {
+        await updateDoc(userDocRef, {
+          favorites: arrayRemove(userId),
+        });
       }
-    );
+      setInFavorites(addingToFavorites);
+      toast.success(
+        addingToFavorites ? "Added to favorites!" : "Removed from favorites!"
+      );
+    } catch (error) {
+      console.error("Error updating favorites:", error);
+      toast.error("Failed to update favorites.");
+    }
   };
 
   const renderTabContent = () => {
@@ -705,6 +727,16 @@ const ProfileVisit = () => {
               <FaTwitter size={20} />
             </a>
           )}
+          {profileData.socials.facebook && (
+            <a
+              href={`https://facebook.com/${profileData.socials.facebook}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-blue-600 transition-colors"
+            >
+              <FaFacebook size={20} />
+            </a>
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mt-6">
@@ -789,4 +821,3 @@ const ProfileVisit = () => {
 };
 
 export default ProfileVisit;
- 

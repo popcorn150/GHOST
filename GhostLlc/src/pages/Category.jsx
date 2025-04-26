@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // Added useNavigate
 import NavBar from "../components/NavBar";
 import CategoryFilter from "./CategoryFilter";
 import { AdminIcon } from "../utils";
@@ -7,16 +7,18 @@ import availableAccounts from "../constants";
 import { fetchAccountsWithImages } from "../utils/firebaseUtils";
 import { useAuth } from "../components/AuthContext";
 import { db } from "../database/firebaseConfig";
-import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection } from "firebase/firestore"; // Added setDoc, collection
+import { getFunctions, httpsCallable } from "firebase/functions"; // Added for Cloud Functions
 
 const Category = () => {
   const { currentUser: user } = useAuth();
+  const navigate = useNavigate(); // Added for navigation
   const [searchTerm, setSearchTerm] = useState("");
   const [profileImage, setProfileImage] = useState(null);
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const carouselRef = useRef(null);
-  const viewedAccounts = useRef(new Set()); // Track viewed accounts in session
+  const isMounted = useRef(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -33,9 +35,11 @@ const Category = () => {
       }
     };
     fetchUserData();
-  }, [user]);
+  }, [user?.uid]);
 
   useEffect(() => {
+    isMounted.current = true;
+
     const fetchUploadedAccounts = async () => {
       setLoading(true);
       if (!user) {
@@ -45,14 +49,17 @@ const Category = () => {
       }
 
       try {
+        console.log("Fetching accounts...");
         const fetchedAccounts = await fetchAccountsWithImages();
+        console.log("Fetched accounts:", fetchedAccounts);
+
         if (fetchedAccounts && fetchedAccounts.length > 0) {
           const mappedAccounts = fetchedAccounts.map((account, index) => ({
             id: account.id,
             slug: account.id,
             title: account.accountName || "Untitled",
             accountName: account.accountName || "Untitled",
-            username: account.username || "Unknown",
+            username: account.username || "Ghost",
             img: account.accountImage || AdminIcon,
             accountImage: account.accountImage || AdminIcon,
             userProfilePic: account.userProfilePic || AdminIcon,
@@ -68,57 +75,63 @@ const Category = () => {
             })),
             isFromFirestore: true,
             category: account.category || "Other",
-            userId: account.userId, // Include userId for achievement tracking
+            userId: account.userId,
           }));
 
-          // Increment views for each account (only once per session)
-          for (const account of mappedAccounts) {
-            if (
-              account.isFromFirestore &&
-              !viewedAccounts.current.has(account.id)
-            ) {
-              try {
-                const accountDocRef = doc(db, "accounts", account.id);
-                await updateDoc(accountDocRef, {
-                  views: increment(1),
-                });
-                viewedAccounts.current.add(account.id); // Mark as viewed
-
-                // Check for "Peacock" achievement (ID 2)
-                const updatedAccountDoc = await getDoc(accountDocRef);
-                if (
-                  updatedAccountDoc.exists() &&
-                  updatedAccountDoc.data().views >= 50
-                ) {
-                  const uploaderDocRef = doc(db, "users", account.userId);
-                  await updateDoc(uploaderDocRef, {
-                    [`achievementStatuses.2.progress`]: 100,
-                    [`achievementStatuses.2.earned`]: true,
-                  });
-                }
-              } catch (error) {
-                console.error(
-                  `Error incrementing views for account ${account.id}:`,
-                  error
-                );
-              }
-            }
+          if (isMounted.current) {
+            setAccounts(mappedAccounts);
           }
-
-          setAccounts(mappedAccounts);
         } else {
-          setAccounts([]);
+          if (isMounted.current) {
+            setAccounts([]);
+          }
         }
       } catch (error) {
         console.error("Error fetching accounts:", error);
-        setAccounts([]);
+        if (isMounted.current) {
+          setAccounts([]);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted.current) {
+          setLoading(false);
+        }
       }
     };
 
     fetchUploadedAccounts();
-  }, [user]);
+
+    return () => {
+      isMounted.current = false;
+    };
+  }, [user?.uid]);
+
+  // Function to track account views
+  const trackAccountView = async (accountId, uploaderId) => {
+    if (!user || user.uid === uploaderId) return;
+
+    try {
+      const viewerId = user.uid;
+      const viewerDocRef = doc(db, `accounts/${accountId}/views`, viewerId);
+
+      // Check if the viewer has already viewed
+      const viewerDoc = await getDoc(viewerDocRef);
+      if (viewerDoc.exists()) {
+        return; // Viewer already recorded
+      }
+
+      // Record the new viewer
+      await setDoc(viewerDocRef, { viewedAt: new Date() });
+
+      // Call Cloud Function to update views and achievements
+      const functions = getFunctions();
+      const trackView = httpsCallable(functions, "trackAccountView");
+      const result = await trackView({ accountId, viewerId, uploaderId });
+      console.log("View tracked:", result.data);
+    } catch (error) {
+      console.warn("Error tracking account view:", error);
+      // Suppress user-facing error for non-critical operation
+    }
+  };
 
   // Add isFromFirestore:false to each available account
   const modifiedAvailableAccounts = availableAccounts.map((account) => ({
@@ -156,7 +169,7 @@ const Category = () => {
             border-radius: 50%;
             width: 50px;
             height: 50px;
-            animation: spin 1s linearinfinite;
+            animation: spin 1s linear infinite;
             margin: 0 auto;
           }
           @keyframes spin {
@@ -196,11 +209,11 @@ const Category = () => {
                     key={`${account.id || account.slug}-${index}`}
                     className="relative w-64 flex-shrink-0 bg-[#1C1F26] rounded-xl shadow-xl hover:scale-105 hover:shadow-2xl transition-all duration-300 ease-in-out cursor-pointer"
                   >
-                    <div className="overflow-hidden rounded-t-xl">
+                    <div className="overflow-hidden rounded-t-xl p-2">
                       <img
                         src={imageSrc}
                         alt={account.title || account.accountName || "Untitled"}
-                        className="w-full h-40 object-cover transform hover:scale-110 transition duration-500 ease-in-out"
+                        className="w-full h-40 object-cover rounded-md transform hover:scale-110 transition duration-500 ease-in-out"
                       />
                     </div>
                     <div className="p-4">
@@ -210,7 +223,7 @@ const Category = () => {
                       <p className="text-sm text-gray-400 mb-2">
                         {account.username
                           ? `By ${account.username}`
-                          : "By Unknown"}
+                          : "By Ghost"}
                       </p>
                       <div className="flex items-center justify-between text-sm text-gray-400 mb-3">
                         <span>{account.views || 0} Views</span>
@@ -223,6 +236,9 @@ const Category = () => {
                       {account.isFromFirestore ? (
                         <Link
                           to={`/account/${account.slug || account.id}`}
+                          onClick={() =>
+                            trackAccountView(account.id, account.userId)
+                          }
                           className="inline-block w-full text-center bg-gradient-to-r from-[#4426B9] to-[#6C5DD3] text-white py-2 px-4 rounded-lg font-semibold hover:opacity-90 transition"
                         >
                           View Details
