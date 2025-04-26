@@ -106,39 +106,61 @@ const Uploads = () => {
   const [screenshots, setScreenshots] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedAccounts, setUploadedAccounts] = useState([]);
-  const [userCurrency, setUserCurrency] = useState("USD"); // default value
   const maxScreenshots = 5;
+  const [userCurrency, setUserCurrency] = useState("USD");
+  const [loadingCurrency, setLoadingCurrency] = useState(true);
 
-  // Force fetching user currency from Firestore or ipapi.co
   useEffect(() => {
-    const fetchUserCurrency = async () => {
-      if (auth.currentUser) {
-        try {
-          const userDocRef = doc(db, "users", auth.currentUser.uid);
-          const userDocSnap = await getDoc(userDocRef);
-          if (userDocSnap.exists() && userDocSnap.data().currency) {
-            setUserCurrency(userDocSnap.data().currency);
+    // Detect user's location and currency
+    const detectUserCurrency = async () => {
+      try {
+        // Check if we have cached location data
+        const cachedLocation = localStorage.getItem('userLocation');
+        let currencyCode = 'USD'; // Default
+        
+        if (cachedLocation) {
+          const parsedCache = JSON.parse(cachedLocation);
+          const cacheAge = Date.now() - parsedCache.timestamp;
+          
+          // Use cache if it's less than 7 days old
+          if (cacheAge < 7 * 24 * 60 * 60 * 1000) {
+            currencyCode = parsedCache.data.currency || 'USD';
           } else {
-            // Fallback: call ipapi.co to get currency
-            const response = await fetch("https://ipapi.co/json/");
-            const data = await response.json();
-            if (data.currency) {
-              setUserCurrency(data.currency);
-              // Update Firestore for future reference
-              await setDoc(
-                userDocRef,
-                { currency: data.currency },
-                { merge: true }
-              );
-            }
+            // Cache expired, fetch new data
+            const locationData = await fetchLocationData();
+            currencyCode = locationData.currency || 'USD';
           }
-        } catch (error) {
-          console.error("Error fetching user currency:", error);
+        } else {
+          // No cache, fetch new data
+          const locationData = await fetchLocationData();
+          currencyCode = locationData.currency || 'USD';
         }
+        
+        setUserCurrency(currencyCode);
+        setLoadingCurrency(false);
+      } catch (err) {
+        console.error('Error detecting currency:', err);
+        setLoadingCurrency(false);
       }
     };
-    fetchUserCurrency();
+
+    // Function to fetch location data
+    const fetchLocationData = async () => {
+      const response = await fetch('https://ipapi.co/json/');
+      const data = await response.json();
+      
+      // Cache the location data
+      localStorage.setItem('userLocation', JSON.stringify({
+        data,
+        timestamp: Date.now()
+      }));
+      
+      return data;
+    };
+
+    detectUserCurrency();
   }, []);
+
 
   // Handle account image upload (simulate image upload)
   const handleAccountImageUpload = (event) => {
@@ -204,6 +226,7 @@ const Uploads = () => {
         accountDescription,
         accountImage,
         screenshots,
+        currency: userCurrency,
         createdAt: new Date(),
       });
       // Clear form fields after successful upload
@@ -297,14 +320,25 @@ const Uploads = () => {
                 className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
                 required
               />
-              <input
-                type="number"
-                placeholder={`Account's Worth (in ${userCurrency})`}
-                value={accountWorth}
-                onChange={(e) => setAccountWorth(e.target.value)}
-                className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
-                required
-              />
+              {loadingCurrency ? (
+                <div className="w-full p-2 rounded bg-[#0E1115] text-gray-400 border border-gray-600">
+                  Detecting your currency...
+                </div>
+              ) : (
+                <div>
+                  <input
+                    type="number"
+                    placeholder={`Account's Worth (in ${userCurrency})`}
+                    value={accountWorth}
+                    onChange={(e) => setAccountWorth(e.target.value)}
+                    className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
+                    required
+                  />
+                  <div className="text-xs text-gray-400 mt-1">
+                    Currency: {userCurrency}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="w-full">
@@ -389,9 +423,9 @@ const Uploads = () => {
                 {acc.accountCredential}
               </p>
               <p className="text-gray-400">
-                <span className="font-semibold">Worth:</span> {acc.accountWorth}{" "}
-                ({userCurrency})
-              </p>
+              <span className="font-semibold">Worth:</span> {acc.accountWorth}{" "}
+              {acc.currency || userCurrency}
+            </p>
               <p className="text-gray-400">
                 <span className="font-semibold">Description:</span>{" "}
                 {acc.accountDescription}
