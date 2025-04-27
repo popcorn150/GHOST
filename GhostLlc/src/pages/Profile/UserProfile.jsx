@@ -21,7 +21,7 @@ import { BsPencilSquare } from "react-icons/bs";
 import {
   FaSave,
   FaTrashAlt,
-  FaTrophy, // Changed from FaStar to FaTrophy
+  FaTrophy,
   FaInstagram,
   FaTiktok,
   FaImage,
@@ -65,7 +65,7 @@ const tabs = [
   { name: "Uploads", icon: UploadCloud },
   { name: "Bio", icon: User },
   { name: "Socials", icon: FaShareAlt },
-  { name: "Achievements", icon: FaTrophy }, // Changed from FaStar to FaTrophy
+  { name: "Achievements", icon: FaTrophy },
 ];
 
 const initialAchievements = [
@@ -134,6 +134,10 @@ const initialAchievements = [
     progress: 0,
   },
 ];
+
+const formatNumberWithCommas = (number) => {
+  return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+};
 
 const Achievements = ({ userId }) => {
   const [achievements, setAchievements] = useState(initialAchievements);
@@ -214,7 +218,8 @@ const Achievements = ({ userId }) => {
         Achievements
       </h2>
       <h3 className="text-start font-medium text-lg text-white mb-4">
-        Earned {achievements.filter((a) => a.earned).length} out of {achievements.length}
+        Earned {achievements.filter((a) => a.earned).length} out of{" "}
+        {achievements.length}
       </h3>
       {achievements.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -233,10 +238,15 @@ const Achievements = ({ userId }) => {
                     src={achievement.img}
                     alt={achievement.title}
                     className="h-16 mb-4"
-                    onError={() => console.error(`Failed to load image for ${achievement.title}`)}
+                    onError={() =>
+                      console.error(`Failed to load image for ${achievement.title}`)
+                    }
                   />
                 ) : (
-                  <FaTrophy className="h-16 mb-4 text-gray-400" aria-label={achievement.title} /> // Changed from FaStar to FaTrophy
+                  <FaTrophy
+                    className="h-16 mb-4 text-gray-400"
+                    aria-label={achievement.title}
+                  />
                 )}
                 <h3 className="text-lg font-semibold mb-1">
                   {achievement.title}
@@ -425,7 +435,9 @@ const Layout = ({
               className="h-full bg-purple-500 transition-all duration-300"
               style={{
                 width: `${100 / tabs.length}%`,
-                transform: `translateX(${tabs.findIndex((tab) => tab.name === activeTab) * 100}%)`,
+                transform: `translateX(${
+                  tabs.findIndex((tab) => tab.name === activeTab) * 100
+                }%)`,
               }}
             ></div>
           </div>
@@ -443,65 +455,81 @@ const Uploads = ({
   fetchAccounts,
   username,
   userCurrency,
+  compressImage,
 }) => {
+  const navigate = useNavigate();
   const [accountImage, setAccountImage] = useState(null);
   const [accountName, setAccountName] = useState("");
   const [accountCredential, setAccountCredential] = useState("");
   const [accountWorth, setAccountWorth] = useState("");
   const [accountDescription, setAccountDescription] = useState("");
+  const [accountCategory, setAccountCategory] = useState("");
   const [screenshots, setScreenshots] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [editingAccount, setEditingAccount] = useState(null);
   const [showShareModal, setShowShareModal] = useState(null);
-  const [accountCategory, setAccountCategory] = useState("");
-  const minScreenshots = 3;
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [loadingCurrency, setLoadingCurrency] = useState(true);
   const maxScreenshots = 5;
+  const minScreenshots = 1;
   const maxDescriptionWords = 100;
   const accountImageInputRef = useRef(null);
   const screenshotInputRef = useRef(null);
   const shareModalRef = useRef(null);
-  const navigate = useNavigate();
-
-  const formatNumberWithCommas = (value) => {
-    if (!value) return "";
-    const cleanedValue = value.replace(/[^0-9.]/g, "");
-    const parts = cleanedValue.split(".");
-    const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    const decimalPart = parts.length > 1 ? `.${parts[1]}` : "";
-    return integerPart + decimalPart;
-  };
-
-  const handleAccountWorthChange = (e) => {
-    const rawValue = e.target.value.replace(/,/g, "");
-    setAccountWorth(rawValue);
-  };
 
   useEffect(() => {
-    if (editingAccount && editingAccount.accountWorth) {
-      setAccountWorth(editingAccount.accountWorth.toString());
-    }
-  }, [editingAccount]);
+    // Detect user's location and currency
+    const detectUserCurrency = async () => {
+      try {
+        // Check if we have cached location data
+        const cachedLocation = localStorage.getItem("userLocation");
+        let currencyCode = userCurrency; // Default to prop
 
-  const compressImage = async (file) => {
-    const options = {
-      maxSizeMB: 0.5,
-      maxWidthOrHeight: 1024,
-      useWebWorker: true,
+        if (cachedLocation) {
+          const parsedCache = JSON.parse(cachedLocation);
+          const cacheAge = Date.now() - parsedCache.timestamp;
+
+          // Use cache if it's less than 7 days old
+          if (cacheAge < 7 * 24 * 60 * 60 * 1000) {
+            currencyCode = parsedCache.data.currency || userCurrency;
+          } else {
+            // Cache expired, fetch new data
+            const locationData = await fetchLocationData();
+            currencyCode = locationData.currency || userCurrency;
+          }
+        } else {
+          // No cache, fetch new data
+          const locationData = await fetchLocationData();
+          currencyCode = locationData.currency || userCurrency;
+        }
+
+        setLoadingCurrency(false);
+      } catch (err) {
+        console.error("Error detecting currency:", err);
+        setLoadingCurrency(false);
+      }
     };
-    try {
-      const compressedFile = await imageCompression(file, options);
-      const reader = new FileReader();
-      return new Promise((resolve) => {
-        reader.onloadend = () => resolve(reader.result);
-        reader.readAsDataURL(compressedFile);
-      });
-    } catch (error) {
-      console.error("Error compressing image:", error);
-      throw error;
-    }
-  };
+
+    // Function to fetch location data
+    const fetchLocationData = async () => {
+      const response = await fetch("https://ipapi.co/json/");
+      const data = await response.json();
+
+      // Cache the location data
+      localStorage.setItem(
+        "userLocation",
+        JSON.stringify({
+          data,
+          timestamp: Date.now(),
+        })
+      );
+
+      return data;
+    };
+
+    detectUserCurrency();
+  }, [userCurrency]);
 
   const handleAccountImageUpload = async (event) => {
     const file = event.target.files[0];
@@ -608,7 +636,8 @@ const Uploads = ({
         accountWorth: parseFloat(accountWorth),
         accountDescription,
         category: accountCategory,
-        updatedAt: new Date(),
+        currency: userCurrency,
+        createdAt: new Date(),
       });
 
       const imagesRef = collection(db, `accounts/${editingAccount.id}/images`);
@@ -698,7 +727,7 @@ const Uploads = ({
       case "facebook":
         url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
           shareUrl
-        )}"e=${encodeURIComponent(text)}`;
+        )}&quote=${encodeURIComponent(text)}`;
         break;
       case "twitter":
         url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(
@@ -719,13 +748,13 @@ const Uploads = ({
   };
 
   const handleUpload = async () => {
+    if (!auth.currentUser) {
+      toast.error("Please log in to upload an account.");
+      return;
+    }
     if (editingAccount) {
       await handleUpdate();
     } else {
-      if (!auth.currentUser) {
-        toast.error("Please log in to upload an account.");
-        return;
-      }
       if (
         !accountName ||
         !accountCredential ||
@@ -848,19 +877,31 @@ const Uploads = ({
     }
   };
 
+  const handleNavigateToCategories = () => {
+    navigate("/categories");
+  };
+
   useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        shareModalRef.current &&
+        !shareModalRef.current.contains(event.target)
+      ) {
+        setShowShareModal(null);
+      }
+    };
     const handleKeyDown = (e) => {
       if (e.key === "Escape" && showShareModal) {
         setShowShareModal(null);
       }
     };
+    document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [showShareModal]);
-
-  const handleNavigateToCategories = () => {
-    navigate("/categories");
-  };
 
   return (
     <div className="p-2">
@@ -1043,52 +1084,57 @@ const Uploads = ({
                   ref={accountImageInputRef}
                 />
               </div>
-              <div className="grid gap-4">
-                <input
-                  type="text"
-                  placeholder="Name of Account"
-                  value={accountName}
-                  onChange={(e) => setAccountName(e.target.value)}
-                  className="w-full max-w-[450px] mx-auto p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] text-sm"
-                  required
-                  aria-label="Account name"
-                />
-                <input
-                  type="text"
-                  placeholder="Account Credential"
-                  value={accountCredential}
-                  onChange={(e) => setAccountCredential(e.target.value)}
-                  className="w-full max-w-[450px] mx-auto p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] text-sm"
-                  required
-                  aria-label="Account credential"
-                />
-                <input
-                  type="text"
-                  placeholder={`Account's Worth (in ${userCurrency})`}
-                  value={formatNumberWithCommas(accountWorth)}
-                  onChange={handleAccountWorthChange}
-                  className="w-full max-w-[450px] mx-auto p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] text-sm"
-                  required
-                  aria-label={`Account worth in ${userCurrency}`}
-                />
-                <select
-                  value={accountCategory}
-                  onChange={(e) => setAccountCategory(e.target.value)}
-                  className="w-full max-w-[450px] mx-auto p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] text-sm"
-                  required
-                  aria-label="Account category"
-                >
-                  <option value="">Select Account Category</option>
-                  {ALLOWED_CATEGORIES.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-                <div className="mt-2 text-gray-400 text-sm">
-                  Selected Category: {accountCategory || "None"}
+
+              <input
+                type="text"
+                placeholder="Name of Account"
+                value={accountName}
+                onChange={(e) => setAccountName(e.target.value)}
+                className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Account Credential"
+                value={accountCredential}
+                onChange={(e) => setAccountCredential(e.target.value)}
+                className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
+                required
+              />
+              {loadingCurrency ? (
+                <div className="w-full p-2 rounded bg-[#0E1115] text-gray-400 border border-gray-600">
+                  Detecting your currency...
                 </div>
-              </div>
+              ) : (
+                <div>
+                  <input
+                    type="number"
+                    placeholder={`Account's Worth (in ${userCurrency})`}
+                    value={accountWorth}
+                    onChange={(e) => setAccountWorth(e.target.value)}
+                    className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
+                    required
+                  />
+                  <div className="text-xs text-gray-400 mt-1">
+                    Currency: {userCurrency}
+                  </div>
+                </div>
+              )}
+              <select
+                value={accountCategory}
+                onChange={(e) => setAccountCategory(e.target.value)}
+                className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
+                required
+              >
+                <option value="" disabled>
+                  Select Category
+                </option>
+                {ALLOWED_CATEGORIES.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="flex-1">
               <textarea
@@ -1174,12 +1220,11 @@ const Uploads = ({
           Accounts Uploaded
         </h2>
         {uploadedAccounts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {uploadedAccounts.map((acc) => (
               <div
                 key={acc.id}
-                className="w-full min-w-[240px] bg-[#161B22]/80 p-4 rounded-xl shadow-lg border border-gray-800 active:scale-95 transition-all duration-300 group cursor-pointer"
-                onClick={handleNavigateToCategories}
+                className="bg-[#161B22] p-4 rounded-md shadow-md relative"
               >
                 <div className="flex items-center mb-4">
                   <img
@@ -1246,9 +1291,9 @@ const Uploads = ({
                 </div>
 
                 {acc.images &&
-                  Object.keys(acc.images).filter((key) =>
-                    key.startsWith("screenshot")
-                  ).length > 0 ? (
+                Object.keys(acc.images).filter((key) =>
+                  key.startsWith("screenshot")
+                ).length > 0 ? (
                   <div className="mb-2">
                     <p className="text-gray-200 text-xs md:text-sm font-bold tracking-wider mb-2">
                       Screenshots:
@@ -1501,13 +1546,22 @@ const Socials = ({ handleSaveSocials, profileData }) => {
   }, [isProfileComplete]);
 
   useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (popupRef.current && !popupRef.current.contains(event.target)) {
+        setShowCompletionPopup(false);
+      }
+    };
     const handleKeyDown = (e) => {
       if (e.key === "Escape" && showCompletionPopup) {
         setShowCompletionPopup(false);
       }
     };
+    document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [showCompletionPopup]);
 
   return (
@@ -1534,9 +1588,9 @@ const Socials = ({ handleSaveSocials, profileData }) => {
               id="completion-popup-description"
               className="text-gray-300 text-sm sm:text-base mb-6"
             >
-              Your profile is {completedCount}/{totalIndicators} complete.
-              Finish setting up to unlock the "Alfred" achievement and enhance
-              your presence!
+              Your profile is {completedCount}/{totalIndicators} complete. Finish
+              setting up to unlock the "Alfred" achievement and enhance your
+              presence!
             </p>
             <ul className="text-gray-300 text-sm mb-6">
               {completionIndicators.map((indicator, index) => (
@@ -1736,9 +1790,22 @@ const UserProfile = () => {
   });
   const [userCurrency, setUserCurrency] = useState("USD");
   const [showAlfredAlert, setShowAlfredAlert] = useState(true);
-  const [showAlfredPopup, setShowAlfredPopup] = useState(false);
-  const navigate = useNavigate();
-  const popupRef = useRef(null);
+
+  const compressImage = async (file) => {
+    try {
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      };
+      const compressedFile = await imageCompression(file, options);
+      return URL.createObjectURL(compressedFile);
+    } catch (error) {
+      console.error("Image compression error:", error);
+      toast.error("Failed to compress image.");
+      throw error;
+    }
+  };
 
   const fetchAccounts = async () => {
     if (!auth.currentUser) return;
@@ -1760,109 +1827,100 @@ const UserProfile = () => {
         accounts.push({ id: docSnap.id, ...data, images });
       }
       setUploadedAccounts(accounts);
-    } catch (error) {
-      console.error("Error fetching accounts:", error);
-      toast.error("Failed to fetch accounts: " + error.message);
-    }
-  };
-
-  const compressImage = async (file) => {
-    const options = {
-      maxSizeMB: 0.5,
-      maxWidthOrHeight: 1024,
-      useWebWorker: true,
-    };
-    try {
-      const compressedFile = await imageCompression(file, options);
-      const reader = new FileReader();
-      return new Promise((resolve) => {
-        reader.onloadend = () => resolve(reader.result);
-        reader.readAsDataURL(compressedFile);
-      });
-    } catch (error) {
-      console.error("Error compressing image:", error);
-      throw error;
+    } catch (err) {
+      console.error("Error fetching accounts:", err);
+      toast.error("Failed to fetch accounts: " + err.message);
     }
   };
 
   const handleImageChange = async (event) => {
     const file = event.target.files[0];
-    if (file) {
-      try {
-        const compressedImage = await compressImage(file);
+    if (!file) return;
+
+    try {
+      const compressedImage = await compressImage(file);
+      setProfileImage(compressedImage);
+
+      if (auth.currentUser) {
         const userDocRef = doc(db, "users", auth.currentUser.uid);
         await updateDoc(userDocRef, { profileImage: compressedImage });
-        setProfileImage(compressedImage);
-        setProfileData((prev) => ({ ...prev, profileImage: compressedImage }));
-        toast.success("Profile image updated successfully!");
 
-        // Update "Alfred" achievement (ID 5) progress
+        // Update profile completion for Alfred achievement
         const userDoc = await getDoc(userDocRef);
-        const userData = userDoc.data();
-        const hasUsername =
-          !!userData.username && userData.username !== "UnnamedUser";
+        const userData = userDoc.exists() ? userDoc.data() : {};
+        const hasUsername = !!userData.username && userData.username !== "UnnamedUser";
         const hasBio = !!userData.bio && userData.bio.trim() !== "";
-        const hasSocials = Object.values(userData.socials || {}).some(
-          (val) => val && val.trim() !== ""
-        );
-        const progress = Math.min(
-          ((hasUsername + true + hasBio + hasSocials) / 4) * 100,
-          100
-        );
+        const hasSocials = userData.socials
+          ? Object.values(userData.socials).some((val) => val && val.trim() !== "")
+          : false;
+        const hasProfileImage = !!compressedImage;
+
+        const completedItems = [hasUsername, hasBio, hasSocials, hasProfileImage].filter(
+          Boolean
+        ).length;
+        const progress = (completedItems / 4) * 100;
+
         await updateDoc(userDocRef, {
           [`achievementStatuses.5.progress`]: progress,
           [`achievementStatuses.5.earned`]: progress >= 100,
         });
-      } catch (error) {
-        console.error("Error updating profile image:", error);
-        toast.error("Failed to update profile image: " + error.message);
+
+        setProfileData((prev) => ({
+          ...prev,
+          profileImage: compressedImage,
+        }));
+
+        toast.success("Profile image updated successfully!");
       }
+    } catch (err) {
+      console.error("Image upload error:", err);
+      toast.error("Failed to update profile image: " + err.message);
     }
   };
 
   const handleSaveUsername = async () => {
-    if (!auth.currentUser) return;
-    if (!tempUsername || tempUsername.trim() === "") {
+    if (!auth.currentUser || !tempUsername.trim()) {
       toast.error("Username cannot be empty.");
       return;
     }
+
     try {
       setIsUpdatingUsername(true);
       const userDocRef = doc(db, "users", auth.currentUser.uid);
-      await updateDoc(userDocRef, { username: tempUsername });
-      setUsername(tempUsername);
-      setProfileData((prev) => ({ ...prev, username: tempUsername }));
-      setIsEditingUsername(false);
-      toast.success("Username updated successfully!");
+      await updateDoc(userDocRef, { username: tempUsername.trim() });
 
-      // Update "Alfred" achievement (ID 5) progress
+      // Update profile completion for Alfred achievement
       const userDoc = await getDoc(userDocRef);
-      const userData = userDoc.data();
-      const hasUsername =
-        !!userData.username && userData.username !== "UnnamedUser";
-      const hasProfileImage = !!userData.profileImage;
+      const userData = userDoc.exists() ? userDoc.data() : {};
+      const hasUsername = !!tempUsername.trim() && tempUsername.trim() !== "UnnamedUser";
       const hasBio = !!userData.bio && userData.bio.trim() !== "";
-      const hasSocials = Object.values(userData.socials || {}).some(
-        (val) => val && val.trim() !== ""
-      );
-      const progress = Math.min(
-        ((hasUsername + hasProfileImage + hasBio + hasSocials) / 4) * 100,
-        100
-      );
+      const hasSocials = userData.socials
+        ? Object.values(userData.socials).some((val) => val && val.trim() !== "")
+        : false;
+      const hasProfileImage = !!userData.profileImage;
+
+      const completedItems = [hasUsername, hasBio, hasSocials, hasProfileImage].filter(
+        Boolean
+      ).length;
+      const progress = (completedItems / 4) * 100;
+
       await updateDoc(userDocRef, {
         [`achievementStatuses.5.progress`]: progress,
         [`achievementStatuses.5.earned`]: progress >= 100,
       });
-      if (progress >= 100 && !userData.achievementStatuses?.[5]?.earned) {
-        setShowAlfredPopup(true);
-      }
-    } catch (error) {
-      console.error("Error updating username:", error);
-      toast.error("Failed to update username: " + error.message);
+
+      setUsername(tempUsername.trim());
+      setProfileData((prev) => ({ ...prev, username: tempUsername.trim() }));
+      setIsEditingUsername(false);
+      toast.success("Username updated successfully!");
+    } catch (err) {
+      console.error("Username update error:", err);
+      toast.error("Failed to update username: " + err.message);
     } finally {
       setIsUpdatingUsername(false);
     }
   };
+
   const handleDiscardUsername = () => {
     setTempUsername(username);
     setIsEditingUsername(false);
@@ -1870,237 +1928,198 @@ const UserProfile = () => {
 
   const handleSaveBio = async (bio) => {
     if (!auth.currentUser) return;
+
     try {
       const userDocRef = doc(db, "users", auth.currentUser.uid);
       await updateDoc(userDocRef, { bio });
-      setProfileData((prev) => ({ ...prev, bio }));
-      toast.success("Bio updated successfully!");
 
-      // Update "Alfred" achievement (ID 5) progress
+      // Update profile completion for Alfred achievement
       const userDoc = await getDoc(userDocRef);
-      const userData = userDoc.data();
-      const hasUsername =
-        !!userData.username && userData.username !== "UnnamedUser";
+      const userData = userDoc.exists() ? userDoc.data() : {};
+      const hasUsername = !!userData.username && userData.username !== "UnnamedUser";
+      const hasBio = !!bio && bio.trim() !== "";
+      const hasSocials = userData.socials
+        ? Object.values(userData.socials).some((val) => val && val.trim() !== "")
+        : false;
       const hasProfileImage = !!userData.profileImage;
-      const hasBio = !!userData.bio && userData.bio.trim() !== "";
-      const hasSocials = Object.values(userData.socials || {}).some(
-        (val) => val && val.trim() !== ""
-      );
-      const progress = Math.min(
-        ((hasUsername + hasProfileImage + hasBio + hasSocials) / 4) * 100,
-        100
-      );
+
+      const completedItems = [hasUsername, hasBio, hasSocials, hasProfileImage].filter(
+        Boolean
+      ).length;
+      const progress = (completedItems / 4) * 100;
+
       await updateDoc(userDocRef, {
         [`achievementStatuses.5.progress`]: progress,
         [`achievementStatuses.5.earned`]: progress >= 100,
       });
-      if (progress >= 100 && !userData.achievementStatuses?.[5]?.earned) {
-        setShowAlfredPopup(true);
-      }
-    } catch (error) {
-      console.error("Error updating bio:", error);
-      toast.error("Failed to update bio: " + error.message);
+
+      setProfileData((prev) => ({ ...prev, bio }));
+      toast.success("Bio updated successfully!");
+    } catch (err) {
+      console.error("Bio update error:", err);
+      toast.error("Failed to update bio: " + err.message);
     }
   };
 
   const handleSaveSocials = async (socials) => {
     if (!auth.currentUser) return;
+
     try {
       const userDocRef = doc(db, "users", auth.currentUser.uid);
       await updateDoc(userDocRef, { socials });
-      setProfileData((prev) => ({ ...prev, socials }));
-      toast.success("Social links updated successfully!");
 
-      // Update "Alfred" achievement (ID 5) progress
+      // Update profile completion for Alfred achievement
       const userDoc = await getDoc(userDocRef);
-      const userData = userDoc.data();
-      const hasUsername =
-        !!userData.username && userData.username !== "UnnamedUser";
-      const hasProfileImage = !!userData.profileImage;
+      const userData = userDoc.exists() ? userDoc.data() : {};
+      const hasUsername = !!userData.username && userData.username !== "UnnamedUser";
       const hasBio = !!userData.bio && userData.bio.trim() !== "";
-      const hasSocials = Object.values(userData.socials || {}).some(
-        (val) => val && val.trim() !== ""
-      );
-      const progress = Math.min(
-        ((hasUsername + hasProfileImage + hasBio + hasSocials) / 4) * 100,
-        100
-      );
+      const hasSocials = Object.values(socials).some((val) => val && val.trim() !== "");
+      const hasProfileImage = !!userData.profileImage;
+
+      const completedItems = [hasUsername, hasBio, hasSocials, hasProfileImage].filter(
+        Boolean
+      ).length;
+      const progress = (completedItems / 4) * 100;
+
       await updateDoc(userDocRef, {
         [`achievementStatuses.5.progress`]: progress,
         [`achievementStatuses.5.earned`]: progress >= 100,
       });
-      if (progress >= 100 && !userData.achievementStatuses?.[5]?.earned) {
-        setShowAlfredPopup(true);
-      }
-    } catch (error) {
-      console.error("Error updating socials:", error);
-      toast.error("Failed to update social links: " + error.message);
+
+      setProfileData((prev) => ({ ...prev, socials }));
+      toast.success("Social links updated successfully!");
+    } catch (err) {
+      console.error("Socials update error:", err);
+      toast.error("Failed to update social links: " + err.message);
     }
   };
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (!user) {
-        navigate("/login");
-      } else {
-        const fetchUserData = async () => {
-          try {
-            const userDocRef = doc(db, "users", user.uid);
-            const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists()) {
-              const data = userDoc.data();
-              setUsername(data.username || "UnnamedUser");
-              setTempUsername(data.username || "UnnamedUser");
-              setProfileImage(data.profileImage || null);
-              setProfileData({
-                username: data.username || "UnnamedUser",
-                profileImage: data.profileImage || null,
-                bio: data.bio || "",
-                socials: data.socials || {
-                  instagram: "",
-                  tiktok: "",
-                  twitter: "",
-                  facebook: "",
-                },
-              });
-              setUserCurrency(data.currency || "USD");
-            } else {
-              await setDoc(userDocRef, {
-                username: "UnnamedUser",
-                createdAt: new Date(),
-                currency: "USD",
-              });
-              setUsername("UnnamedUser");
-              setTempUsername("UnnamedUser");
-              setProfileData({
-                username: "UnnamedUser",
-                profileImage: null,
-                bio: "",
-                socials: {
-                  instagram: "",
-                  tiktok: "",
-                  twitter: "",
-                  facebook: "",
-                },
-              });
-              setUserCurrency("USD");
-            }
-            fetchAccounts();
-          } catch (error) {
-            console.error("Error fetching user data:", error);
-            toast.error("Failed to fetch user data: " + error.message);
-          }
-        };
-        fetchUserData();
-      }
-    });
-    return () => unsubscribe();
-  }, [navigate]);
+    const fetchUserData = async () => {
+      if (auth.currentUser) {
+        try {
+          const userDocRef = doc(db, "users", auth.currentUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUsername(userData.username || "UnnamedUser");
+            setTempUsername(userData.username || "UnnamedUser");
+            setProfileImage(userData.profileImage || null);
+            setProfileData({
+              username: userData.username || "UnnamedUser",
+              profileImage: userData.profileImage || null,
+              bio: userData.bio || "",
+              socials: userData.socials || {
+                instagram: "",
+                tiktok: "",
+                twitter: "",
+                facebook: "",
+              },
+            });
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (popupRef.current && !popupRef.current.contains(event.target)) {
-        setShowAlfredPopup(false);
+            // Check Alfred achievement status
+            const hasUsername = !!userData.username && userData.username !== "UnnamedUser";
+            const hasBio = !!userData.bio && userData.bio.trim() !== "";
+            const hasSocials = userData.socials
+              ? Object.values(userData.socials).some((val) => val && val.trim() !== "")
+              : false;
+            const hasProfileImage = !!userData.profileImage;
+
+            const completedItems = [hasUsername, hasBio, hasSocials, hasProfileImage].filter(
+              Boolean
+            ).length;
+            const progress = (completedItems / 4) * 100;
+
+            if (progress >= 100 && showAlfredAlert) {
+              toast.success("Congratulations! You've earned the Alfred achievement!");
+              setShowAlfredAlert(false);
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching user data:", err);
+          toast.error("Failed to fetch user data: " + err.message);
+        }
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    fetchUserData();
+    fetchAccounts();
   }, []);
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape" && showAlfredPopup) {
-        setShowAlfredPopup(false);
+    // Detect user's currency based on location
+    const detectUserCurrency = async () => {
+      try {
+        const cachedLocation = localStorage.getItem("userLocation");
+        let currencyCode = "USD";
+
+        if (cachedLocation) {
+          const parsedCache = JSON.parse(cachedLocation);
+          const cacheAge = Date.now() - parsedCache.timestamp;
+
+          if (cacheAge < 7 * 24 * 60 * 60 * 1000) {
+            currencyCode = parsedCache.data.currency || "USD";
+          } else {
+            const response = await fetch("https://ipapi.co/json/");
+            const data = await response.json();
+            currencyCode = data.currency || "USD";
+            localStorage.setItem(
+              "userLocation",
+              JSON.stringify({ data, timestamp: Date.now() })
+            );
+          }
+        } else {
+          const response = await fetch("https://ipapi.co/json/");
+          const data = await response.json();
+          currencyCode = data.currency || "USD";
+          localStorage.setItem(
+            "userLocation",
+            JSON.stringify({ data, timestamp: Date.now() })
+          );
+        }
+
+        setUserCurrency(currencyCode);
+      } catch (err) {
+        console.error("Error detecting currency:", err);
+        setUserCurrency("USD");
       }
     };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [showAlfredPopup]);
+
+    detectUserCurrency();
+  }, []);
 
   return (
-    <div className="bg-[#0E1115] min-h-screen text-white">
-      {showAlfredAlert && (
-        <div className="fixed top-4 right-4 bg-[#161B22] p-4 rounded-lg border border-gray-800 shadow-lg z-50">
-          <div className="flex items-center gap-3">
-            <FaTrophy className="text-yellow-500 w-6 h-6" />
-            <p className="text-white text-sm">
-              Complete your profile to earn the "Alfred" achievement!
-            </p>
-            <button
-              onClick={() => setShowAlfredAlert(false)}
-              className="text-gray-400 hover:text-white"
-              aria-label="Close Alfred alert"
-            >
-              <FaTimesCircle className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
+    <Layout
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      username={username}
+      profileImage={profileImage}
+      handleImageChange={handleImageChange}
+      isEditingUsername={isEditingUsername}
+      setIsEditingUsername={setIsEditingUsername}
+      tempUsername={tempUsername}
+      setTempUsername={setTempUsername}
+      handleSaveUsername={handleSaveUsername}
+      handleDiscardUsername={handleDiscardUsername}
+      isUpdatingUsername={isUpdatingUsername}
+    >
+      {activeTab === "Uploads" && (
+        <Uploads
+          profileImage={profileImage}
+          uploadedAccounts={uploadedAccounts}
+          setUploadedAccounts={setUploadedAccounts}
+          fetchAccounts={fetchAccounts}
+          username={username}
+          userCurrency={userCurrency}
+          compressImage={compressImage}
+        />
       )}
-      {showAlfredPopup && (
-        <div
-          className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
-          ref={popupRef}
-        >
-          <div className="bg-[#161B22] p-6 sm:p-8 rounded-xl border border-gray-800 max-w-sm w-full mx-4">
-            <div className="flex flex-col items-center gap-4">
-              <img
-                src={AlfredIcon}
-                alt="Alfred Achievement"
-                className="h-16 mb-2"
-              />
-              <h3 className="text-white text-lg sm:text-xl font-semibold">
-                Alfred Achieved!
-              </h3>
-              <p className="text-gray-300 text-sm sm:text-base text-center">
-                You've completed your profile setup. Suit up & ready to go!
-              </p>
-              <button
-                onClick={() => setShowAlfredPopup(false)}
-                className="bg-[#4426B9] text-white px-4 py-2 rounded-lg hover:bg-[#2F1A7F] transition"
-                aria-label="Close Alfred achievement popup"
-              >
-                Awesome!
-              </button>
-            </div>
-          </div>
-        </div>
+      {activeTab === "Bio" && <About handleSaveBio={handleSaveBio} />}
+      {activeTab === "Socials" && (
+        <Socials handleSaveSocials={handleSaveSocials} profileData={profileData} />
       )}
-      <Layout
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        username={username}
-        profileImage={profileImage}
-        handleImageChange={handleImageChange}
-        isEditingUsername={isEditingUsername}
-        setIsEditingUsername={setIsEditingUsername}
-        tempUsername={tempUsername}
-        setTempUsername={setTempUsername}
-        handleSaveUsername={handleSaveUsername}
-        handleDiscardUsername={handleDiscardUsername}
-        isUpdatingUsername={isUpdatingUsername}
-      >
-        {activeTab === "Uploads" && (
-          <Uploads
-            profileImage={profileImage}
-            uploadedAccounts={uploadedAccounts}
-            setUploadedAccounts={setUploadedAccounts}
-            fetchAccounts={fetchAccounts}
-            username={username}
-            userCurrency={userCurrency}
-          />
-        )}
-        {activeTab === "Bio" && <About handleSaveBio={handleSaveBio} />}
-        {activeTab === "Socials" && (
-          <Socials
-            handleSaveSocials={handleSaveSocials}
-            profileData={profileData}
-          />
-        )}
-        {activeTab === "Achievements" && (
-          <Achievements userId={auth.currentUser?.uid} />
-        )}
-      </Layout>
-    </div>
+      {activeTab === "Achievements" && <Achievements userId={auth.currentUser?.uid} />}
+    </Layout>
   );
 };
 
