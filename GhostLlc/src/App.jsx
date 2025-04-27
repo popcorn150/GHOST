@@ -24,8 +24,6 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import FAQs from "./pages/FAQs";
 import Doc from "./pages/Doc";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import CheckoutWrapper from "./pages/CheckoutWrapper";
-
 
 const App = () => {
   const [uploadedAccounts, setUploadedAccounts] = useState([]);
@@ -58,8 +56,6 @@ const App = () => {
        
         <Route path="/settings" element={<Settings />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/payment" element={<CheckoutWrapper />} />
-
       </Routes>
     </Router>
    
