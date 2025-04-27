@@ -234,61 +234,40 @@ const Uploads = ({
   const [accountDescription, setAccountDescription] = useState("");
   const [screenshots, setScreenshots] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
-  const [editingAccount, setEditingAccount] = useState(null);
-  const [showShareModal, setShowShareModal] = useState(null);
-  const [accountCategory, setAccountCategory] = useState("");
-  const minScreenshots = 3;
+  const [uploadedAccounts, setUploadedAccounts] = useState([]);
+  const [userCurrency, setUserCurrency] = useState("USD"); // default value
   const maxScreenshots = 5;
-  const maxDescriptionWords = 100;
-  const accountImageInputRef = useRef(null);
-  const screenshotInputRef = useRef(null);
-  const shareModalRef = useRef(null);
-  const navigate = useNavigate();
 
-  // Function to format number with commas
-  const formatNumberWithCommas = (value) => {
-    if (!value) return "";
-    // Remove non-numeric characters except decimal point
-    const cleanedValue = value.replace(/[^0-9.]/g, "");
-    const parts = cleanedValue.split(".");
-    const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    const decimalPart = parts.length > 1 ? `.${parts[1]}` : "";
-    return integerPart + decimalPart;
-  };
-
-  // Handle account worth input change
-  const handleAccountWorthChange = (e) => {
-    const rawValue = e.target.value.replace(/,/g, ""); // Remove commas for raw value
-    setAccountWorth(rawValue); // Store raw value
-  };
-
-  // Format account worth when editing an account
+  // Force fetching user currency from Firestore or ipapi.co
   useEffect(() => {
-    if (editingAccount && editingAccount.accountWorth) {
-      setAccountWorth(editingAccount.accountWorth.toString()); // Ensure raw value
-    }
-  }, [editingAccount]);
-
-  const compressImage = async (file) => {
-    const options = {
-      maxSizeMB: 0.5,
-      maxWidthOrHeight: 1024,
-      useWebWorker: true,
+    const fetchUserCurrency = async () => {
+      if (auth.currentUser) {
+        try {
+          const userDocRef = doc(db, "users", auth.currentUser.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists() && userDocSnap.data().currency) {
+            setUserCurrency(userDocSnap.data().currency);
+          } else {
+            // Fallback: call ipapi.co to get currency
+            const response = await fetch("https://ipapi.co/json/");
+            const data = await response.json();
+            if (data.currency) {
+              setUserCurrency(data.currency);
+              // Update Firestore for future reference
+              await setDoc(
+                userDocRef,
+                { currency: data.currency },
+                { merge: true }
+              );
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching user currency:", error);
+        }
+      }
     };
-    try {
-      const compressedFile = await imageCompression(file, options);
-      const reader = new FileReader();
-      return new Promise((resolve) => {
-        reader.onloadend = () => resolve(reader.result);
-        reader.readAsDataURL(compressedFile);
-      });
-    } catch (error) {
-      console.error("Error compressing image:", error);
-      throw error;
-    }
-  };
+    fetchUserCurrency();
+  }, []);
 
   const handleAccountImageUpload = async (event) => {
     const file = event.target.files[0];
@@ -507,115 +486,38 @@ const Uploads = ({
   };
 
   const handleUpload = async () => {
-    if (editingAccount) {
-      await handleUpdate();
-    } else {
-      if (!auth.currentUser) {
-        toast.error("Please log in to upload an account.");
-        return;
-      }
-      if (
-        !accountName ||
-        !accountCredential ||
-        !accountWorth ||
-        !accountDescription ||
-        !accountCategory
-      ) {
-        toast.error("Please fill out all required fields.");
-        return;
-      }
-      if (!ALLOWED_CATEGORIES.includes(accountCategory)) {
-        toast.error("Please select a valid category.");
-        return;
-      }
-      if (screenshots.length < minScreenshots) {
-        toast.error(`Please upload at least ${minScreenshots} screenshots.`);
-        return;
-      }
-      const wordCount = accountDescription.trim().split(/\s+/).length;
-      if (wordCount > maxDescriptionWords) {
-        toast.error(
-          `Description exceeds ${maxDescriptionWords} words (current: ${wordCount}).`
-        );
-        return;
-      }
-      if (isNaN(parseFloat(accountWorth))) {
-        toast.error("Account worth must be a valid number.");
-        return;
-      }
-
-      try {
-        setIsProcessing(true);
-        console.log("Selected category for upload:", accountCategory);
-        const userId = auth.currentUser.uid;
-        const uploadData = {
-          userId,
-          username,
-          accountName,
-          accountCredential,
-          accountWorth: parseFloat(accountWorth), // Store as number
-          accountDescription,
-          category: accountCategory,
-          createdAt: new Date(),
-          currency: userCurrency,
-        };
-        const accountDocRef = await addDoc(
-          collection(db, "accounts"),
-          uploadData
-        );
-
-        const imagesRef = collection(db, `accounts/${accountDocRef.id}/images`);
-        if (accountImage) {
-          await setDoc(doc(imagesRef, "accountImage"), { image: accountImage });
-        }
-        for (let i = 0; i < screenshots.length; i++) {
-          await setDoc(doc(imagesRef, `screenshot${i}`), {
-            image: screenshots[i],
-          });
-        }
-
-        resetForm();
-        fetchAccounts();
-        toast.success("Account uploaded successfully!");
-      } catch (err) {
-        console.error("Upload error:", err.code, err.message);
-        toast.error("Failed to upload account: " + err.message);
-      } finally {
-        setIsProcessing(false);
-      }
+    if (
+      !accountName ||
+      !accountCredential ||
+      !accountWorth ||
+      !accountDescription
+    ) {
+      alert("Please fill out all required fields.");
+      return;
     }
-  };
-
-  const handleDelete = async (account) => {
     try {
-      setIsProcessing(true);
-      await deleteDoc(doc(db, "accounts", account.id));
+      await addDoc(collection(db, "accounts"), {
+        userId: auth.currentUser.uid,
+        accountName,
+        accountCredential,
+        accountWorth,
+        accountDescription,
+        accountImage,
+        screenshots,
+        createdAt: new Date(),
+      });
+      // Clear form fields after successful upload
+      setAccountName("");
+      setAccountCredential("");
+      setAccountWorth("");
+      setAccountDescription("");
+      setAccountImage(null);
+      setScreenshots([]);
+      setIsUploading(false);
       fetchAccounts();
-      toast.success("Account deleted successfully!");
+      alert("Account uploaded successfully!");
     } catch (err) {
-      console.error("Delete error:", err);
-      toast.error("Failed to delete account: " + err.message);
-    } finally {
-      setIsProcessing(false);
-      setShowDeleteConfirm(null);
-    }
-  };
-
-  const resetForm = () => {
-    setAccountName("");
-    setAccountCredential("");
-    setAccountWorth("");
-    setAccountDescription("");
-    setAccountCategory("");
-    setAccountImage(null);
-    setScreenshots([]);
-    setIsUploading(false);
-    setEditingAccount(null);
-    if (accountImageInputRef.current) {
-      accountImageInputRef.current.value = null;
-    }
-    if (screenshotInputRef.current) {
-      screenshotInputRef.current.value = null;
+      console.error("Upload error:", err);
     }
   };
 
@@ -816,54 +718,34 @@ const Uploads = ({
                   ref={accountImageInputRef}
                 />
               </div>
-              <div className="grid gap-4">
-                <input
-                  type="text"
-                  placeholder="Name of Account"
-                  value={accountName}
-                  onChange={(e) => setAccountName(e.target.value)}
-                  className="w-full max-w-[450px] mx-auto p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] text-sm"
-                  required
-                  aria-label="Account name"
-                />
-                <input
-                  type="text"
-                  placeholder="Account Credential"
-                  value={accountCredential}
-                  onChange={(e) => setAccountCredential(e.target.value)}
-                  className="w-full max-w-[450px] mx-auto p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] text-sm"
-                  required
-                  aria-label="Account credential"
-                />
-                <input
-                  type="text" // Changed to text for comma formatting
-                  placeholder={`Account's Worth (in ${userCurrency})`}
-                  value={formatNumberWithCommas(accountWorth)} // Display formatted value
-                  onChange={handleAccountWorthChange} // Custom handler
-                  className="w-full max-w-[450px] mx-auto p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] text-sm"
-                  required
-                  aria-label={`Account worth in ${userCurrency}`}
-                />
-                <select
-                  value={accountCategory}
-                  onChange={(e) => setAccountCategory(e.target.value)}
-                  className="w-full max-w-[450px] mx-auto p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] text-sm"
-                  required
-                  aria-label="Account category"
-                >
-                  <option value="">Select Account Category</option>
-                  {ALLOWED_CATEGORIES.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-                <div className="mt-2 text-gray-400 text-sm">
-                  Selected Category: {accountCategory || "None"}
-                </div>
-              </div>
+
+              <input
+                type="text"
+                placeholder="Name of Account"
+                value={accountName}
+                onChange={(e) => setAccountName(e.target.value)}
+                className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Account Credential"
+                value={accountCredential}
+                onChange={(e) => setAccountCredential(e.target.value)}
+                className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
+                required
+              />
+              <input
+                type="number"
+                placeholder={`Account's Worth (in ${userCurrency})`}
+                value={accountWorth}
+                onChange={(e) => setAccountWorth(e.target.value)}
+                className="w-full p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
+                required
+              />
             </div>
-            <div className="flex-1">
+
+            <div className="w-full">
               <textarea
                 placeholder={`Full Account Description (max ${maxDescriptionWords} words)`}
                 value={accountDescription}
@@ -947,162 +829,54 @@ const Uploads = ({
           Accounts Uploaded
         </h2>
         {uploadedAccounts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
-            {uploadedAccounts.map((acc) => (
-              <div
-                key={acc.id}
-                className="w-full min-w-[240px] bg-[#161B22]/80 p-4 rounded-xl shadow-lg border border-gray-800 active:scale-95 transition-all duration-300 group cursor-pointer"
-                onClick={handleNavigateToCategories}
-              >
-                <div className="flex items-center mb-4">
-                  <img
-                    src={profileImage || "/default-profile.png"}
-                    alt="User Profile"
-                    className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-full border-2 border-[#0576FF]/60 mr-3 object-cover"
-                  />
-                  <div className="flex-1">
-                    <h3 className="text-gray-100 text-sm sm:text-base md:text-lg font-medium tracking-wider truncate">
-                      {acc.accountName}
-                    </h3>
-                    <p className="text-gray-400 text-xs sm:text-sm tracking-wider leading-relaxed">
-                      <span className="text-[#0576FF] font-light uppercase">
-                        Uploaded by:
-                      </span>{" "}
-                      {acc.username || "Unknown"}
-                    </p>
-                  </div>
-                </div>
-
-                {acc.images?.accountImage ? (
-                  <div className="relative overflow-hidden rounded-lg mb-4 group/image">
+          uploadedAccounts.map((acc) => (
+            <div
+              key={acc.id}
+              className="bg-[#161B22] p-4 mb-4 rounded-md shadow-md relative"
+            >
+              {acc.accountImage && (
+                <img
+                  src={acc.accountImage}
+                  alt={acc.accountName}
+                  className="w-full h-48 object-cover mb-2 rounded"
+                />
+              )}
+              <h3 className="text-white text-xl font-semibold">
+                {acc.accountName}
+              </h3>
+              <p className="text-gray-400">
+                <span className="font-semibold">Credential:</span>{" "}
+                {acc.accountCredential}
+              </p>
+              <p className="text-gray-400">
+                <span className="font-semibold">Worth:</span> {acc.accountWorth}{" "}
+                ({userCurrency})
+              </p>
+              <p className="text-gray-400">
+                <span className="font-semibold">Description:</span>{" "}
+                {acc.accountDescription}
+              </p>
+              {acc.screenshots && acc.screenshots.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                  {acc.screenshots.map((shot, index) => (
                     <img
-                      src={acc.images.accountImage}
-                      alt={acc.accountName}
-                      className="w-full h-36 sm:h-40 md:h-44 object-cover rounded-lg shadow-md transition-transform duration-300 group-hover/image:scale-105"
-                      style={{ aspectRatio: "16/9" }}
+                      key={index}
+                      src={shot}
+                      alt={`Screenshot ${index + 1}`}
+                      className="w-full h-24 object-cover rounded"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300"></div>
-                  </div>
-                ) : (
-                  <div className="w-full h-36 sm:h-40 md:h-44 bg-gradient-to-br from-[#1A1F29] to-[#252A36] flex items-center justify-center rounded-lg shadow-md mb-4">
-                    <FaImage className="text-gray-500 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
-                    <p className="text-gray-500 text-xs sm:text-sm font-light tracking-wider ml-2">
-                      No Image
-                    </p>
-                  </div>
-                )}
-
-                <div className="space-y-2 mb-4">
-                  <p className="text-gray-200 text-xs sm:text-sm tracking-wider leading-relaxed">
-                    <span className="text-[#0576FF] font-bold text-xs">
-                      Credential:
-                    </span>{" "}
-                    <span className="text-xs break-all">
-                      {acc.accountCredential}
-                    </span>
-                  </p>
-                  <p className="text-gray-200 text-xs sm:text-sm tracking-wider leading-relaxed">
-                    <span className="text-[#0576FF] font-bold text-xs">
-                      Worth:
-                    </span>{" "}
-                    <span className="text-xs">
-                      {formatNumberWithCommas(acc.accountWorth.toString())} (
-                      {acc.currency || userCurrency})
-                    </span>
-                  </p>
-                  <p className="text-gray-200 text-xs sm:text-sm tracking-wider leading-relaxed line-clamp-2">
-                    <span className="text-[#0576FF] font-bold text-xs">
-                      Description:
-                    </span>{" "}
-                    <span className="text-xs">{acc.accountDescription}</span>
-                  </p>
+                  ))}
                 </div>
-
-                {acc.images &&
-                  Object.keys(acc.images).filter((key) =>
-                    key.startsWith("screenshot")
-                  ).length > 0 ? (
-                  <div className="mb-2">
-                    <p className="text-gray-200 text-xs md:text-sm font-bold tracking-wider mb-2">
-                      Screenshots:
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {Object.keys(acc.images)
-                        .filter((key) => key.startsWith("screenshot"))
-                        .map((key, index) =>
-                          acc.images[key] ? (
-                            <div
-                              key={index}
-                              className="relative group/screenshot"
-                            >
-                              <img
-                                src={acc.images[key]}
-                                alt={`Screenshot ${index + 1}`}
-                                className="w-full h-16 md:h-20 object-cover rounded-md shadow-sm transition-transform duration-300 group-hover/screenshot:scale-105"
-                                style={{ aspectRatio: "4/3" }}
-                              />
-                              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/screenshot:opacity-100 transition-opacity duration-300 rounded-md"></div>
-                            </div>
-                          ) : (
-                            <div
-                              key={index}
-                              className="w-full h-16 md:h-20 bg-gradient-to-br from-[#1A1F29] to-[#252A36] flex items-center justify-center rounded-md shadow-sm"
-                            >
-                              <FaImage className="text-gray-500 w-4 h-4 md:w-6 md:h-6" />
-                            </div>
-                          )
-                        )}
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-gray-400 text-xs md:text-sm font-light tracking-wider mb-2">
-                    No screenshots available.
-                  </p>
-                )}
-
-                <div className="flex justify-between items-center">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleShare(acc);
-                    }}
-                    className="flex items-center justify-center bg-[#0576FF]/80 text-white p-1.5 sm:p-2 rounded-full hover:bg-[#0576FF] active:bg-[#045FCC] transition-all duration-300 w-8 h-8 sm:w-9 sm:h-9"
-                    aria-label={`Share account ${acc.accountName}`}
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        handleShare(acc);
-                      }
-                    }}
-                  >
-                    <FaShareAlt className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  </button>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEdit(acc);
-                      }}
-                      className="flex items-center justify-center bg-[#4426B9]/80 text-white p-1.5 sm:p-2 rounded-full hover:bg-[#4426B9] active:bg-[#2F1A7F] transition-all duration-300 w-8 h-8 sm:w-9 sm:h-9"
-                      aria-label={`Edit account ${acc.accountName}`}
-                    >
-                      <BsPencilSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowDeleteConfirm(acc);
-                      }}
-                      className="flex items-center justify-center bg-[#EB3223]/80 text-white p-1.5 sm:p-2 rounded-full hover:bg-[#EB3223] active:bg-[#B71C1C] transition-all duration-300 w-8 h-8 sm:w-9 sm:h-9"
-                      aria-label={`Delete account ${acc.accountName}`}
-                    >
-                      <FaTrashAlt className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              )}
+              {/* Delete button */}
+              <button
+                onClick={() => handleDelete(acc.id)}
+                className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700 transition"
+              >
+                Delete
+              </button>
+            </div>
+          ))
         ) : (
           <p className="p-10 text-gray-400 text-center text-sm sm:text-base font-light tracking-wider">
             No accounts uploaded yet.
