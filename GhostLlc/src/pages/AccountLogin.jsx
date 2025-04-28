@@ -13,7 +13,6 @@ import {
   getDoc,
 } from "firebase/firestore";
 import "../App.css";
-import { Toaster, toast } from "sonner";
 
 const AccountLogin = () => {
   const [emailOrUsername, setEmailOrUsername] = useState("");
@@ -145,7 +144,7 @@ const AccountLogin = () => {
         return;
       }
 
-      toast.success("Login successful!");
+
       navigate("/categories"); // Only navigate if user details exist
     } catch (error) {
       console.error("Login error:", error);
@@ -220,7 +219,6 @@ const AccountLogin = () => {
         return;
       }
 
-      toast.success("Google sign-in successful!");
       navigate("/categories"); // Only navigate if user details exist
     } catch (error) {
       console.error("Google sign-in error:", error);
@@ -261,7 +259,6 @@ const AccountLogin = () => {
 
   return (
     <div className="relative flex items-center justify-center bg-[#010409] w-full h-screen overflow-hidden">
-      <Toaster richColors position="top-center" />
       <div className="absolute inset-0 opacity-50">
         <img
           src={BackGround_}
