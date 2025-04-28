@@ -1115,7 +1115,7 @@ const Uploads = ({
 
 const About = () => {
   const [aboutText, setAboutText] = useState(
-    "Write a little something about yourself. It helps communicate with your visitors."
+    ""
   );
   const [tempText, setTempText] = useState(aboutText);
   const [isEditing, setIsEditing] = useState(false);
@@ -1166,6 +1166,7 @@ const About = () => {
       <textarea
         className="w-full h-60 p-3 border border-gray-600 rounded-md bg-[#0E1115] text-sm text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0576FF]"
         value={tempText}
+        placeholder="Write a little something about yourself. It helps communicate with your visitors."
         onChange={(e) => setTempText(e.target.value)}
         readOnly={!isEditing}
         aria-label="User bio"
