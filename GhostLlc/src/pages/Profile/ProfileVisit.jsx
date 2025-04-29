@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import NavBar from "./NavBar";
 import BackButton from "../../components/BackButton";
 import {
@@ -8,6 +8,7 @@ import {
   BookmarkIcon,
   BookmarkSlashIcon,
 } from "@heroicons/react/24/outline";
+import { UploadCloud, User, Heart, Trophy } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import {
   doc,
@@ -19,19 +20,34 @@ import {
   query,
   where,
   getDocs,
+  setDoc,
 } from "firebase/firestore";
 import { auth, db } from "../../database/firebaseConfig";
 import About from "../Profile/About";
-import Socials from "../Profile/Socials";
 import Favorites from "../Profile/Favourites";
-import { FaImage } from "react-icons/fa";
+import {
+  FaImage,
+  FaYoutube,
+  FaInstagram,
+  FaTiktok,
+  FaTwitter,
+  FaFacebook,
+  FaCheckCircle,
+} from "react-icons/fa";
 
-const tabs = ["Uploads", "Bio", "Socials", "Favorites"];
+// Tabs array matching UserProfile
+const tabs = [
+  { name: "Uploads", icon: UploadCloud },
+  { name: "About", icon: User },
+  { name: "Wishlisted", icon: Heart },
+  { name: "Achievements", icon: Trophy },
+];
 
 const Uploads = ({ profileImage, userId }) => {
   const [uploadedAccounts, setUploadedAccounts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchAccounts = async () => {
@@ -42,7 +58,6 @@ const Uploads = ({ profileImage, userId }) => {
         return;
       }
 
-      console.log("Fetching accounts for userId:", userId);
       try {
         setIsLoading(true);
         setError(null);
@@ -51,29 +66,19 @@ const Uploads = ({ profileImage, userId }) => {
           where("userId", "==", userId)
         );
         const querySnapshot = await getDocs(q);
-        console.log("Number of accounts found:", querySnapshot.size);
 
-        const accounts = [];
-        for (const docSnap of querySnapshot.docs) {
-          const accountData = { id: docSnap.id, ...docSnap.data() };
-          console.log("Processing account:", accountData.id);
-          try {
+        const accounts = await Promise.all(
+          querySnapshot.docs.map(async (docSnap) => {
+            const accountData = { id: docSnap.id, ...docSnap.data() };
             const imagesRef = collection(db, `accounts/${docSnap.id}/images`);
             const imagesSnap = await getDocs(imagesRef);
             const images = {};
             imagesSnap.forEach((imgDoc) => {
               images[imgDoc.id] = imgDoc.data().image || null;
             });
-            accounts.push({ ...accountData, images });
-          } catch (error) {
-            console.error(
-              `Error fetching images for account ${docSnap.id}:`,
-              error
-            );
-            accounts.push({ ...accountData, images: {} });
-          }
-        }
-        console.log("Fetched accounts:", accounts);
+            return { ...accountData, images };
+          })
+        );
         setUploadedAccounts(accounts);
       } catch (err) {
         console.error("Error fetching accounts:", err);
@@ -86,6 +91,15 @@ const Uploads = ({ profileImage, userId }) => {
 
     fetchAccounts();
   }, [userId]);
+
+  const formatNumberWithCommas = (value) => {
+    if (!value) return "";
+    const cleanedValue = value.toString().replace(/[^0-9.]/g, "");
+    const parts = cleanedValue.split(".");
+    const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    const decimalPart = parts.length > 1 ? `.${parts[1]}` : "";
+    return integerPart + decimalPart;
+  };
 
   if (isLoading) {
     return (
@@ -126,7 +140,8 @@ const Uploads = ({ profileImage, userId }) => {
           {uploadedAccounts.map((acc) => (
             <div
               key={acc.id}
-              className="relative bg-[#161B22]/80 p-4 rounded-xl shadow-lg border border-gray-800 transition-all duration-300 group"
+              className="relative bg-[#161B22]/80 p-4 rounded-xl shadow-lg border border-gray-800 transition-all duration-300 group cursor-pointer"
+              onClick={() => navigate("/categories")}
             >
               <div className="flex items-center mb-4">
                 <img
@@ -181,7 +196,9 @@ const Uploads = ({ profileImage, userId }) => {
                   </span>{" "}
                   <span className="font-medium">
                     {acc.accountWorth
-                      ? `${acc.accountWorth} (${acc.currency || "USD"})`
+                      ? `${formatNumberWithCommas(acc.accountWorth)} (${
+                          acc.currency || "USD"
+                        })`
                       : "N/A"}
                   </span>
                 </p>
@@ -250,6 +267,154 @@ const Uploads = ({ profileImage, userId }) => {
   );
 };
 
+const Achievements = ({ userId }) => {
+  const [achievements, setAchievements] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchAchievements = async () => {
+      if (!userId) {
+        console.error("No userId provided to Achievements component");
+        toast.error("Invalid user ID");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        const userDocRef = doc(db, "users", userId);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          const achievementStatuses = userData.achievementStatuses || {};
+
+          // Define achievements consistent with UserProfile
+          const achievementList = [
+            {
+              id: 3,
+              name: "Entrepreneur",
+              description: "Upload 10 accounts to earn this achievement.",
+              progress: achievementStatuses[3]?.progress || 0,
+              earned: achievementStatuses[3]?.earned || false,
+            },
+            {
+              id: 5,
+              name: "Alfred",
+              description:
+                "Complete your profile (username, image, bio, socials).",
+              progress: achievementStatuses[5]?.progress || 0,
+              earned: achievementStatuses[5]?.earned || false,
+            },
+            {
+              id: 6,
+              name: "Peacock",
+              description: "Get 10 unique visitors to your profile.",
+              progress: achievementStatuses[6]?.progress || 0,
+              earned: achievementStatuses[6]?.earned || false,
+            },
+          ];
+
+          setAchievements(achievementList);
+        } else {
+          console.error("User document does not exist for userId:", userId);
+          setError("User not found.");
+          toast.error("User not found.");
+        }
+      } catch (err) {
+        console.error("Error fetching achievements:", err);
+        setError("Failed to load achievements. Please try again.");
+        toast.error(`Failed to load achievements: ${err.message}`);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAchievements();
+  }, [userId]);
+
+  if (isLoading) {
+    return (
+      <div className="mt-16 mb-20 flex justify-center items-center h-60">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-l-4 border-r-4 border-t-[#0576FF] border-b-[#0576FF] border-l-transparent border-r-transparent"></div>
+          <p className="text-gray-400 text-sm font-light tracking-wider">
+            Loading achievements...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mt-16 mb-20 p-6 bg-gradient-to-br from-[#0E1115] to-[#1A1F29] rounded-2xl border border-gray-800 text-center">
+        <p className="text-gray-400 text-base font-light tracking-wider">
+          {error}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-16 mb-20 p-4 xs:p-5 sm:p-6 md:p-7 lg:p-8 xl:p-10 bg-gradient-to-br from-[#0E1115] via-[#1A1F29] to-[#252A36] rounded-2xl border border-gray-800">
+      <h2 className="text-gray-100 text-lg xs:text-xl sm:text-2xl md:text-2xl lg:text-3xl font-semibold tracking-wider mb-10 sm:mb-12 lg:mb-14">
+        Achievements
+      </h2>
+      {achievements.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {achievements.map((achievement) => (
+            <div
+              key={achievement.id}
+              className={`bg-[#161B22]/80 p-4 rounded-xl shadow-lg border ${
+                achievement.earned ? "border-green-500" : "border-gray-800"
+              }`}
+            >
+              <div className="flex items-center mb-4">
+                <Trophy
+                  className={`w-8 h-8 ${
+                    achievement.earned ? "text-yellow-400" : "text-gray-400"
+                  } mr-3`}
+                />
+                <div>
+                  <h3 className="text-gray-100 text-lg font-medium tracking-wider">
+                    {achievement.name}
+                  </h3>
+                  <p className="text-gray-400 text-sm tracking-wider">
+                    {achievement.description}
+                  </p>
+                </div>
+              </div>
+              <div className="w-full bg-gray-700 rounded-full h-2.5">
+                <div
+                  className="bg-[#0576FF] h-2.5 rounded-full"
+                  style={{ width: `${achievement.progress}%` }}
+                ></div>
+              </div>
+              <p className="text-gray-300 text-sm mt-2">
+                Progress: {achievement.progress}%
+              </p>
+              {achievement.earned && (
+                <p className="text-green-500 text-sm mt-1 flex items-center gap-2">
+                  <FaCheckCircle /> Achieved!
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="py-12 text-center">
+          <p className="text-gray-400 text-sm sm:text-base font-light tracking-wider">
+            No achievements earned yet.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ProfileVisit = () => {
   const { userId } = useParams();
   const [notificationOn, setNotificationOn] = useState(false);
@@ -259,10 +424,46 @@ const ProfileVisit = () => {
     username: "UnnamedUser",
     profileImage: null,
     bio: "",
-    socials: { facebook: "", instagram: "", tiktok: "", twitter: "" },
+    socials: {
+      youtube: "",
+      instagram: "",
+      tiktok: "",
+      twitter: "",
+      facebook: "",
+    },
   });
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserProfileImage, setCurrentUserProfileImage] = useState(null);
+  const navigate = useNavigate();
+
+  const checkProfileCompletion = async (userData, userDocRef) => {
+    try {
+      const hasUsername =
+        userData.username && userData.username !== "UnnamedUser";
+      const hasProfileImage = !!userData.profileImage;
+      const hasBio = !!userData.bio && userData.bio.trim() !== "";
+      const hasSocials = Object.values(userData.socials || {}).some(
+        (val) => val && val.trim() !== ""
+      );
+      const completedFields = [
+        hasUsername,
+        hasProfileImage,
+        hasBio,
+        hasSocials,
+      ].filter(Boolean).length;
+      const progress = (completedFields / 4) * 100;
+      const isProfileComplete = completedFields === 4;
+
+      // Update "Alfred" achievement (ID 5) in Firestore
+      await updateDoc(userDocRef, {
+        [`achievementStatuses.5.progress`]: progress,
+        [`achievementStatuses.5.earned`]: isProfileComplete,
+      });
+    } catch (error) {
+      console.error("Error checking profile completion:", error);
+      toast.error("Failed to update profile completion: " + error.message);
+    }
+  };
 
   useEffect(() => {
     const fetchCurrentUserProfileImage = async () => {
@@ -282,9 +483,42 @@ const ProfileVisit = () => {
     fetchCurrentUserProfileImage();
   }, []);
 
+  const trackProfileVisit = async () => {
+    if (!auth.currentUser || auth.currentUser.uid === userId) return;
+
+    try {
+      const visitorId = auth.currentUser.uid;
+      const visitedUserDocRef = doc(db, "users", userId);
+      const visitorsRef = collection(db, `users/${userId}/visitors`);
+      const visitorDocRef = doc(visitorsRef, visitorId);
+
+      // Check if the visitor has already visited
+      const visitorDoc = await getDoc(visitorDocRef);
+      if (visitorDoc.exists()) {
+        return; // Visitor already recorded, no further action needed
+      }
+
+      // Record the new visitor
+      await setDoc(visitorDocRef, { visitedAt: new Date() }, { merge: true });
+
+      // Count unique visitors
+      const visitorsSnapshot = await getDocs(visitorsRef);
+      const uniqueVisitors = visitorsSnapshot.size;
+      const progress = Math.min((uniqueVisitors / 10) * 100, 100);
+
+      // Update Peacock achievement
+      await updateDoc(visitedUserDocRef, {
+        [`achievementStatuses.6.progress`]: progress,
+        [`achievementStatuses.6.earned`]: progress >= 100,
+      });
+    } catch (error) {
+      console.error("Error tracking profile visit:", error);
+      toast.error("Failed to track profile visit: " + error.message);
+    }
+  };
+
   useEffect(() => {
     const fetchProfileData = async () => {
-      console.log("Fetching profile for userId:", userId);
       try {
         if (!userId) {
           console.error("No userId provided to ProfileVisit");
@@ -299,36 +533,37 @@ const ProfileVisit = () => {
 
         if (userDocSnap.exists()) {
           const data = userDocSnap.data();
-          console.log("Profile data fetched:", data);
-          setProfileData({
+          const updatedProfileData = {
             username: data.username || "UnnamedUser",
             profileImage: data.profileImage || null,
             bio: data.bio || "No bio available.",
             socials: data.socials || {
-              facebook: "",
+              youtube: "",
               instagram: "",
               tiktok: "",
               twitter: "",
+              facebook: "",
             },
-          });
+          };
+          setProfileData(updatedProfileData);
+
+          // Check profile completion for Alfred achievement
+          await checkProfileCompletion(updatedProfileData, userDocRef);
 
           if (auth.currentUser) {
             const currentUserDocRef = doc(db, "users", auth.currentUser.uid);
             const currentUserDocSnap = await getDoc(currentUserDocRef);
-            if (
-              currentUserDocSnap.exists() &&
-              currentUserDocSnap.data().favorites
-            ) {
-              setInFavorites(
-                currentUserDocSnap.data().favorites.includes(userId)
-              );
+            if (currentUserDocSnap.exists()) {
+              const favorites = currentUserDocSnap.data().favorites || [];
+              setInFavorites(favorites.includes(userId));
             }
-          } else {
-            console.log("No authenticated user, skipping favorites check");
           }
+
+          await trackProfileVisit();
         } else {
           console.error("User document does not exist for userId:", userId);
           toast.error("User not found.");
+          navigate("/categories");
         }
       } catch (error) {
         console.error("Error fetching profile data:", error);
@@ -339,28 +574,30 @@ const ProfileVisit = () => {
     };
 
     fetchProfileData();
-  }, [userId]);
+  }, [userId, navigate]);
 
-  const handleNotificationToggle = () => {
+  const handleNotificationToggle = async () => {
+    if (!auth.currentUser) {
+      toast.error("Please log in to manage notifications.");
+      return;
+    }
+
     const turningOn = !notificationOn;
 
-    toast.promise(
-      new Promise((resolve) => {
-        setTimeout(() => {
-          setNotificationOn(turningOn);
-          resolve();
-        }, 1500);
-      }),
-      {
-        loading: turningOn
-          ? "Turning on notifications..."
-          : "Turning off notifications...",
-        success: turningOn
-          ? "Notifications turned on!"
-          : "Notifications turned off!",
-        error: "Something went wrong. Failed to toggle notifications.",
-      }
-    );
+    try {
+      const userDocRef = doc(db, "users", auth.currentUser.uid);
+      const notifications = turningOn
+        ? arrayUnion(userId)
+        : arrayRemove(userId);
+      await updateDoc(userDocRef, { notifications });
+      setNotificationOn(turningOn);
+      toast.success(
+        turningOn ? "Notifications turned on!" : "Notifications turned off!"
+      );
+    } catch (error) {
+      console.error("Error toggling notifications:", error);
+      toast.error("Failed to toggle notifications.");
+    }
   };
 
   const handleFavorites = async () => {
@@ -371,36 +608,25 @@ const ProfileVisit = () => {
 
     const addingToFavorites = !inFavorites;
 
-    toast.promise(
-      new Promise(async (resolve, reject) => {
-        try {
-          const userDocRef = doc(db, "users", auth.currentUser.uid);
-          if (addingToFavorites) {
-            await updateDoc(userDocRef, {
-              favorites: arrayUnion(userId),
-            });
-          } else {
-            await updateDoc(userDocRef, {
-              favorites: arrayRemove(userId),
-            });
-          }
-          setInFavorites(addingToFavorites);
-          resolve();
-        } catch (error) {
-          console.error("Error updating favorites:", error);
-          reject(error);
-        }
-      }),
-      {
-        loading: addingToFavorites
-          ? "Adding to favorites..."
-          : "Removing from favorites...",
-        success: addingToFavorites
-          ? "Added to favorites!"
-          : "Removed from favorites!",
-        error: "Something went wrong. Failed to update favorites.",
+    try {
+      const userDocRef = doc(db, "users", auth.currentUser.uid);
+      if (addingToFavorites) {
+        await updateDoc(userDocRef, {
+          favorites: arrayUnion(userId),
+        });
+      } else {
+        await updateDoc(userDocRef, {
+          favorites: arrayRemove(userId),
+        });
       }
-    );
+      setInFavorites(addingToFavorites);
+      toast.success(
+        addingToFavorites ? "Added to favorites!" : "Removed from favorites!"
+      );
+    } catch (error) {
+      console.error("Error updating favorites:", error);
+      toast.error("Failed to update favorites.");
+    }
   };
 
   const renderTabContent = () => {
@@ -409,12 +635,12 @@ const ProfileVisit = () => {
         return (
           <Uploads profileImage={profileData.profileImage} userId={userId} />
         );
-      case "Bio":
+      case "About":
         return <About bio={profileData.bio} readOnly={true} />;
-      case "Socials":
-        return <Socials socials={profileData.socials} readOnly={true} />;
-      case "Favorites":
+      case "Wishlisted":
         return <Favorites userId={userId} />;
+      case "Achievements":
+        return <Achievements userId={userId} />;
       default:
         return (
           <Uploads profileImage={profileData.profileImage} userId={userId} />
@@ -459,14 +685,66 @@ const ProfileVisit = () => {
           {profileData.username}
         </h2>
 
+        {/* Social media links under profile picture */}
+        <div className="flex justify-center space-x-4 mt-4">
+          {profileData.socials.youtube && (
+            <a
+              href={`https://youtube.com/@${profileData.socials.youtube}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-red-500 transition-colors"
+            >
+              <FaYoutube size={20} />
+            </a>
+          )}
+          {profileData.socials.instagram && (
+            <a
+              href={`https://instagram.com/${profileData.socials.instagram}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-pink-500 transition-colors"
+            >
+              <FaInstagram size={20} />
+            </a>
+          )}
+          {profileData.socials.tiktok && (
+            <a
+              href={`https://tiktok.com/@${profileData.socials.tiktok}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              <FaTiktok size={20} />
+            </a>
+          )}
+          {profileData.socials.twitter && (
+            <a
+              href={`https://twitter.com/${profileData.socials.twitter}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-blue-400 transition-colors"
+            >
+              <FaTwitter size={20} />
+            </a>
+          )}
+          {profileData.socials.facebook && (
+            <a
+              href={`https://facebook.com/${profileData.socials.facebook}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-blue-600 transition-colors"
+            >
+              <FaFacebook size={20} />
+            </a>
+          )}
+        </div>
+
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mt-6">
           <button
             onClick={handleFavorites}
-            className={`flex items-center justify-center gap-2 px-4 py-2 
-              border border-purple-500 text-purple-500 rounded-md 
-              transition-all text-sm w-fit ${
-                inFavorites ? "" : "bg-transparent"
-              }`}
+            className={`flex items-center justify-center gap-2 px-4 py-2 border border-purple-500 text-purple-500 rounded-md transition-all text-sm w-fit hover:bg-purple-500/10 ${
+              inFavorites ? "bg-purple-500/20" : "bg-transparent"
+            }`}
           >
             {inFavorites ? (
               <>
@@ -483,11 +761,9 @@ const ProfileVisit = () => {
 
           <button
             onClick={handleNotificationToggle}
-            className={`flex items-center justify-center gap-2 px-4 py-2 
-              border border-cyan-500 text-cyan-500 rounded-md
-              transition-all text-sm w-fit ${
-                notificationOn ? "" : "bg-transparent"
-              }`}
+            className={`flex items-center justify-center gap-2 px-4 py-2 border border-cyan-500 text-cyan-500 rounded-md transition-all text-sm w-fit hover:bg-cyan-500/10 ${
+              notificationOn ? "bg-cyan-500/20" : "bg-transparent"
+            }`}
           >
             {notificationOn ? (
               <>
@@ -505,27 +781,35 @@ const ProfileVisit = () => {
 
         <div className="w-full px-4 sm:px-12 md:px-24 mx-auto mt-8">
           <div className="flex justify-between border-b relative">
-            {tabs.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`py-2 flex-1 text-center relative cursor-pointer ${
-                  activeTab === tab
-                    ? "text-white font-semibold"
-                    : "text-gray-400"
-                }`}
-                aria-current={activeTab === tab ? "true" : "false"}
-              >
-                {tab}
-              </button>
-            ))}
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.name}
+                  onClick={() => setActiveTab(tab.name)}
+                  className={`py-2 flex-1 flex items-center justify-center cursor-pointer ${
+                    activeTab === tab.name
+                      ? "text-white font-semibold"
+                      : "text-gray-400"
+                  }`}
+                  aria-current={activeTab === tab.name ? "true" : "false"}
+                  aria-label={tab.name}
+                  title={tab.name}
+                >
+                  <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+                  <span className="ml-2 hidden sm:inline">{tab.name}</span>
+                </button>
+              );
+            })}
           </div>
           <div className="relative w-full h-1 bg-[#0E1115] border-none">
             <div
               className="h-full bg-purple-500 transition-all duration-300"
               style={{
                 width: `${100 / tabs.length}%`,
-                transform: `translateX(${tabs.indexOf(activeTab) * 100}%)`,
+                transform: `translateX(${
+                  tabs.indexOf(tabs.find((t) => t.name === activeTab)) * 100
+                }%)`,
               }}
             ></div>
           </div>
