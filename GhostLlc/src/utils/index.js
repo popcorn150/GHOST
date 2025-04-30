@@ -5,7 +5,7 @@ import GoogleIcon from '../assets/imgs/Google.png'
 import FacebookIcon from '../assets/imgs/Facebook.png'
 import Admin from '../assets/imgs/Admin-Profile.svg'
 import NavIcon from '../assets/imgs/Navlogo.svg'
-import Profile from '../assets/imgs/Profile.png'
+import Profile from '../assets/imgs/UserProfile.png'
 
 import GowBanner from "../assets/imgs/Gow-Thumbnail.png"
 import God_of_War_1 from "../assets/imgs/Gow-Ss1.svg"

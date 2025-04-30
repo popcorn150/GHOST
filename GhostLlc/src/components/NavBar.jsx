@@ -54,11 +54,6 @@ const NavBar = () => {
                 FAQs <HiOutlineQuestionMarkCircle className="self-center w-5 h-5" />
               </Link>
             </li>
-            {/* <li>
-              <Link to="/store" className="flex gap-2 hover:text-gray-400">
-                Store <IoStorefrontOutline className="self-center w-5 h-5" />
-              </Link>
-            </li> */}
             <li>
               <Link to="/community" className="flex gap-2 hover:text-gray-400">
                 Community <IoGlobeOutline className="self-center w-5 h-5" />
@@ -88,7 +83,7 @@ const NavBar = () => {
           <img
             src={ProfileIcon}
             alt="profile"
-            className="w-14 items-center rounded-lg"
+            className="w-10 md:w-12 bg-none self-center rounded-full border-2 border-[#4426B9]"
           />
         </button>
         {dropdownOpen && (

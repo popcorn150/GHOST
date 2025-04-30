@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { X, Menu, User, Settings, LogOut } from "lucide-react";
+import { X, Menu, Settings, LogOut } from "lucide-react";
 import { NavLogo, ProfileIcon } from "../../utils";
 import { IoCartOutline } from "react-icons/io5";
 import { IoGlobeOutline } from "react-icons/io5";
@@ -103,7 +103,7 @@ const NavBar = () => {
               <img
                 src={ProfileIcon}
                 alt="Profile"
-                className="w-14 items-center rounded-lg"
+                className="w-10 md:w-12 self-center rounded-full border-2 border-[#4426B9]"
               />
             </button>
             {dropdownOpen && (
@@ -128,7 +128,7 @@ const NavBar = () => {
                   <li
                     className="flex items-center gap-2 cursor-pointer"
                     onClick={() => {
-                      navigate("/login"); // Replace with actual logout logic
+                      navigate("/login");
                       setDropdownOpen(false);
                     }}
                   >

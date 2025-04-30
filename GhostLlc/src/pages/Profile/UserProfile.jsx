@@ -14,14 +14,14 @@ import {
 } from "firebase/firestore";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import NavBar from "../../components/NavBar";
+import NavBar from "./NavBar";
 import BackButton from "../../components/BackButton";
 import { MdOutlineCameraEnhance } from "react-icons/md";
 import { BsPencilSquare } from "react-icons/bs";
 import {
   FaSave,
   FaTrashAlt,
-  FaTrophy, // Changed from FaStar to FaTrophy
+  FaTrophy,
   FaInstagram,
   FaTiktok,
   FaImage,
@@ -2030,13 +2030,13 @@ const UserProfile = () => {
   }, [showAlfredPopup]);
 
   return (
-    <div className="bg-[#0E1115] min-h-screen text-white">
+    <div className="min-h-screen text-white">
       {showAlfredAlert && (
         <div className="fixed top-4 right-4 bg-[#161B22] p-4 rounded-lg border border-gray-800 shadow-lg z-50">
           <div className="flex items-center gap-3">
             <FaTrophy className="text-yellow-500 w-6 h-6" />
             <p className="text-white text-sm">
-              Complete your profile to earn the "Alfred" achievement!
+              Complete your profile to earn the &quot;Alfred&quot; achievement!
             </p>
             <button
               onClick={() => setShowAlfredAlert(false)}
