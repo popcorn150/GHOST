@@ -10,6 +10,8 @@ import { FaArrowLeft, FaArrowRight, FaEye, FaEyeSlash } from "react-icons/fa";
 import { GiCancel } from "react-icons/gi";
 import { Toaster, toast } from "sonner";
 import PaystackPop from "@paystack/inline-js";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../database/firebaseConfig";
 
 // Fallback image URL if AdminIcon is undefined
 const FALLBACK_IMAGE = "https://via.placeholder.com/150?text=Placeholder";
@@ -23,9 +25,9 @@ const AccountDetails = () => {
   const [account, setAccount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState([]);
-  const [isPurchased, setIsPurchased] = useState(false);
+  const [isPurchased] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
-  const [currency, setCurrency] = useState("NGN"); // TODO: Update this to refelect the app's currency
+  const [currency] = useState("NGN"); // TODO: Update this to refelect the app's currency
 
   useEffect(() => {
     console.log("Current user:", currentUser);
@@ -143,18 +145,59 @@ const AccountDetails = () => {
       return;
     }
 
-    console.log({ currentUser, account });
-
     const popup = new PaystackPop();
-    console.log(import.meta.env.VITE_PAYSTACK_PUBLIC_KEY);
 
     popup.checkout({
       key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "",
       email: currentUser.email,
       amount: Number(account.accountWorth) * 100,
       currency,
-      onSuccess: (transaction) => {
-        console.log({ transaction });
+      onSuccess: async (transaction) => {
+        const ref = transaction.reference; // e.g. "T253248818395821"
+
+        // 1) Write a "pending" payment doc to Firestore
+        try {
+          await setDoc(doc(db, "payments", ref), {
+            // Core user & transaction links
+            buyerId: currentUser.uid,
+            sellerId: account.userId,
+            accountId: account.id,
+
+            // Item metadata
+            itemDescription: account.title,
+            accountCredential: account.accountCredential,
+
+            // Money & gateway details
+            amount: Number(account.accountWorth),
+            currency,
+            method: "paystack",
+
+            // Lifecycle tracking
+            status: "pending",
+            createdAt: serverTimestamp(),
+            paidAt: null,
+
+            // References for reconciliation & linking
+            paymentRef: ref,
+            escrowId: null,
+
+            // Contact info for receipts/notifications
+            email: currentUser.email,
+          });
+
+          toast.success("Payment recorded! Verifying…");
+          // TODO: add verification step
+
+          // 2) Optionally, you can navigate or update UI here immediately
+          //    e.g., show a “verifying” screen, or navigate to a “Thank you” page
+          // navigate('/purchase-success');
+        } catch (err) {
+          console.error("Error saving payment:", err);
+          toast.error("Something went wrong; please contact support.");
+        }
+      },
+      onClose: () => {
+        toast("Payment window closed.");
       },
     });
 
