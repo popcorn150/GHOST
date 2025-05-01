@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { FaArrowLeft, FaArrowRight, FaEye, FaEyeSlash } from "react-icons/fa";
 import { GiCancel } from "react-icons/gi";
 import { Toaster, toast } from "sonner";
+import PaystackPop from "@paystack/inline-js";
 
 // Fallback image URL if AdminIcon is undefined
 const FALLBACK_IMAGE = "https://via.placeholder.com/150?text=Placeholder";
@@ -24,6 +25,7 @@ const AccountDetails = () => {
   const [cart, setCart] = useState([]);
   const [isPurchased, setIsPurchased] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
+  const [currency, setCurrency] = useState("NGN"); // TODO: Update this to refelect the app's currency
 
   // Log imports to debug
   useEffect(() => {
@@ -143,19 +145,34 @@ const AccountDetails = () => {
       return;
     }
 
-    toast.promise(
-      new Promise((resolve) => {
-        setTimeout(() => {
-          setIsPurchased(true);
-          resolve();
-        }, 2000);
-      }),
-      {
-        loading: `Processing purchase for ${account.title}...`,
-        success: `${account.title} purchased successfully!`,
-        error: `Failed to purchase ${account.title}`,
-      }
-    );
+    console.log({ currentUser, account });
+
+    const popup = new PaystackPop();
+    console.log(import.meta.env.VITE_PAYSTACK_PUBLIC_KEY);
+
+    popup.checkout({
+      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "",
+      email: currentUser.email,
+      amount: Number(account.accountWorth) * 100,
+      currency,
+      onSuccess: (transaction) => {
+        console.log({ transaction });
+      },
+    });
+
+    // toast.promise(
+    //   new Promise((resolve) => {
+    //     setTimeout(() => {
+    //       setIsPurchased(true);
+    //       resolve();
+    //     }, 2000);
+    //   }),
+    //   {
+    //     loading: `Processing purchase for ${account.title}...`,
+    //     success: `${account.title} purchased successfully!`,
+    //     error: `Failed to purchase ${account.title}`,
+    //   }
+    // );
   };
 
   const toggleCredentialVisibility = () => {
