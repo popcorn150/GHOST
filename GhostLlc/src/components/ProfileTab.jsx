@@ -53,7 +53,7 @@ const ProfileTabs = () => {
         })}
       </div>
 
-      <div className="relative w-full h-1 bg-[#0E1115] border-none">
+      <div className="relative w-full h-1 bg-[#4d5054] border-none">
         <div
           className="h-full bg-purple-500 transition-all duration-300"
           style={{

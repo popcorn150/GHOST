@@ -27,22 +27,20 @@ const AccountDetails = () => {
   const [showCredentials, setShowCredentials] = useState(false);
   const [currency, setCurrency] = useState("NGN"); // TODO: Update this to refelect the app's currency
 
-  // Log imports to debug
   useEffect(() => {
-    console.log("AdminIcon imported:", AdminIcon);
-    console.log(
-      "fetchAccountByIdWithImages imported:",
-      fetchAccountByIdWithImages
-    );
-  }, []);
+    console.log("Current user:", currentUser);
+  }, [currentUser]);
 
   useEffect(() => {
     const fetchAccountData = async () => {
       setLoading(true);
-      console.log("Fetching account data for slug:", slug);
+      console.log(`Fetching account data for slug: ${slug}`);
 
       try {
-        const firestoreAccount = await fetchAccountByIdWithImages(slug);
+        const firestoreAccount = await fetchAccountByIdWithImages(
+          slug,
+          currentUser
+        );
         console.log("Fetched Firestore account:", firestoreAccount);
 
         if (firestoreAccount) {
@@ -68,9 +66,10 @@ const AccountDetails = () => {
               : [],
             isFromFirestore: true,
           };
-          console.log("Mapped Firestore account:", foundAccount);
+          console.log("Mapped account with views:", foundAccount.views);
           setAccount(foundAccount);
         } else {
+          console.log("Account not found, redirecting...");
           toast.error("Account not found.");
           navigate("/categories");
         }
@@ -84,7 +83,7 @@ const AccountDetails = () => {
     };
 
     fetchAccountData();
-  }, [slug, navigate]);
+  }, [slug, navigate, currentUser]);
 
   useEffect(() => {
     const timer = setTimeout(() => setLoadingImages(false), 2000);
@@ -98,7 +97,6 @@ const AccountDetails = () => {
   }, [isPurchased]);
 
   useEffect(() => {
-    // Load cart from localStorage on mount
     const existingCart = JSON.parse(localStorage.getItem("ghost_cart")) || [];
     setCart(existingCart);
   }, []);
@@ -134,7 +132,7 @@ const AccountDetails = () => {
       localStorage.setItem("ghost_cart", JSON.stringify(updatedCart));
       setCart(updatedCart);
       toast.success(`${account.title} added to cart!`);
-      console.log("🧃 Saved to localStorage:", updatedCart);
+      console.log("Saved to localStorage:", updatedCart);
     }
   };
 
@@ -386,118 +384,107 @@ const AccountDetails = () => {
                   </p>
                 </div>
               )}
-
-              {/* REFINED BUTTONS - More subtle and elegant styling */}
-              {currentUser && (
-                <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
-                  <Toaster richColors position="top-center" />
-
-                  {/* Cart Button - Refined */}
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={isInCart}
-                    className={`flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 rounded-md text-sm font-medium transition-all duration-200
-                      ${
-                        isInCart
-                          ? "bg-gray-800 text-gray-400 cursor-not-allowed"
-                          : "bg-gray-700 text-blue-300 border border-blue-500/30 hover:bg-gray-600 hover:border-blue-400"
-                      }
-                    `}
-                    aria-label={isInCart ? "Item in cart" : "Add to cart"}
-                  >
-                    {isInCart ? (
-                      <>
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        <span>In Cart</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                          />
-                        </svg>
-                        <span>Add to Cart</span>
-                      </>
-                    )}
-                  </button>
-
-                  {/* Purchase Button - Refined */}
-                  <button
-                    onClick={handlePurchase}
-                    disabled={isPurchased}
-                    className={`flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 rounded-md text-sm font-medium transition-all duration-200
-                      ${
-                        isPurchased
-                          ? "bg-gray-800 text-gray-400 cursor-not-allowed"
-                          : "bg-[#0576FF] text-white hover:bg-[#0465db]"
-                      }
-                    `}
-                    aria-label={isPurchased ? "Purchased" : "Purchase account"}
-                  >
-                    {isPurchased ? (
-                      <>
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        <span>Purchased</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                          />
-                        </svg>
-                        <span>Purchase</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-              {/* END REFINED BUTTONS */}
+              <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
+                <Toaster richColors position="top-center" />
+                <button
+                  onClick={handleAddToCart}
+                  disabled={isInCart}
+                  className={`flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 rounded-md text-sm font-medium transition-all duration-200
+                    ${
+                      isInCart
+                        ? "bg-gray-800 text-gray-400 cursor-not-allowed"
+                        : "bg-gray-700 text-blue-300 border border-blue-500/30 hover:bg-gray-600 hover:border-blue-400"
+                    }`}
+                  aria-label={isInCart ? "Item in cart" : "Add to cart"}
+                >
+                  {isInCart ? (
+                    <>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      <span>In Cart</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                        />
+                      </svg>
+                      <span>Add to Cart</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handlePurchase}
+                  disabled={isPurchased}
+                  className={`flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 rounded-md text-sm font-medium transition-all duration-200
+                    ${
+                      isPurchased
+                        ? "bg-gray-800 text-gray-400 cursor-not-allowed"
+                        : "bg-[#0576FF] text-white hover:bg-[#0465db]"
+                    }`}
+                  aria-label={isPurchased ? "Purchased" : "Purchase account"}
+                >
+                  {isPurchased ? (
+                    <>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      <span>Purchased</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                        />
+                      </svg>
+                      <span>Purchase</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
           {selectedImage !== null && account.screenShots?.length > 0 && (

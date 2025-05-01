@@ -6,211 +6,119 @@ import {
   where,
   doc,
   getDoc,
+  updateDoc,
+  increment,
+  runTransaction,
+  setDoc,
 } from "firebase/firestore";
 
-// Fetch all accounts with their images
-export const fetchAccountsWithImages = async () => {
+// Generate or retrieve a unique anonymous ID for unauthenticated users
+const getAnonymousId = () => {
+  let anonymousId = localStorage.getItem("anonymousId");
+  if (!anonymousId) {
+    anonymousId = `anon_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem("anonymousId", anonymousId);
+  }
+  return anonymousId;
+};
+
+// Initialize views field for all accounts
+export const initializeViews = async () => {
   try {
-    // Fetch all accounts
-    const accountsQuery = query(collection(db, "accounts"));
-    const querySnapshot = await getDocs(accountsQuery);
-    const accountIds = querySnapshot.docs.map((doc) => doc.id);
-    const accountsData = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    console.log("Initializing views for all accounts...");
+    const accountsRef = collection(db, "accounts");
+    const snapshot = await getDocs(accountsRef);
+    let updatedCount = 0;
 
-    // Batch fetch all images for all accounts
-    const imagesPromises = accountIds.map((accountId) =>
-      getDocs(collection(db, `accounts/${accountId}/images`))
-        .then((imagesSnap) => {
-          const images = {};
-          imagesSnap.forEach((imgDoc) => {
-            images[imgDoc.id] = imgDoc.data().image || "";
-          });
-          return { accountId, images };
-        })
-        .catch((error) => {
-          console.error(
-            `Error fetching images for account ${accountId}:`,
-            error
-          );
-          return { accountId, images: {} };
-        })
-    );
-
-    const allImages = await Promise.all(imagesPromises);
-    const imagesMap = allImages.reduce((acc, { accountId, images }) => {
-      acc[accountId] = images;
-      return acc;
-    }, {});
-
-    // Map accounts with their images and fetch user profile pictures
-    const accounts = await Promise.all(
-      accountsData.map(async (accountData) => {
-        let userProfilePic = null;
-        // Try fetching using userId first
-        if (accountData.userId) {
-          console.log(
-            `Attempting to fetch user profile for userId: ${accountData.userId}`
-          );
-          try {
-            const userRef = doc(db, "users", accountData.userId);
-            const userDoc = await getDoc(userRef);
-            if (userDoc.exists()) {
-              const userData = userDoc.data();
-              userProfilePic =
-                userData.profilePic ||
-                userData.profileImage ||
-                userData.photoURL ||
-                userData.profilePicture ||
-                userData.avatar ||
-                null;
-              console.log(
-                `User profile data (using userId) for ${accountData.userId}:`,
-                userData
-              );
-              if (!userProfilePic) {
-                console.log(
-                  `No profile picture field (profilePic, profileImage, photoURL, profilePicture, avatar) found in user document for userId: ${accountData.userId}`
-                );
-              }
-            } else {
-              console.log(
-                `No user document found with ID ${accountData.userId} in users collection`
-              );
-            }
-          } catch (error) {
-            console.error(
-              `Error fetching user profile for userId ${accountData.userId}:`,
-              error
-            );
-          }
-        } else {
-          console.log(
-            `No userId field found in account ${accountData.id}:`,
-            accountData
-          );
-        }
-
-        // Fallback to username if userId didn't work
-        if (!userProfilePic && accountData.username) {
-          console.log(
-            `Attempting to fetch user profile for username: ${accountData.username}`
-          );
-          try {
-            // Try fetching user document assuming username is the document ID
-            const userRef = doc(db, "users", accountData.username);
-            const userDoc = await getDoc(userRef);
-            if (userDoc.exists()) {
-              const userData = userDoc.data();
-              userProfilePic =
-                userData.profilePic ||
-                userData.profileImage ||
-                userData.photoURL ||
-                userData.profilePicture ||
-                userData.avatar ||
-                null;
-              console.log(
-                `User profile data (using username as doc ID) for ${accountData.username}:`,
-                userData
-              );
-              if (!userProfilePic) {
-                console.log(
-                  `No profile picture field (profilePic, profileImage, photoURL, profilePicture, avatar) found in user document for ${accountData.username}`
-                );
-              }
-            } else {
-              console.log(
-                `No user document found with ID ${accountData.username} in users collection`
-              );
-              // Fallback: Try querying users collection with username field
-              const userQuery = query(
-                collection(db, "users"),
-                where("username", "==", accountData.username)
-              );
-              const userSnapshot = await getDocs(userQuery);
-              if (!userSnapshot.empty) {
-                const userDoc = userSnapshot.docs[0];
-                const userData = userDoc.data();
-                userProfilePic =
-                  userData.profilePic ||
-                  userData.profileImage ||
-                  userData.photoURL ||
-                  userData.profilePicture ||
-                  userData.avatar ||
-                  null;
-                console.log(
-                  `User profile data (using username field) for ${accountData.username}:`,
-                  userData
-                );
-                if (!userProfilePic) {
-                  console.log(
-                    `No profile picture field (profilePic, profileImage, photoURL, profilePicture, avatar) found in user document for ${accountData.username}`
-                  );
-                }
-              } else {
-                console.log(
-                  `No user document found with username field matching ${accountData.username}`
-                );
-              }
-            }
-          } catch (error) {
-            console.error(
-              `Error fetching user profile for username ${accountData.username}:`,
-              error
-            );
-          }
-        }
-
-        const images = imagesMap[accountData.id] || {};
-        const accountWithImages = {
-          ...accountData,
-          accountImage: images.accountImage || "",
-          screenshots: Object.keys(images)
-            .filter((key) => key.startsWith("screenshot"))
-            .map((key) => images[key])
-            .filter((img) => img),
-          userProfilePic: userProfilePic,
-        };
+    for (const accountDoc of snapshot.docs) {
+      const data = accountDoc.data();
+      if (data.views === undefined || data.views === null) {
+        await updateDoc(doc(db, "accounts", accountDoc.id), { views: 0 });
+        console.log(`Initialized views to 0 for account ${accountDoc.id}`);
+        updatedCount++;
+      } else {
         console.log(
-          `Processed account ${accountData.id} with images and profile pic:`,
-          accountWithImages
+          `Views already set for account ${accountDoc.id}: ${data.views}`
         );
-        return accountWithImages;
-      })
-    );
+      }
+    }
 
-    console.log("Final accounts data returned to Category.jsx:", accounts);
-    return accounts;
-  } catch (err) {
-    console.error("Error fetching accounts:", err);
-    return [];
+    console.log(`Initialization complete. Updated ${updatedCount} accounts.`);
+    return { success: true, updatedCount };
+  } catch (error) {
+    console.error("Error initializing views:", error);
+    return { success: false, error };
   }
 };
 
 // Fetch a single account by ID with its images and user profile picture
-export const fetchAccountByIdWithImages = async (accountId) => {
+export const fetchAccountByIdWithImages = async (
+  accountId,
+  user = null // Pass currentUser or null
+) => {
   try {
-    const accountsQuery = query(collection(db, "accounts"));
-    const querySnapshot = await getDocs(accountsQuery);
-    const accountDoc = querySnapshot.docs.find((doc) => doc.id === accountId);
+    console.log(`Fetching account with ID: ${accountId}`);
+    const accountRef = doc(db, "accounts", accountId);
+    const accountDoc = await getDoc(accountRef);
 
-    if (!accountDoc) {
+    if (!accountDoc.exists()) {
       console.log(`No account found with ID: ${accountId}`);
       return null;
     }
 
     const accountData = { id: accountDoc.id, ...accountDoc.data() };
+    console.log(`Initial account data:`, accountData);
+
+    // Increment views for unique users
+    const viewerId = user ? user.uid : getAnonymousId();
+    const viewType = user ? "authenticated" : "anonymous";
+    console.log(`Viewer ID: ${viewerId} (${viewType})`);
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        const viewRef = doc(db, `accounts/${accountId}/views`, viewerId);
+        const viewDoc = await transaction.get(viewRef);
+
+        if (!viewDoc.exists()) {
+          // New viewer, record the view and increment views
+          transaction.set(viewRef, {
+            [viewType === "authenticated" ? "userId" : "anonymousId"]: viewerId,
+            viewedAt: new Date().toISOString(),
+          });
+          transaction.update(accountRef, {
+            views: accountData.views != null ? increment(1) : 1, // Initialize to 1 if null
+          });
+          console.log(
+            `Recording new view for ${viewerId} on account ${accountId}`
+          );
+        } else {
+          console.log(`Viewer ${viewerId} already viewed account ${accountId}`);
+        }
+      });
+      console.log(`View transaction completed for account ${accountId}`);
+    } catch (viewError) {
+      console.error(
+        `Failed to record view for account ${accountId}:`,
+        viewError
+      );
+    }
+
+    // Fetch the updated document to get the latest view count
+    const updatedAccountDoc = await getDoc(accountRef);
+    const updatedAccountData = {
+      id: updatedAccountDoc.id,
+      ...updatedAccountDoc.data(),
+    };
+    console.log(`Updated account data with views:`, updatedAccountData.views);
+
     let userProfilePic = null;
 
-    // Try fetching using userId first
-    if (accountData.userId) {
+    if (updatedAccountData.userId) {
       console.log(
-        `Attempting to fetch user profile for userId: ${accountData.userId}`
+        `Fetching user profile for userId: ${updatedAccountData.userId}`
       );
       try {
-        const userRef = doc(db, "users", accountData.userId);
+        const userRef = doc(db, "users", updatedAccountData.userId);
         const userDoc = await getDoc(userRef);
         if (userDoc.exists()) {
           const userData = userDoc.data();
@@ -222,40 +130,35 @@ export const fetchAccountByIdWithImages = async (accountId) => {
             userData.avatar ||
             null;
           console.log(
-            `User profile data (using userId) for ${accountData.userId}:`,
+            `User profile data for ${updatedAccountData.userId}:`,
             userData
           );
           if (!userProfilePic) {
             console.log(
-              `No profile picture field (profilePic, profileImage, photoURL, profilePicture, avatar) found in user document for userId: ${accountData.userId}`
+              `No profile picture found for userId: ${updatedAccountData.userId}`
             );
           }
         } else {
           console.log(
-            `No user document found with ID ${accountData.userId} in users collection`
+            `No user document found for userId: ${updatedAccountData.userId}`
           );
         }
       } catch (error) {
         console.error(
-          `Error fetching user profile for userId ${accountData.userId}:`,
+          `Error fetching user profile for userId ${updatedAccountData.userId}:`,
           error
         );
       }
     } else {
-      console.log(
-        `No userId field found in account ${accountId}:`,
-        accountData
-      );
+      console.log(`No userId field in account ${accountId}`);
     }
 
-    // Fallback to username if userId didn't work
-    if (!userProfilePic && accountData.username) {
+    if (!userProfilePic && updatedAccountData.username) {
       console.log(
-        `Attempting to fetch user profile for username: ${accountData.username}`
+        `Fetching user profile for username: ${updatedAccountData.username}`
       );
       try {
-        // Try fetching user document assuming username is the document ID
-        const userRef = doc(db, "users", accountData.username);
+        const userRef = doc(db, "users", updatedAccountData.username);
         const userDoc = await getDoc(userRef);
         if (userDoc.exists()) {
           const userData = userDoc.data();
@@ -267,22 +170,21 @@ export const fetchAccountByIdWithImages = async (accountId) => {
             userData.avatar ||
             null;
           console.log(
-            `User profile data (using username as doc ID) for ${accountData.username}:`,
+            `User profile data for username ${updatedAccountData.username}:`,
             userData
           );
           if (!userProfilePic) {
             console.log(
-              `No profile picture field (profilePic, profileImage, photoURL, profilePicture, avatar) found in user document for ${accountData.username}`
+              `No profile picture found for username: ${updatedAccountData.username}`
             );
           }
         } else {
           console.log(
-            `No user document found with ID ${accountData.username} in users collection`
+            `No user document found for username: ${updatedAccountData.username}`
           );
-          // Fallback: Try querying users collection with username field
           const userQuery = query(
             collection(db, "users"),
-            where("username", "==", accountData.username)
+            where("username", "==", updatedAccountData.username)
           );
           const userSnapshot = await getDocs(userQuery);
           if (!userSnapshot.empty) {
@@ -295,24 +197,19 @@ export const fetchAccountByIdWithImages = async (accountId) => {
               userData.profilePicture ||
               userData.avatar ||
               null;
-            console.log(
-              `User profile data (using username field) for ${accountData.username}:`,
-              userData
-            );
+            console.log(`User profile data via username query:`, userData);
             if (!userProfilePic) {
-              console.log(
-                `No profile picture field (profilePic, profileImage, photoURL, profilePicture, avatar) found in user document for ${accountData.username}`
-              );
+              console.log(`No profile picture found in username query`);
             }
           } else {
             console.log(
-              `No user document found with username field matching ${accountData.username}`
+              `No user found with username field: ${updatedAccountData.username}`
             );
           }
         }
       } catch (error) {
         console.error(
-          `Error fetching user profile for username ${accountData.username}:`,
+          `Error fetching user profile for username ${updatedAccountData.username}:`,
           error
         );
       }
@@ -326,7 +223,7 @@ export const fetchAccountByIdWithImages = async (accountId) => {
         images[imgDoc.id] = imgDoc.data().image || "";
       });
       const accountWithImages = {
-        ...accountData,
+        ...updatedAccountData,
         accountImage: images.accountImage || "",
         screenshots: Object.keys(images)
           .filter((key) => key.startsWith("screenshot"))
@@ -334,27 +231,124 @@ export const fetchAccountByIdWithImages = async (accountId) => {
           .filter((img) => img),
         userProfilePic: userProfilePic,
       };
-      console.log(
-        "Final account data with images and profile pic:",
-        accountWithImages
-      );
+      console.log(`Final account data with images:`, accountWithImages);
       return accountWithImages;
     } catch (error) {
       console.error(`Error fetching images for account ${accountId}:`, error);
       const accountWithImages = {
-        ...accountData,
+        ...updatedAccountData,
         accountImage: "",
         screenshots: [],
         userProfilePic: userProfilePic,
       };
-      console.log(
-        "Final account data (with error in images):",
-        accountWithImages
-      );
+      console.log(`Final account data (no images):`, accountWithImages);
       return accountWithImages;
     }
   } catch (err) {
-    console.error("Error fetching account:", err);
+    console.error(`Error fetching account ${accountId}:`, err);
     return null;
+  }
+};
+
+// Fetch all accounts with images (used by Category.jsx)
+export const fetchAccountsWithImages = async (userId = null) => {
+  try {
+    console.log(`Fetching accounts${userId ? ` for user ${userId}` : ""}`);
+    const accountsRef = collection(db, "accounts");
+    let accountsQuery = accountsRef;
+
+    // If userId is provided, filter by userId
+    if (userId) {
+      accountsQuery = query(accountsRef, where("userId", "==", userId));
+    }
+
+    const accountsSnapshot = await getDocs(accountsQuery);
+    const accounts = [];
+
+    for (const accountDoc of accountsSnapshot.docs) {
+      const accountData = { id: accountDoc.id, ...accountDoc.data() };
+
+      // Fetch images for the account
+      let accountImage = "";
+      let screenshots = [];
+      try {
+        const imagesRef = collection(db, `accounts/${accountDoc.id}/images`);
+        const imagesSnap = await getDocs(imagesRef);
+        const images = {};
+        imagesSnap.forEach((imgDoc) => {
+          images[imgDoc.id] = imgDoc.data().image || "";
+        });
+        accountImage = images.accountImage || "";
+        screenshots = Object.keys(images)
+          .filter((key) => key.startsWith("screenshot"))
+          .map((key) => images[key])
+          .filter((img) => img);
+      } catch (error) {
+        console.error(
+          `Error fetching images for account ${accountDoc.id}:`,
+          error
+        );
+      }
+
+      // Fetch user profile picture
+      let userProfilePic = null;
+      if (accountData.userId) {
+        try {
+          const userRef = doc(db, "users", accountData.userId);
+          const userDoc = await getDoc(userRef);
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            userProfilePic =
+              userData.profilePic ||
+              userData.profileImage ||
+              userData.photoURL ||
+              userData.profilePicture ||
+              userData.avatar ||
+              null;
+          }
+        } catch (error) {
+          console.error(
+            `Error fetching user profile for userId ${accountData.userId}:`,
+            error
+          );
+        }
+      } else if (accountData.username) {
+        try {
+          const userQuery = query(
+            collection(db, "users"),
+            where("username", "==", accountData.username)
+          );
+          const userSnapshot = await getDocs(userQuery);
+          if (!userSnapshot.empty) {
+            const userData = userSnapshot.docs[0].data();
+            userProfilePic =
+              userData.profilePic ||
+              userData.profileImage ||
+              userData.photoURL ||
+              userData.profilePicture ||
+              userData.avatar ||
+              null;
+          }
+        } catch (error) {
+          console.error(
+            `Error fetching user profile for username ${accountData.username}:`,
+            error
+          );
+        }
+      }
+
+      accounts.push({
+        ...accountData,
+        accountImage,
+        screenshots,
+        userProfilePic,
+      });
+    }
+
+    console.log(`Fetched ${accounts.length} accounts`);
+    return accounts;
+  } catch (error) {
+    console.error("Error fetching accounts:", error);
+    return [];
   }
 };
