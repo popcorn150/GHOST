@@ -4,6 +4,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from "react";
 import { auth, db } from "../database/firebaseConfig";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -21,6 +22,7 @@ export const AuthProvider = ({ children }) => {
   const [userTimeout, setUserTimeout] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const processingAuth = useRef(false);
 
   const checkUserExists = useCallback(async (uid) => {
     try {
@@ -31,15 +33,15 @@ export const AuthProvider = ({ children }) => {
       );
       if (userDoc.exists()) {
         setUserDetails(userDoc.data());
-        return true;
+        return userDoc.data();
       }
-      return false;
+      return null;
     } catch (error) {
       console.error(
         `AuthContext checkUserExists failed for UID=${uid}:`,
         error
       );
-      return false;
+      return null;
     }
   }, []);
 
@@ -78,16 +80,26 @@ export const AuthProvider = ({ children }) => {
         return false;
       }
 
-      const success = await createUserDocument(currentUser, {
-        ...userData,
-        setupComplete: true,
-      });
+      try {
+        const success = await createUserDocument(currentUser, {
+          ...userData,
+          setupComplete: true,
+        });
 
-      if (success) {
-        navigate("/categories");
-        return true;
+        if (success) {
+          setUserDetails((prev) => ({
+            ...prev,
+            ...userData,
+            setupComplete: true,
+          }));
+          navigate("/categories");
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error("Error completing user setup:", error);
+        return false;
       }
-      return false;
     },
     [currentUser, createUserDocument, navigate]
   );
@@ -101,7 +113,6 @@ export const AuthProvider = ({ children }) => {
       }
       setCurrentUser(null);
       setUserDetails(null);
-      setLastProcessedUid(null);
       await signOut(auth);
       navigate("/login");
     } catch (error) {
@@ -123,91 +134,90 @@ export const AuthProvider = ({ children }) => {
     }
   }, [currentUser, logout, userTimeout]);
 
-  const [lastProcessedUid, setLastProcessedUid] = useState(null);
+  const isPublicRoute = useCallback((path) => {
+    const publicRoutes = [
+      "/",
+      "/login",
+      "/sign-up",
+      "/privacy-policy",
+      "/terms-of-service",
+      "/about",
+      "/contact",
+      "/faq",
+    ];
+    const isAccountDetailsRoute = path.match(/^\/account\/[^/]+$/);
+    return publicRoutes.includes(path) || isAccountDetailsRoute;
+  }, []);
 
   const handleAuthStateChange = useCallback(
     async (user) => {
-      if (user?.uid === lastProcessedUid && !loading) {
+      // Prevent concurrent processing
+      if (processingAuth.current) {
         return;
       }
 
-      console.log(
-        `AuthContext: Auth state changed, User=${
-          user ? user.uid : "null"
-        }, Path=${location.pathname}`
-      );
+      processingAuth.current = true;
 
-      if (user) {
-        setLastProcessedUid(user.uid);
-        setCurrentUser(user);
-
-        const userExists = await checkUserExists(user.uid);
+      try {
         console.log(
-          `Navigation check: userExists=${userExists}, setupComplete=${userDetails?.setupComplete}, path=${location.pathname}`
+          `AuthContext: Auth state changed, User=${
+            user ? user.uid : "null"
+          }, Path=${location.pathname}`
         );
 
-        if (!userExists) {
-          const publicRoutes = [
-            "/",
-            "/login",
-            "/sign-up",
-            "/privacy-policy",
-            "/terms-of-service",
-            "/about",
-            "/contact",
-            "/faq",
-          ];
-          const isAccountDetailsRoute =
-            location.pathname.match(/^\/account\/[^/]+$/);
-          if (
-            !publicRoutes.includes(location.pathname) &&
-            !isAccountDetailsRoute
-          ) {
+        if (user) {
+          setCurrentUser(user);
+          resetInactivityTimer();
+
+          const userData = await checkUserExists(user.uid);
+
+          // Only redirect if needed based on current location and user state
+          if (!userData) {
+            // New user without a document - create a basic one
+            await createUserDocument(user);
+
+            // Don't force redirect to /sign-up on public routes
+            if (
+              !isPublicRoute(location.pathname) &&
+              location.pathname !== "/sign-up"
+            ) {
+              navigate("/sign-up");
+            }
+          } else if (!userData.setupComplete) {
+            // User exists but setup not complete
+            if (location.pathname !== "/sign-up") {
+              navigate("/sign-up");
+            }
+          } else if (userData.setupComplete) {
+            // User exists and setup is complete
+            if (location.pathname === "/login" || location.pathname === "/") {
+              navigate("/categories");
+            }
+          }
+        } else {
+          // No user is authenticated
+          setCurrentUser(null);
+          setUserDetails(null);
+
+          // Only redirect to login if on a protected route
+          if (!isPublicRoute(location.pathname)) {
             navigate("/login");
           }
-        } else if (
-          userExists &&
-          userDetails?.setupComplete &&
-          (location.pathname === "/login" || location.pathname === "/")
-        ) {
-          navigate("/categories");
-        } else if (userExists && !userDetails?.setupComplete) {
-          navigate("/sign-up");
         }
-      } else {
-        setCurrentUser(null);
-        setUserDetails(null);
-        setLastProcessedUid(null);
-
-        const publicRoutes = [
-          "/",
-          "/login",
-          "/sign-up",
-          "/privacy-policy",
-          "/terms-of-service",
-          "/about",
-          "/contact",
-          "/faq",
-        ];
-        const isAccountDetailsRoute =
-          location.pathname.match(/^\/account\/[^/]+$/);
-        if (
-          !publicRoutes.includes(location.pathname) &&
-          !isAccountDetailsRoute
-        ) {
-          navigate("/login");
-        }
+      } catch (error) {
+        console.error("Error handling auth state change:", error);
+      } finally {
+        setLoading(false);
+        processingAuth.current = false;
       }
-
-      setLoading(false);
     },
     [
       checkUserExists,
+      createUserDocument,
       navigate,
       location.pathname,
-      loading,
-      lastProcessedUid,
-      userDetails,
+      isPublicRoute,
+      resetInactivityTimer,
     ]
   );
 
