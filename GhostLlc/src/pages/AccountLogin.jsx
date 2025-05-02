@@ -2,7 +2,11 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { BackGround_, Logo, Title, Google } from "../utils";
 import { auth, googleProvider } from "../database/firebaseConfig";
-import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+} from "firebase/auth";
 import {
   getFirestore,
   collection,
@@ -37,7 +41,6 @@ const AccountLogin = () => {
     return regex.test(email);
   };
 
-  // Enhanced function to check if user details exist in Firebase
   const checkUserDetails = async (uid) => {
     try {
       const userRef = doc(db, "users", uid);
@@ -52,8 +55,6 @@ const AccountLogin = () => {
       }
 
       const userData = userDoc.data();
-
-      // Check if essential user details are present
       const requiredFields = ["email", "username"];
       const missingFields = requiredFields.filter((field) => !userData[field]);
 
@@ -135,18 +136,15 @@ const AccountLogin = () => {
         userEmail,
         password
       );
-
-      // Check if user details exist in Firebase
       const userDetailsCheck = await checkUserDetails(userCredential.user.uid);
 
       if (!userDetailsCheck.exists) {
         setError(userDetailsCheck.message);
-        // Do NOT navigate - just show the error message about signing up
         return;
       }
 
       toast.success("Login successful!");
-      navigate("/categories"); // Only navigate if user details exist
+      navigate("/categories");
     } catch (error) {
       console.error("Login error:", error);
       if (error.code) {
@@ -211,17 +209,15 @@ const AccountLogin = () => {
         throw new Error("No user or email returned from Google sign-in.");
       }
 
-      // Check if user details exist in Firebase
       const userDetailsCheck = await checkUserDetails(signedInUser.uid);
 
       if (!userDetailsCheck.exists) {
         setError(userDetailsCheck.message);
-        // Do NOT navigate - just show the error message about signing up
         return;
       }
 
       toast.success("Google sign-in successful!");
-      navigate("/categories"); // Only navigate if user details exist
+      navigate("/categories");
     } catch (error) {
       console.error("Google sign-in error:", error);
       if (error.code) {
@@ -251,11 +247,30 @@ const AccountLogin = () => {
       } else {
         setError(
           error.message ||
-          "Google sign-in failed. Please try again or sign up for an account."
+            "Google sign-in failed. Please try again or sign up for an account."
         );
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateAccount = async () => {
+    try {
+      if (auth.currentUser) {
+        console.log(
+          "Signingева out current user before navigating to Welcome page"
+        );
+        await signOut(auth);
+        console.log("Sign-out successful");
+      }
+      navigate("/");
+    } catch (error) {
+      console.error(
+        "Error during sign-out before navigating to Welcome page:",
+        error
+      );
+      setError("Failed to prepare for account creation. Please try again.");
     }
   };
 
@@ -332,14 +347,14 @@ const AccountLogin = () => {
               your fingertips.
             </h6>
 
-            <Link to="/">
-              <button
-                type="button"
-                className="w-full mt-5 border-2 border-gray-500 text-white text-xs font-medium p-2 rounded-md hover:bg-gray-700 transition"
-              >
-                Create An Account
-              </button>
-            </Link>
+            <button
+              type="button"
+              onClick={handleCreateAccount}
+              className="w-full mt-5 border-2 border-gray-500 text-white text-xs font-medium p-2 rounded-md hover:bg-gray-700 transition"
+              disabled={loading}
+            >
+              Create An Account
+            </button>
           </form>
 
           <div className="flex flex-col items-center mt-6 w-full">
