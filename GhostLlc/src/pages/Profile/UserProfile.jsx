@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { auth, db } from "../../database/firebaseConfig";
+import PropTypes from "prop-types";
 import {
   collection,
   addDoc,
@@ -2114,6 +2115,21 @@ const UserProfile = () => {
       </Layout>
     </div>
   );
+};
+
+UserProfile.propTypes = {
+  activeTab: PropTypes.string.isRequired,
+  setActiveTab: PropTypes.func.isRequired,
+  username: PropTypes.string.isRequired,
+  profileImage: PropTypes.string,
+  handleImageChange: PropTypes.func.isRequired,
+  isEditingUsername: PropTypes.bool.isRequired,
+  setIsEditingUsername: PropTypes.func.isRequired,
+  tempUsername: PropTypes.string.isRequired,
+  setTempUsername: PropTypes.func.isRequired,
+  handleSaveUsername: PropTypes.func.isRequired,
+  handleDiscardUsername: PropTypes.func.isRequired,
+  isUpdatingUsername: PropTypes.bool.isRequired,
 };
 
 export default UserProfile;

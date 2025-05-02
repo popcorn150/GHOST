@@ -1,77 +1,23 @@
 import {
-    Apex_Legends_Screenshot_1,
-    Apex_Legends_Screenshot_2,
-    Apex_Legends_Screenshot_3,
     Apex_Legends_Thumbnail,
-    BMX_Screenshot_1,
-    BMX_Screenshot_2,
-    BMX_Screenshot_3,
     BMX_Thumbnail,
     COD_Thumbnail,
-    CODScreenShot_1,
-    CODScreenShot_2,
-    CODScreenShot_3,
     Dark_Souls_3_Thumbnail,
-    Dark_Souls_III_Screenshot_1,
-    Dark_Souls_III_Screenshot_2,
-    Dark_Souls_III_Screenshot_3,
-    Dragons_Dogma2_Screenshot_1,
-    Dragons_Dogma2_Screenshot_2,
-    Dragons_Dogma2_Screenshot_3,
     Dragons_Dogma2_Thumbnail,
-    EASports_Screenshot_1,
-    EASports_Screenshot_2,
-    EASports_Screenshot_3,
     EASports_Thumbnail,
-    Far_Cry_Screenshot_1,
-    Far_Cry_Screenshot_2,
-    Far_Cry_Screenshot_3,
     Far_Cry_Thumbnail,
-    Froza_Horizon2_Screenshot_1,
-    Froza_Horizon2_Screenshot_2,
-    Froza_Horizon2_Screenshot_3,
     Froza_Horizon2_Thumbnail,
-    God_of_War_ScreenShot_1,
-    GOT_Screenshot_1,
-    GOT_Screenshot_2,
-    GOT_Screenshot_3,
     GOT_Thumbnail,
     Left_4_Dead_2_Thumbnail,
-    Left_4_Dead_Screenshot_1,
-    Left_4_Dead_Screenshot_2,
-    Left_4_Dead_Screenshot_3,
-    NBA_Screenshot_1,
-    NBA_Screenshot_2,
-    NBA_Screenshot_3,
     NBA_Thumbnail,
-    Need_For_Speed_Heat_Screenshot_1,
-    Need_For_Speed_Heat_Screenshot_2,
-    Need_For_Speed_Heat_Screenshot_3,
+    God_of_War_ScreenShot_1,
     Need_For_Speed_Heat_Thumbnail,
-    Rust_Screenshot_1,
-    Rust_Screenshot_2,
-    Rust_Screenshot_3,
     Rust_Thumbnail,
-    SSB_Screenshot_1,
-    SSB_Screenshot_2,
-    SSB_Screenshot_3,
     SSB_Thumbnail,
-    Street_Fighter_Screenshot_1,
-    Street_Fighter_Screenshot_2,
-    Street_Fighter_Screenshot_3,
     StreetFighter_Thumbnail,
-    The_Crew2_Screenshot_1,
-    The_Crew2_Screenshot_2,
-    The_Crew2_Screenshot_3,
     The_Crew2_Thumbnail,
-    TitanFall_3_Screenshot_1,
-    TitanFall_3_Screenshot_2,
-    TitanFall_3_Screenshot_3,
     TitanFall_3_Thumbnail,
     Valorant_Thumbnail,
-    ValorantScreenShot_1,
-    ValorantScreenShot_2,
-    ValorantScreenShot_3,
 } from "../utils";
 
 const categoryAccounts = [
@@ -90,20 +36,6 @@ const categoryAccounts = [
                         name: "Admin",
                         profileImage: God_of_War_ScreenShot_1,
                     }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: CODScreenShot_1,
-                    },
-                    {
-                        id: 2,
-                        img: CODScreenShot_2,
-                    },
-                    {
-                        id: 3,
-                        img: CODScreenShot_3,
-                    },
                 ]
             },
             {
@@ -117,20 +49,6 @@ const categoryAccounts = [
                         name: "Admin",
                         profileImage: God_of_War_ScreenShot_1,
                     }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: Apex_Legends_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: Apex_Legends_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: Apex_Legends_Screenshot_3,
-                    },
                 ]
             },
             {
@@ -144,20 +62,6 @@ const categoryAccounts = [
                         name: "Admin",
                         profileImage: God_of_War_ScreenShot_1,
                     }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: Far_Cry_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: Far_Cry_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: Far_Cry_Screenshot_3,
-                    },
                 ]
             },
             {
@@ -171,20 +75,6 @@ const categoryAccounts = [
                         name: "Admin",
                         profileImage: God_of_War_ScreenShot_1,
                     }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: ValorantScreenShot_1,
-                    },
-                    {
-                        id: 2,
-                        img: ValorantScreenShot_2,
-                    },
-                    {
-                        id: 3,
-                        img: ValorantScreenShot_3,
-                    },
                 ]
             },
             {
@@ -198,20 +88,6 @@ const categoryAccounts = [
                         name: "Admin",
                         profileImage: God_of_War_ScreenShot_1,
                     }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: Left_4_Dead_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: Left_4_Dead_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: Left_4_Dead_Screenshot_3,
-                    },
                 ]
             },
             {
@@ -225,20 +101,6 @@ const categoryAccounts = [
                         name: "Admin",
                         profileImage: God_of_War_ScreenShot_1,
                     }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: TitanFall_3_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: TitanFall_3_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: TitanFall_3_Screenshot_3,
-                    },
                 ]
             },
         ]
@@ -258,20 +120,6 @@ const categoryAccounts = [
                         name: "Admin",
                         profileImage: God_of_War_ScreenShot_1,
                     }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: Rust_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: Rust_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: Rust_Screenshot_3,
-                    },
                 ]
             },
             {
@@ -285,20 +133,6 @@ const categoryAccounts = [
                         name: "Admin",
                         profileImage: God_of_War_ScreenShot_1,
                     }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: Dark_Souls_III_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: Dark_Souls_III_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: Dark_Souls_III_Screenshot_3,
-                    },
                 ]
             },
             {
@@ -312,103 +146,8 @@ const categoryAccounts = [
                         name: "Admin",
                         profileImage: God_of_War_ScreenShot_1,
                     }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: Dragons_Dogma2_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: Dragons_Dogma2_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: Dragons_Dogma2_Screenshot_3,
-                    },
                 ]
-            },
-            {
-                id: 204,
-                slug: "valorant",
-                title: "Valorant",
-                views: "239.6K",
-                img: Valorant_Thumbnail,
-                uploader: [
-                    {
-                        name: "Admin",
-                        profileImage: God_of_War_ScreenShot_1,
-                    }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: ValorantScreenShot_1,
-                    },
-                    {
-                        id: 2,
-                        img: ValorantScreenShot_2,
-                    },
-                    {
-                        id: 3,
-                        img: ValorantScreenShot_3,
-                    },
-                ]
-            },
-            {
-                id: 205,
-                slug: "left-4-dead-2",
-                title: "Left 4 Dead 2",
-                views: "142.6K",
-                img: Left_4_Dead_2_Thumbnail,
-                uploader: [
-                    {
-                        name: "Admin",
-                        profileImage: God_of_War_ScreenShot_1,
-                    }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: Left_4_Dead_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: Left_4_Dead_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: Left_4_Dead_Screenshot_3,
-                    },
-                ]
-            },
-            {
-                id: 206,
-                slug: "titanfall-3",
-                title: "Titanfall 3",
-                views: "97.9K",
-                img: TitanFall_3_Thumbnail,
-                uploader: [
-                    {
-                        name: "Admin",
-                        profileImage: God_of_War_ScreenShot_1,
-                    }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: TitanFall_3_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: TitanFall_3_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: TitanFall_3_Screenshot_3,
-                    },
-                ]
-            },
+            }
         ]
     },
     {
@@ -426,20 +165,6 @@ const categoryAccounts = [
                         name: "Admin",
                         profileImage: God_of_War_ScreenShot_1,
                     }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: Froza_Horizon2_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: Froza_Horizon2_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: Froza_Horizon2_Screenshot_3,
-                    },
                 ]
             },
             {
@@ -453,20 +178,6 @@ const categoryAccounts = [
                         name: "Admin",
                         profileImage: God_of_War_ScreenShot_1,
                     }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: Need_For_Speed_Heat_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: Need_For_Speed_Heat_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: Need_For_Speed_Heat_Screenshot_3,
-                    },
                 ]
             },
             {
@@ -480,103 +191,8 @@ const categoryAccounts = [
                         name: "Admin",
                         profileImage: God_of_War_ScreenShot_1,
                     }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: The_Crew2_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: The_Crew2_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: The_Crew2_Screenshot_3,
-                    },
                 ]
-            },
-            {
-                id: 304,
-                slug: "valorant",
-                title: "Valorant",
-                views: "239.6K",
-                img: Valorant_Thumbnail,
-                uploader: [
-                    {
-                        name: "Admin",
-                        profileImage: God_of_War_ScreenShot_1,
-                    }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: ValorantScreenShot_1,
-                    },
-                    {
-                        id: 2,
-                        img: ValorantScreenShot_2,
-                    },
-                    {
-                        id: 3,
-                        img: ValorantScreenShot_3,
-                    },
-                ]
-            },
-            {
-                id: 305,
-                slug: "left-4-dead-2",
-                title: "Left 4 Dead 2",
-                views: "142.6K",
-                img: Left_4_Dead_2_Thumbnail,
-                uploader: [
-                    {
-                        name: "Admin",
-                        profileImage: God_of_War_ScreenShot_1,
-                    }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: Left_4_Dead_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: Left_4_Dead_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: Left_4_Dead_Screenshot_3,
-                    },
-                ]
-            },
-            {
-                id: 306,
-                slug: "titanfall-3",
-                title: "Titanfall 3",
-                views: "97.9K",
-                img: TitanFall_3_Thumbnail,
-                uploader: [
-                    {
-                        name: "Admin",
-                        profileImage: God_of_War_ScreenShot_1,
-                    }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: TitanFall_3_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: TitanFall_3_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: TitanFall_3_Screenshot_3,
-                    },
-                ]
-            },
+            }
         ]
     },
     {
@@ -594,20 +210,6 @@ const categoryAccounts = [
                         name: "Admin",
                         profileImage: God_of_War_ScreenShot_1,
                     }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: EASports_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: EASports_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: EASports_Screenshot_3,
-                    },
                 ]
             },
             {
@@ -621,20 +223,6 @@ const categoryAccounts = [
                         name: "Admin",
                         profileImage: God_of_War_ScreenShot_1,
                     }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: BMX_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: BMX_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: BMX_Screenshot_3,
-                    },
                 ]
             },
             {
@@ -648,103 +236,8 @@ const categoryAccounts = [
                         name: "Admin",
                         profileImage: God_of_War_ScreenShot_1,
                     }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: NBA_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: NBA_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: NBA_Screenshot_3,
-                    },
                 ]
-            },
-            {
-                id: 404,
-                slug: "valorant",
-                title: "Valorant",
-                views: "239.6K",
-                img: Valorant_Thumbnail,
-                uploader: [
-                    {
-                        name: "Admin",
-                        profileImage: God_of_War_ScreenShot_1,
-                    }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: ValorantScreenShot_1,
-                    },
-                    {
-                        id: 2,
-                        img: ValorantScreenShot_2,
-                    },
-                    {
-                        id: 3,
-                        img: ValorantScreenShot_3,
-                    },
-                ]
-            },
-            {
-                id: 405,
-                slug: "left-4-dead-2",
-                title: "Left 4 Dead 2",
-                views: "142.6K",
-                img: Left_4_Dead_2_Thumbnail,
-                uploader: [
-                    {
-                        name: "Admin",
-                        profileImage: God_of_War_ScreenShot_1,
-                    }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: Left_4_Dead_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: Left_4_Dead_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: Left_4_Dead_Screenshot_3,
-                    },
-                ]
-            },
-            {
-                id: 406,
-                slug: "titanfall-3",
-                title: "Titanfall 3",
-                views: "97.9K",
-                img: TitanFall_3_Thumbnail,
-                uploader: [
-                    {
-                        name: "Admin",
-                        profileImage: God_of_War_ScreenShot_1,
-                    }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: TitanFall_3_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: TitanFall_3_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: TitanFall_3_Screenshot_3,
-                    },
-                ]
-            },
+            }
         ]
     },
     {
@@ -762,20 +255,6 @@ const categoryAccounts = [
                         name: "Admin",
                         profileImage: God_of_War_ScreenShot_1,
                     }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: GOT_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: GOT_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: GOT_Screenshot_3,
-                    },
                 ]
             },
             {
@@ -789,20 +268,6 @@ const categoryAccounts = [
                         name: "Admin",
                         profileImage: God_of_War_ScreenShot_1,
                     }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: SSB_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: SSB_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: SSB_Screenshot_3,
-                    },
                 ]
             },
             {
@@ -816,103 +281,8 @@ const categoryAccounts = [
                         name: "Admin",
                         profileImage: God_of_War_ScreenShot_1,
                     }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: Street_Fighter_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: Street_Fighter_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: Street_Fighter_Screenshot_3,
-                    },
                 ]
-            },
-            {
-                id: 504,
-                slug: "valorant",
-                title: "Valorant",
-                views: "239.6K",
-                img: Valorant_Thumbnail,
-                uploader: [
-                    {
-                        name: "Admin",
-                        profileImage: God_of_War_ScreenShot_1,
-                    }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: ValorantScreenShot_1,
-                    },
-                    {
-                        id: 2,
-                        img: ValorantScreenShot_2,
-                    },
-                    {
-                        id: 3,
-                        img: ValorantScreenShot_3,
-                    },
-                ]
-            },
-            {
-                id: 505,
-                slug: "left-4-dead-2",
-                title: "Left 4 Dead 2",
-                views: "142.6K",
-                img: Left_4_Dead_2_Thumbnail,
-                uploader: [
-                    {
-                        name: "Admin",
-                        profileImage: God_of_War_ScreenShot_1,
-                    }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: Left_4_Dead_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: Left_4_Dead_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: Left_4_Dead_Screenshot_3,
-                    },
-                ]
-            },
-            {
-                id: 506,
-                slug: "titanfall-3",
-                title: "Titanfall 3",
-                views: "97.9K",
-                img: TitanFall_3_Thumbnail,
-                uploader: [
-                    {
-                        name: "Admin",
-                        profileImage: God_of_War_ScreenShot_1,
-                    }
-                ],
-                screenShots: [
-                    {
-                        id: 1,
-                        img: TitanFall_3_Screenshot_1,
-                    },
-                    {
-                        id: 2,
-                        img: TitanFall_3_Screenshot_2,
-                    },
-                    {
-                        id: 3,
-                        img: TitanFall_3_Screenshot_3,
-                    },
-                ]
-            },
+            }
         ]
     }
 ]

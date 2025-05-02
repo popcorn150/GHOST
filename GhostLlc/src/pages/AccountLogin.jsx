@@ -145,7 +145,9 @@ const AccountLogin = () => {
         return;
       }
 
-      toast.success("Login successful!");
+      toast.success("Login successful!", {
+        duration: 3000,
+      });
       navigate("/categories"); // Only navigate if user details exist
     } catch (error) {
       console.error("Login error:", error);
@@ -220,7 +222,9 @@ const AccountLogin = () => {
         return;
       }
 
-      toast.success("Google sign-in successful!");
+      toast.success("Google sign-in successful!", {
+        duration: 3000,
+      });
       navigate("/categories"); // Only navigate if user details exist
     } catch (error) {
       console.error("Google sign-in error:", error);

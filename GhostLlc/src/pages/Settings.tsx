@@ -16,7 +16,6 @@ import { deleteUser, signOut } from "firebase/auth";
 import {
   doc,
   deleteDoc,
-  getDoc,
   setDoc,
   query,
   collection,
