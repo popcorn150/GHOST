@@ -20,6 +20,7 @@ Represents a secure transaction between a buyer and a seller. The escrow protect
 | `amount`                      | `number`           | Total amount held in escrow (in minor units — e.g., kobo or cents).                          |
 | `currency`                    | `string`           | ISO 4217 currency code (e.g., `NGN`, `USD`).                                                 |
 | `status`                      | `string`           | Current state of the escrow (see table below).                                               |
+| `paymentVerified`             | `boolean`          | Payment yet to be verified                                                                   |
 | `buyerConfirmed`              | `boolean`          | Indicates whether the buyer has confirmed successful delivery or outcome.                    |
 | `sellerWithdrawn`             | `boolean`          | Indicates whether the seller has withdrawn the funds from escrow.                            |
 | `createdAt`                   | `string`           | ISO timestamp for when the escrow was created.                                               |
@@ -40,14 +41,15 @@ Represents a secure transaction between a buyer and a seller. The escrow protect
 
 ### Escrow Status Options
 
-| Status              | Description                                                                                    |
-| ------------------- | ---------------------------------------------------------------------------------------------- |
-| `awaiting_feedback` | Buyer has not provided any feedback yet. `autoReleaseAt` is only active in this state.         |
-| `buyer_confirmed`   | Buyer confirmed successful delivery or outcome. Funds will move to seller's available balance. |
-| `holding`           | Buyer has given feedback but requires changes/fixes. Funds are still held in escrow.           |
-| `disputed`          | Buyer opened a dispute; requires admin intervention.                                           |
-| `released`          | Funds have been released from escrow to the seller.                                            |
-| `refunded`          | Escrow was refunded back to the buyer after dispute or admin decision.                         |
+| Status                 | Description                                                                                    |
+| ---------------------- | ---------------------------------------------------------------------------------------------- |
+| `pending_verification` | Payment has been made but our systems have not verified it yet                                 |
+| `awaiting_feedback`    | Buyer has not provided any feedback yet. `autoReleaseAt` is only active in this state.         |
+| `buyer_confirmed`      | Buyer confirmed successful delivery or outcome. Funds will move to seller's available balance. |
+| `holding`              | Buyer has given feedback but requires changes/fixes. Funds are still held in escrow.           |
+| `disputed`             | Buyer opened a dispute; requires admin intervention.                                           |
+| `released`             | Funds have been released from escrow to the seller.                                            |
+| `refunded`             | Escrow was refunded back to the buyer after dispute or admin decision.                         |
 
 ---
 
