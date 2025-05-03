@@ -9,12 +9,12 @@ const WelcomePage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(null); // Added missing state variable
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      setLoading(false);
+      setLoading(false); // Added to ensure loading state changes
 
       // If user is signed in, check their status
       if (currentUser) {
@@ -140,7 +140,9 @@ const WelcomePage = () => {
               mb-4 cursor-pointer text-base md:text-lg font-medium"
           >
             <img src={Google} alt="Google Logo" className="w-7 h-7" />
-            <span className="text-sm text-black font-medium">Continue with Google</span>
+            <span className="text-sm text-black font-medium">
+              Continue with Google
+            </span>
           </button>
 
           {/* Error Message */}

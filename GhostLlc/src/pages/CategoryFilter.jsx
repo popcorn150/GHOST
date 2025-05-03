@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import categoryAccounts from "../constants/category";
 import { Link } from "react-router-dom";
 import { AdminIcon } from "../utils";
-
+import PropTypes from "prop-types";
 // Define allowed categories, including "Others"
 const ALLOWED_CATEGORIES = [
   "Fighting",
@@ -315,5 +315,29 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
     </div>
   );
 };
+
+CategoryFilter.propTypes = {
+  searchTerm: PropTypes.string.isRequired,
+  loading: PropTypes.bool,
+  combinedAccounts: PropTypes.arrayOf(
+    PropTypes.shape({
+      title: PropTypes.string,
+      accountName: PropTypes.string,
+      slug: PropTypes.string,
+      id: PropTypes.string,
+      img: PropTypes.string,
+      accountImage: PropTypes.string,
+      images: PropTypes.shape({
+        accountImage: PropTypes.string,
+      }),
+      views: PropTypes.number,
+      userProfilePic: PropTypes.string,
+      username: PropTypes.string,
+      category: PropTypes.string,
+      isFromFirestore: PropTypes.bool,
+    })
+  ).isRequired,
+
+}
 
 export default CategoryFilter;

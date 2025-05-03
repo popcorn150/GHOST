@@ -350,7 +350,7 @@ const AccountDetails = () => {
                     Account Worth
                   </h3>
                   <p className="text-xl text-[#0576FF]">
-                    ${account.accountWorth}
+                    ${account.accountWorth.toLocaleString()}
                   </p>
                 </div>
               )}
