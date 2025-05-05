@@ -23,6 +23,7 @@ const AccountDetails = () => {
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState([]);
   const [isPurchased, setIsPurchased] = useState(false);
+  const [isPending, setIsPending] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
 
   useEffect(() => {
@@ -63,6 +64,7 @@ const AccountDetails = () => {
                 }))
               : [],
             isFromFirestore: true,
+            slug: slug, // Ensure slug is included
           };
           console.log("Mapped account with views:", foundAccount.views);
           setAccount(foundAccount);
@@ -94,10 +96,35 @@ const AccountDetails = () => {
     }
   }, [isPurchased]);
 
+  // Check for purchased status and cart status whenever account is loaded
   useEffect(() => {
-    const existingCart = JSON.parse(localStorage.getItem("ghost_cart")) || [];
-    setCart(existingCart);
-  }, []);
+    if (account) {
+      const existingCart = JSON.parse(localStorage.getItem("ghost_cart")) || [];
+      const purchasedAccounts =
+        JSON.parse(localStorage.getItem("ghost_purchased")) || [];
+
+      setCart(existingCart);
+
+      // Check if account is already purchased
+      const isAlreadyPurchased = purchasedAccounts.some(
+        (item) => (item.slug || item.id) === (account.slug || account.id)
+      );
+
+      // Check if account is already in cart (pending)
+      const isAlreadyPending = existingCart.some(
+        (item) => (item.slug || item.id) === (account.slug || account.id)
+      );
+
+      setIsPurchased(isAlreadyPurchased);
+      setIsPending(isAlreadyPending);
+
+      console.log("Account status:", {
+        isAlreadyPurchased,
+        isAlreadyPending,
+        slug: account.slug || account.id,
+      });
+    }
+  }, [account]);
 
   const handleImageClick = (index) => setSelectedImage(index);
 
@@ -119,17 +146,23 @@ const AccountDetails = () => {
       return;
     }
 
-    const alreadyInCart = cart.some(
+    const existingCart = JSON.parse(localStorage.getItem("ghost_cart")) || [];
+    const alreadyInCart = existingCart.some(
       (item) => (item.slug || item.id) === (account.slug || account.id)
     );
 
     if (alreadyInCart) {
       toast.warning(`${account.title} is already in your cart!`);
     } else {
-      const updatedCart = [...cart, account];
+      const updatedCart = [...existingCart, account];
       localStorage.setItem("ghost_cart", JSON.stringify(updatedCart));
       setCart(updatedCart);
+      setIsPending(true); // Mark as pending when added to cart
       toast.success(`${account.title} added to cart!`);
+
+      // Trigger a storage event to notify other components
+      window.dispatchEvent(new Event("storage"));
+
       console.log("Saved to localStorage:", updatedCart);
     }
   };
@@ -144,14 +177,32 @@ const AccountDetails = () => {
     toast.promise(
       new Promise((resolve) => {
         setTimeout(() => {
-          setIsPurchased(true);
+          // Add to cart if not already there
+          const existingCart =
+            JSON.parse(localStorage.getItem("ghost_cart")) || [];
+          const alreadyInCart = existingCart.some(
+            (item) => (item.slug || item.id) === (account.slug || item.id)
+          );
+
+          if (!alreadyInCart) {
+            const updatedCart = [...existingCart, account];
+            localStorage.setItem("ghost_cart", JSON.stringify(updatedCart));
+            setCart(updatedCart);
+          }
+
+          // Mark as pending (in cart)
+          setIsPending(true);
+
+          // Trigger a storage event to notify other components
+          window.dispatchEvent(new Event("storage"));
+
           resolve();
         }, 2000);
       }),
       {
         loading: `Processing purchase for ${account.title}...`,
-        success: `${account.title} purchased successfully!`,
-        error: `Failed to purchase ${account.title}`,
+        success: `${account.title} added to cart and pending purchase!`,
+        error: `Failed to process ${account.title}`,
       }
     );
   };
@@ -240,10 +291,6 @@ const AccountDetails = () => {
       </div>
     );
   }
-
-  const isInCart = cart.some(
-    (item) => (item.slug || item.id) === (account.slug || account.id)
-  );
 
   return (
     <div className="min-h-screen bg-[#010409] text-white">
@@ -371,16 +418,16 @@ const AccountDetails = () => {
                 <Toaster richColors position="top-center" />
                 <button
                   onClick={handleAddToCart}
-                  disabled={isInCart}
+                  disabled={isPending || isPurchased}
                   className={`flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 rounded-md text-sm font-medium transition-all duration-200
                     ${
-                      isInCart
+                      isPending || isPurchased
                         ? "bg-gray-800 text-gray-400 cursor-not-allowed"
                         : "bg-gray-700 text-blue-300 border border-blue-500/30 hover:bg-gray-600 hover:border-blue-400"
                     }`}
-                  aria-label={isInCart ? "Item in cart" : "Add to cart"}
+                  aria-label={isPending ? "Item in cart" : "Add to cart"}
                 >
-                  {isInCart ? (
+                  {isPending ? (
                     <>
                       <svg
                         className="w-4 h-4"
@@ -397,6 +444,24 @@ const AccountDetails = () => {
                         />
                       </svg>
                       <span>In Cart</span>
+                    </>
+                  ) : isPurchased ? (
+                    <>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      <span>Purchased</span>
                     </>
                   ) : (
                     <>
@@ -425,9 +490,17 @@ const AccountDetails = () => {
                     ${
                       isPurchased
                         ? "bg-gray-800 text-gray-400 cursor-not-allowed"
+                        : isPending
+                        ? "bg-yellow-600 text-white hover:bg-yellow-700"
                         : "bg-[#0576FF] text-white hover:bg-[#0465db]"
                     }`}
-                  aria-label={isPurchased ? "Purchased" : "Purchase account"}
+                  aria-label={
+                    isPurchased
+                      ? "Purchased"
+                      : isPending
+                      ? "Pending"
+                      : "Purchase account"
+                  }
                 >
                   {isPurchased ? (
                     <>
@@ -446,6 +519,24 @@ const AccountDetails = () => {
                         />
                       </svg>
                       <span>Purchased</span>
+                    </>
+                  ) : isPending ? (
+                    <>
+                      <svg
+                        className="w-4 h-4 animate-spin"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        />
+                      </svg>
+                      <span>Pending</span>
                     </>
                   ) : (
                     <>
