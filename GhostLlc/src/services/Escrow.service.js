@@ -10,6 +10,8 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
+import emailService from "./api/Email.service";
+import withdrawalService from "./api/Withdrawal.service";
 
 export class EscrowService {
   constructor(db = getFirestore(), autoReleaseHours = 12) {
@@ -78,35 +80,50 @@ export class EscrowService {
     });
   }
 
-  // —————————————————————
-  // 2) Frontend verification trigger
-  // —————————————————————
-  async verifyPayment(ref) {
-    const fn = httpsCallable(this.functions, "verifyPaystackPayment");
-    const { data } = await fn({ reference: ref });
-    // expect backend to update payment.status => 'success' and escrow.status => 'awaiting_feedback' or 'holding'
-    return data;
-  }
-
-  // —————————————————————
-  // 3) Buyer marks “holding” (needs seller fix)
-  // —————————————————————
-  async markHolding(ref, reason = "") {
-    await updateDoc(doc(this.db, "escrows", ref), {
+  async markHolding(escrowRef, reason = "", buyerEmail, sellerEmail) {
+    // Update escrow status in database
+    await updateDoc(doc(this.db, "escrows", escrowRef), {
       status: "holding",
       adminNotes: reason,
+      updatedAt: serverTimestamp(),
     });
+
+    // Send notification emails
+    await emailService.sendEscrowStatusEmail(
+      escrowRef,
+      buyerEmail,
+      sellerEmail,
+      "holding",
+      reason
+    );
+
+    return {
+      success: true,
+      message: "Escrow marked as holding and notifications sent",
+    };
   }
 
-  // —————————————————————
-  // 4) Buyer confirms final delivery
-  // —————————————————————
-  async confirmByBuyer(ref) {
-    await updateDoc(doc(this.db, "escrows", ref), {
+  async confirmByBuyer(escrowRef, buyerEmail, sellerEmail) {
+    // Update escrow status in database
+    await updateDoc(doc(this.db, "escrows", escrowRef), {
       status: "buyer_confirmed",
       buyerConfirmed: true,
       buyerConfirmedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     });
+
+    // Send notification emails
+    await emailService.sendEscrowStatusEmail(
+      escrowRef,
+      buyerEmail,
+      sellerEmail,
+      "buyer_confirmed"
+    );
+
+    return {
+      success: true,
+      message: "Escrow confirmed by buyer and notifications sent",
+    };
   }
 
   // —————————————————————
@@ -119,15 +136,6 @@ export class EscrowService {
   }
 
   // —————————————————————
-  // 6) Seller requests a withdrawal
-  // —————————————————————
-  async requestWithdrawal(ref) {
-    const fn = httpsCallable(this.functions, "processWithdrawal");
-    const { data } = await fn({ escrowId: ref });
-    return data; // { success, withdrawalId, transferCode, status }
-  }
-
-  // —————————————————————
   // 7) Buyer/admin claims refund (mirror withdrawal)
   // —————————————————————
   async requestRefund(ref) {
@@ -137,13 +145,7 @@ export class EscrowService {
       cancellationReviewedByAdmin: true,
     });
     // step 2: frontend collects bank details, then:
-    return this.uploadBankDetails(/* same shape */);
-  }
-
-  async processRefund(ref) {
-    // call the same backend fn, but direct funds back to buyer
-    const fn = httpsCallable(this.functions, "processWithdrawal");
-    return fn({ escrowId: ref });
+    return this.uploadBankDetails();
   }
 
   // —————————————————————
@@ -165,104 +167,50 @@ export class EscrowService {
     });
   }
 
-  async processWithdrawal(escrowId, sellerId) {
-    // 1) Ensure bank details exist
-    await this._ensureWithdrawalAccount(sellerId);
+  /**
+   * Public: process a withdrawal for a seller
+   * @param escrowId   - the escrow document ID
+   * @param sellerId   - the seller’s user ID
+   */
+  async processWithdrawal({ escrowId, sellerId }) {
+    // 1) Make sure the seller has bank details set up (for UX)
+    // await this.ensureBankDetailsOnUser(sellerId);
 
-    // 2) Load escrow and branch on state/autoRelease
-    const escrowSnap = await getDoc(doc(this.db, "escrows", escrowId));
-    if (!escrowSnap.exists()) throw new Error("Escrow not found");
-    const escrow = escrowSnap.data();
-    if (escrow.sellerWithdrawn) throw new Error("Funds already withdrawn");
-
-    const now = Timestamp.now();
-    const { status, autoReleaseAt } = escrow;
-    if (status === "awaiting_feedback") {
-      if (now.toMillis() < autoReleaseAt.toMillis()) {
-        const hrs = Math.ceil(
-          (autoReleaseAt.toMillis() - now.toMillis()) / 3600000
-        );
-        throw new Error(`Please wait ${hrs}h for auto-release`);
-      }
-    } else if (status !== "buyer_confirmed") {
-      throw new Error(`Escrow in "${status}", cannot withdraw`);
-    }
-
-    // 3) Create the Firestore record for withdrawal
-    const withdrawalId = `withdrawal_${Date.now()}_${Math.random()
-      .toString(36)
-      .slice(2, 10)}`;
-    await setDoc(doc(this.db, "withdrawals", withdrawalId), {
-      id: withdrawalId,
+    // 2) Delegate the heavy lifting to your backend via the WithdrawalService
+    return await withdrawalService.processWithdrawal({
       escrowId,
-      sellerId,
-      amount: escrow.amount,
-      currency: escrow.currency,
-      status: "pending",
-      requestedAt: serverTimestamp(),
-      processedAt: null,
-      paymentRef: null,
-      notes: "",
+      userId: sellerId,
     });
-
-    // 4) Call your Cloud Function to perform the transfer
-    const fn = httpsCallable(this.functions, "processWithdrawal");
-    const result = await fn({ escrowId, withdrawalId });
-    // result should contain { success, transferCode, status, withdrawalId }
-
-    // 5) Update local withdrawal/status if needed
-    await updateDoc(doc(this.db, "withdrawals", withdrawalId), {
-      status: result.data.status,
-      paymentRef: result.data.transferCode,
-      processedAt: serverTimestamp(),
-    });
-    await updateDoc(doc(this.db, "escrows", escrowId), {
-      status: "released",
-      sellerWithdrawn: true,
-      withdrawnAt: serverTimestamp(),
-    });
-
-    return result.data;
   }
 
-  // Check the seller has configured a withdrawal account
-  async _ensureWithdrawalAccount(sellerId) {
-    const acctSnap = await getDoc(doc(this.db, "withdrawalAccounts", sellerId));
-    if (!acctSnap.exists()) {
-      throw new Error(
-        "Please set up your withdrawal account before requesting a payout."
-      );
-    }
-    // Return acctSnap.data() for downstream logic
-    return acctSnap.data();
-  }
+  /**
+   * Private: confirm the seller’s user doc has a Paystack recipient code
+   * (so you can prompt “Please add your bank details” before any API call)
+   */
+  async ensureBankDetailsOnUser(sellerId) {
+    const userRef = doc(this.db, "users", sellerId);
+    const snap = await getDoc(userRef);
 
-  // Load and return escrow data
-  async _getEscrow(ref) {
-    const snap = await getDoc(doc(this.db, "escrows", ref));
     if (!snap.exists()) {
-      throw new Error("Escrow not found");
+      throw new Error("Seller profile not found");
     }
-    return snap.data();
-  }
 
-  // Actually create the withdrawal document
-  async _createWithdrawal(escrow) {
-    const withdrawalId = `withdrawal_${Date.now()}${Math.random()
-      .toString(36)
-      .substring(2, 10)}`;
-    await setDoc(doc(this.db, "withdrawals", withdrawalId), {
-      id: withdrawalId,
-      escrowId: escrow.id,
-      sellerId: escrow.sellerId,
-      amount: escrow.amount,
-      currency: escrow.currency,
-      status: "pending",
-      requestedAt: serverTimestamp(),
-      processedAt: null,
-      paymentRef: null,
-      notes: "",
-    });
+    const data = snap.data();
+    if (!data.paystackRecipientCode) {
+      const e = new Error(
+        "Please set up your bank details before requesting a payout."
+      );
+      e.code = "NO_BANK_DETAILS";
+      throw e;
+    }
+
+    // Optionally return their bank data if your UI needs it
+    return {
+      bankAccountNumber: data.bankAccountNumber,
+      bankCode: data.bankCode,
+      fullName: data.fullName,
+      paystackRecipientCode: data.paystackRecipientCode,
+    };
   }
 }
 
