@@ -3,9 +3,9 @@ import BackButton from "../components/BackButton";
 import { Link } from "react-router-dom";
 import { InstagramIcon, TwitterIcon, YoutubeIcon } from "../utils"
 
-const InstagramPage = 'https://cdn-icons-png.flaticon.com/512/87/87390.png'
-const TwitterPage = 'https://cdn-icons-png.flaticon.com/512/733/733579.png'
-const YoutubePage = 'https://cdn-icons-png.flaticon.com/512/1384/1384060.png'
+const InstagramPage = 'https://www.instagram.com/kingdave00.1/'
+const TwitterPage = 'https://x.com/BareBoneStudio'
+const YoutubePage = 'https://www.youtube.com/@BareBonesStudio_0_0'
 
 const Community = () => {
     return (

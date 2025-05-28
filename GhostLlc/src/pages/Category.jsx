@@ -14,8 +14,41 @@ const Category = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [profileImage, setProfileImage] = useState(null);
   const [accounts, setAccounts] = useState([]);
-  const [loading, setLoading] = useState(true); // 🚨 loader state
+  const [loading, setLoading] = useState(true);
+  const [purchasedAccounts, setPurchasedAccounts] = useState([]);
+  const [cartAccounts, setCartAccounts] = useState([]);
   const carouselRef = useRef(null);
+
+  // Load purchased and cart accounts from localStorage
+  useEffect(() => {
+    const loadStoredAccounts = () => {
+      const purchased =
+        JSON.parse(localStorage.getItem("ghost_purchased")) || [];
+      const cart = JSON.parse(localStorage.getItem("ghost_cart")) || [];
+
+      setPurchasedAccounts(purchased);
+      setCartAccounts(cart);
+    };
+
+    loadStoredAccounts();
+
+    // Add UK for storage changes
+    window.addEventListener("storage", loadStoredAccounts);
+
+    return () => {
+      window.removeEventListener("storage", loadStoredAccounts);
+    };
+  }, []);
+
+  // Helper function to check if an account is purchased or in cart
+  const isAccountPurchasedOrInCart = (account) => {
+    const accountId = account.slug || account.id;
+
+    return (
+      purchasedAccounts.some((item) => (item.slug || item.id) === accountId) ||
+      cartAccounts.some((item) => (item.slug || item.id) === accountId)
+    );
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -36,9 +69,9 @@ const Category = () => {
 
   useEffect(() => {
     const fetchUploadedAccounts = async () => {
-      setLoading(true); // Show loader while fetching
+      setLoading(true);
       if (!user) {
-        setAccounts([]); // No accounts if no user
+        setAccounts([]);
         setLoading(false);
         return;
       }
@@ -65,18 +98,18 @@ const Category = () => {
               id: `screenshot-${index}-${idx}`,
               img: img || AdminIcon,
             })),
-            isFromFirestore: true, // Mark as user-uploaded
+            isFromFirestore: true,
             category: account.category || "Other",
           }));
           setAccounts(mappedAccounts);
         } else {
-          setAccounts([]); // If no accounts, set empty array
+          setAccounts([]);
         }
       } catch (error) {
         console.error("Error fetching accounts:", error);
-        setAccounts([]); // Set empty array on error
+        setAccounts([]);
       } finally {
-        setLoading(false); // ✅ stop loading after fetching
+        setLoading(false);
       }
     };
 
@@ -86,13 +119,16 @@ const Category = () => {
   // Add isFromFirestore:false to each available account
   const modifiedAvailableAccounts = availableAccounts.map((account) => ({
     ...account,
-    isFromFirestore: false, // Mark as not user-uploaded
+    isFromFirestore: false,
   }));
 
   const combinedAccounts = [...modifiedAvailableAccounts, ...accounts];
   const filteredAccounts = combinedAccounts.filter((account) => {
     const title = account.title || account.accountName || "";
-    return title.toLowerCase().includes(searchTerm.toLowerCase());
+    return (
+      title.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      !isAccountPurchasedOrInCart(account)
+    );
   });
 
   const duplicatedAccounts = [...filteredAccounts, ...filteredAccounts];
@@ -183,7 +219,6 @@ const Category = () => {
                           className="w-8 h-8 rounded-full object-cover border border-gray-700"
                         />
                       </div>
-                      {/* Only show View Details button for user-uploaded accounts */}
                       {account.isFromFirestore ? (
                         <Link
                           to={`/account/${account.slug || account.id}`}

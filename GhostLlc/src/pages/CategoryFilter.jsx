@@ -1,10 +1,9 @@
-
 import "../App.css";
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import categoryAccounts from "../constants/category";
 import { Link } from "react-router-dom";
 import { AdminIcon } from "../utils";
-
+import PropTypes from "prop-types";
 // Define allowed categories, including "Others"
 const ALLOWED_CATEGORIES = [
   "Fighting",
@@ -18,6 +17,39 @@ const ALLOWED_CATEGORIES = [
 
 const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
   const [activeCategory, setActiveCategory] = useState("All");
+  const [purchasedAccounts, setPurchasedAccounts] = useState([]);
+  const [cartAccounts, setCartAccounts] = useState([]);
+
+  // Load purchased and cart accounts from localStorage
+  useEffect(() => {
+    const loadStoredAccounts = () => {
+      const purchased =
+        JSON.parse(localStorage.getItem("ghost_purchased")) || [];
+      const cart = JSON.parse(localStorage.getItem("ghost_cart")) || [];
+
+      setPurchasedAccounts(purchased);
+      setCartAccounts(cart);
+    };
+
+    loadStoredAccounts();
+
+    // Add event listener to update when localStorage changes
+    window.addEventListener("storage", loadStoredAccounts);
+
+    return () => {
+      window.removeEventListener("storage", loadStoredAccounts);
+    };
+  }, []);
+
+  // Helper function to check if an account is purchased or in cart
+  const isAccountPurchasedOrInCart = (account) => {
+    const accountId = account.slug || account.id;
+
+    return (
+      purchasedAccounts.some((item) => (item.slug || item.id) === accountId) ||
+      cartAccounts.some((item) => (item.slug || item.id) === accountId)
+    );
+  };
 
   // Memoized merged categories with proper account mapping
   const mergedCategories = useMemo(() => {
@@ -45,7 +77,10 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
         }
 
         // Normalize legacy categories
-        if (existingCategory.includes("fight") || existingCategory === "fighter") {
+        if (
+          existingCategory.includes("fight") ||
+          existingCategory === "fighter"
+        ) {
           return "Fighting";
         }
         if (existingCategory.includes("shoot")) {
@@ -118,12 +153,21 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
 
       // Process each account and assign to appropriate category
       combinedAccounts.forEach((account) => {
+        // Skip accounts that are purchased or in cart
+        if (isAccountPurchasedOrInCart(account)) {
+          return;
+        }
+
         const category = mapAccountToCategory(account);
 
         const gameData = {
           title: account.title || account.accountName || "Untitled Account",
           slug: account.slug || account.id || `account-${Date.now()}`,
-          img: account.img || account.accountImage || account.images?.accountImage || AdminIcon,
+          img:
+            account.img ||
+            account.accountImage ||
+            account.images?.accountImage ||
+            AdminIcon,
           views: account.views || 0,
           userProfilePic: account.userProfilePic || AdminIcon,
           username: account.username || "Ghost",
@@ -152,10 +196,12 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
       .map((cat) => ({
         // Convert "Fighter" to "Fighting" in the result
         name: cat.category === "Fighter" ? "Fighting" : cat.category,
-        games: cat.games.map((game) => ({
-          ...game,
-          isFromFirestore: false, // Mark static accounts as not user-uploaded
-        })),
+        games: cat.games
+          .filter((game) => !isAccountPurchasedOrInCart(game)) // Filter out purchased or in cart
+          .map((game) => ({
+            ...game,
+            isFromFirestore: false, // Mark static accounts as not user-uploaded
+          })),
       }));
 
     // Dynamic categories from uploaded accounts
@@ -184,7 +230,7 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
     });
 
     return combinedCategories;
-  }, [combinedAccounts]);
+  }, [combinedAccounts, purchasedAccounts, cartAccounts]);
 
   // Category names - "All" plus the allowed categories
   const categoryNames = useMemo(() => ["All", ...ALLOWED_CATEGORIES], []);
@@ -307,13 +353,38 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
                 </div>
               ))
             ) : (
-              <p className="text-white text-center">No games found.</p>
+              <p className="text-white text-center col-span-3">
+                No games found.
+              </p>
             )}
           </div>
         </>
       )}
     </div>
   );
+};
+
+CategoryFilter.propTypes = {
+  searchTerm: PropTypes.string.isRequired,
+  loading: PropTypes.bool,
+  combinedAccounts: PropTypes.arrayOf(
+    PropTypes.shape({
+      title: PropTypes.string,
+      accountName: PropTypes.string,
+      slug: PropTypes.string,
+      id: PropTypes.string,
+      img: PropTypes.string,
+      accountImage: PropTypes.string,
+      images: PropTypes.shape({
+        accountImage: PropTypes.string,
+      }),
+      views: PropTypes.number,
+      userProfilePic: PropTypes.string,
+      username: PropTypes.string,
+      category: PropTypes.string,
+      isFromFirestore: PropTypes.bool,
+    })
+  ).isRequired,
 };
 
 export default CategoryFilter;

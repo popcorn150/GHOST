@@ -66,6 +66,7 @@ const AccountDetails = () => {
                 }))
               : [],
             isFromFirestore: true,
+            slug: slug, // Ensure slug is included
           };
           console.log("Mapped account with views:", foundAccount.views);
           setAccount(foundAccount);
@@ -97,10 +98,35 @@ const AccountDetails = () => {
     }
   }, [isPurchased]);
 
+  // Check for purchased status and cart status whenever account is loaded
   useEffect(() => {
-    const existingCart = JSON.parse(localStorage.getItem("ghost_cart")) || [];
-    setCart(existingCart);
-  }, []);
+    if (account) {
+      const existingCart = JSON.parse(localStorage.getItem("ghost_cart")) || [];
+      const purchasedAccounts =
+        JSON.parse(localStorage.getItem("ghost_purchased")) || [];
+
+      setCart(existingCart);
+
+      // Check if account is already purchased
+      const isAlreadyPurchased = purchasedAccounts.some(
+        (item) => (item.slug || item.id) === (account.slug || account.id)
+      );
+
+      // Check if account is already in cart (pending)
+      const isAlreadyPending = existingCart.some(
+        (item) => (item.slug || item.id) === (account.slug || account.id)
+      );
+
+      setIsPurchased(isAlreadyPurchased);
+      setIsPending(isAlreadyPending);
+
+      console.log("Account status:", {
+        isAlreadyPurchased,
+        isAlreadyPending,
+        slug: account.slug || account.id,
+      });
+    }
+  }, [account]);
 
   const handleImageClick = (index) => setSelectedImage(index);
 
@@ -122,17 +148,23 @@ const AccountDetails = () => {
       return;
     }
 
-    const alreadyInCart = cart.some(
+    const existingCart = JSON.parse(localStorage.getItem("ghost_cart")) || [];
+    const alreadyInCart = existingCart.some(
       (item) => (item.slug || item.id) === (account.slug || account.id)
     );
 
     if (alreadyInCart) {
       toast.warning(`${account.title} is already in your cart!`);
     } else {
-      const updatedCart = [...cart, account];
+      const updatedCart = [...existingCart, account];
       localStorage.setItem("ghost_cart", JSON.stringify(updatedCart));
       setCart(updatedCart);
+      setIsPending(true); // Mark as pending when added to cart
       toast.success(`${account.title} added to cart!`);
+
+      // Trigger a storage event to notify other components
+      window.dispatchEvent(new Event("storage"));
+
       console.log("Saved to localStorage:", updatedCart);
     }
   };
@@ -258,10 +290,6 @@ const AccountDetails = () => {
       </div>
     );
   }
-
-  const isInCart = cart.some(
-    (item) => (item.slug || item.id) === (account.slug || account.id)
-  );
 
   return (
     <div className="min-h-screen bg-[#010409] text-white">

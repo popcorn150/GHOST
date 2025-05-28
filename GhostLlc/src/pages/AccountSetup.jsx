@@ -13,7 +13,7 @@ const AccountSetup = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { state } = location;
-  const { completeUserSetup } = useAuth();
+  const { completeUserSetup, currentUser } = useAuth();
 
   const [email, setEmail] = useState(state?.email || "");
   const [username, setUsername] = useState("");
@@ -33,21 +33,18 @@ const AccountSetup = () => {
   useEffect(() => {
     console.log("AccountSetup state:", state);
     console.log("auth.currentUser:", auth.currentUser);
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user && user.email) {
-        console.log("Setting email from auth.currentUser:", user.email);
-        setEmail(user.email);
-      } else if (state?.googleAuth && state?.email) {
-        console.log("Setting email from state:", state.email);
-        setEmail(state.email);
-      } else {
-        console.log("No valid email, redirecting to /login");
-        setErrorMessage("Authentication incomplete. Please sign in again.");
-        setTimeout(() => navigate("/login"), 2000);
-      }
-    });
-    return () => unsubscribe();
-  }, [state, navigate]);
+
+    if (auth.currentUser && auth.currentUser.email) {
+      console.log(
+        "Setting email from auth.currentUser:",
+        auth.currentUser.email
+      );
+      setEmail(auth.currentUser.email);
+    } else if (state?.googleAuth && state?.email) {
+      console.log("Setting email from state:", state.email);
+      setEmail(state.email);
+    }
+  }, [state]);
 
   // Fetch user location
   useEffect(() => {
@@ -177,10 +174,11 @@ const AccountSetup = () => {
       return;
     }
 
-    // Skip email validation for Google users
-    if (state?.googleAuth || auth.currentUser) {
-      console.log("Skipping email validation for Google user, email:", email);
-    } else {
+    // Check if we're already authenticated
+    const isAuthenticated = !!auth.currentUser || state?.googleAuth;
+
+    // Handle email validation for non-Google users
+    if (!isAuthenticated) {
       const emailValidationError = validateEmailFormat(email);
       if (emailValidationError) {
         setErrorMessage(emailValidationError);
@@ -188,8 +186,8 @@ const AccountSetup = () => {
       }
     }
 
-    // Google-authenticated user
-    if (state?.googleAuth || auth.currentUser) {
+    // Handle authenticated users (Google or already signed in)
+    if (isAuthenticated) {
       if (!isChecked) {
         setErrorMessage("You must agree to the terms and conditions.");
         return;
@@ -197,6 +195,7 @@ const AccountSetup = () => {
 
       setLoading(true);
       try {
+        // Double-check username availability
         const isUsernameAvailable = await checkUsernameAvailability(username);
         if (!isUsernameAvailable) {
           setErrorMessage("Username is already taken. Please choose another.");
@@ -204,8 +203,14 @@ const AccountSetup = () => {
           return;
         }
 
+        // Get the current user UID
+        const uid = auth.currentUser?.uid;
+        if (!uid) {
+          throw new Error("User is not authenticated");
+        }
+
         const userDoc = {
-          uid: auth.currentUser.uid,
+          uid: uid,
           email: email || auth.currentUser.email,
           username: username.trim(),
           country,
@@ -214,14 +219,17 @@ const AccountSetup = () => {
           setupComplete: true,
         };
 
+        // Reserve the username
         await setDoc(doc(db, "usernames", username.trim()), {
-          uid: auth.currentUser.uid,
+          uid: uid,
         });
 
+        // Complete user setup
         const success = await completeUserSetup(userDoc);
         if (success) {
           localStorage.setItem("currency", currency);
           alert("Account created successfully!");
+          // The navigation is handled in completeUserSetup
         } else {
           throw new Error("Failed to complete user setup");
         }
@@ -240,7 +248,7 @@ const AccountSetup = () => {
       return;
     }
 
-    // Email/password validation
+    // Handle email/password users (not authenticated yet)
     if (!password.trim() || !confirmPassword.trim()) {
       setErrorMessage("Please enter and confirm your password.");
       return;
@@ -266,6 +274,7 @@ const AccountSetup = () => {
 
     setLoading(true);
     try {
+      // Check if this is a Google account
       const googleAccount = await isGoogleAccount(email);
       if (googleAccount) {
         setErrorMessage(
@@ -275,6 +284,7 @@ const AccountSetup = () => {
         return;
       }
 
+      // Verify username availability
       const isUsernameAvailable = await checkUsernameAvailability(username);
       if (!isUsernameAvailable) {
         setErrorMessage("Username is already taken. Please choose another.");
@@ -282,6 +292,7 @@ const AccountSetup = () => {
         return;
       }
 
+      // Create the user account
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -289,6 +300,7 @@ const AccountSetup = () => {
       );
       const user = userCredential.user;
 
+      // Prepare user document
       const userDoc = {
         uid: user.uid,
         email,
@@ -299,7 +311,10 @@ const AccountSetup = () => {
         setupComplete: true,
       };
 
+      // Reserve the username
       await setDoc(doc(db, "usernames", username.trim()), { uid: user.uid });
+
+      // Complete user setup
       await completeUserSetup(userDoc);
 
       localStorage.setItem("currency", currency);
