@@ -1,5 +1,5 @@
 import "../App.css";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, Outlet } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import BackButton from "../components/BackButton";
 import { AdminIcon } from "../AdminIcon";
@@ -8,7 +8,9 @@ import { useAuth } from "../components/AuthContext";
 import { useEffect, useState } from "react";
 import { FaArrowLeft, FaArrowRight, FaEye, FaEyeSlash } from "react-icons/fa";
 import { GiCancel } from "react-icons/gi";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
+import { db } from "../database/firebaseConfig";
+import { EscrowService } from "../services/Escrow.service";
 
 // Fallback image URL if AdminIcon is undefined
 const FALLBACK_IMAGE = "https://via.placeholder.com/150?text=Placeholder";
@@ -22,9 +24,9 @@ const AccountDetails = () => {
   const [account, setAccount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState([]);
-  const [isPurchased, setIsPurchased] = useState(false);
-  const [isPending, setIsPending] = useState(false);
+  const [isPurchased] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
+  const [currency] = useState("NGN");
 
   useEffect(() => {
     console.log("Current user:", currentUser);
@@ -115,8 +117,8 @@ const AccountDetails = () => {
         (item) => (item.slug || item.id) === (account.slug || account.id)
       );
 
-      setIsPurchased(isAlreadyPurchased);
-      setIsPending(isAlreadyPending);
+      // setIsPurchased(isAlreadyPurchased);
+      // setIsPending(isAlreadyPending);
 
       console.log("Account status:", {
         isAlreadyPurchased,
@@ -157,7 +159,7 @@ const AccountDetails = () => {
       const updatedCart = [...existingCart, account];
       localStorage.setItem("ghost_cart", JSON.stringify(updatedCart));
       setCart(updatedCart);
-      setIsPending(true); // Mark as pending when added to cart
+      // setIsPending(true); // Mark as pending when added to cart
       toast.success(`${account.title} added to cart!`);
 
       // Trigger a storage event to notify other components
@@ -174,35 +176,32 @@ const AccountDetails = () => {
       return;
     }
 
-    toast.promise(
-      new Promise((resolve) => {
-        setTimeout(() => {
-          // Add to cart if not already there
-          const existingCart =
-            JSON.parse(localStorage.getItem("ghost_cart")) || [];
-          const alreadyInCart = existingCart.some(
-            (item) => (item.slug || item.id) === (account.slug || item.id)
-          );
-
-          if (!alreadyInCart) {
-            const updatedCart = [...existingCart, account];
-            localStorage.setItem("ghost_cart", JSON.stringify(updatedCart));
-            setCart(updatedCart);
-          }
-
-          // Mark as pending (in cart)
-          setIsPending(true);
-
-          // Trigger a storage event to notify other components
-          window.dispatchEvent(new Event("storage"));
-
-          resolve();
-        }, 2000);
-      }),
+    const service = new EscrowService(db, 12);
+    service.checkout(
       {
-        loading: `Processing purchase for ${account.title}...`,
-        success: `${account.title} added to cart and pending purchase!`,
-        error: `Failed to process ${account.title}`,
+        buyerId: currentUser.uid,
+        sellerId: account.userId,
+        accountId: account.id,
+        itemDescription: account.title,
+        accountCredential: account.accountCredential,
+        amount: Number(account.accountWorth),
+        currency,
+        email: currentUser.email,
+      },
+      {
+        onSuccess: (reference) => {
+          /* UI update */
+          navigate("/account/" + slug + "/linked-accounts/" + reference);
+        },
+        onClose: () => {
+          /* popup closed */
+        },
+        onError: (err) => {
+          console.log("Error Occured during payment");
+          console.log({ err });
+
+          /* handle error */
+        },
       }
     );
   };
@@ -388,177 +387,21 @@ const AccountDetails = () => {
               <h2 className="text-xl font-semibold border-b border-gray-800 pb-2 mb-4">
                 Details
               </h2>
-              <p className="text-gray-300 text-sm sm:text-base">
-                {account.details}
-              </p>
-              {account.accountWorth && (
-                <div className="mt-4">
-                  <h3 className="text-lg font-semibold text-[#0576FF]">
-                    Account Worth
-                  </h3>
-                  <p className="text-xl text-[#0576FF]">
-                    ${account.accountWorth.toLocaleString()}
-                  </p>
-                </div>
-              )}
-              {renderCredentials()}
-              {account.createdAt && (
-                <div className="mt-6">
-                  <p className="text-gray-400 text-sm">
-                    Listed on{" "}
-                    {new Date(
-                      account.createdAt.seconds
-                        ? account.createdAt.seconds * 1000
-                        : account.createdAt
-                    ).toLocaleDateString()}
-                  </p>
-                </div>
-              )}
-              <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
-                <Toaster richColors position="top-center" />
-                <button
-                  onClick={handleAddToCart}
-                  disabled={isPending || isPurchased}
-                  className={`flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 rounded-md text-sm font-medium transition-all duration-200
-                    ${
-                      isPending || isPurchased
-                        ? "bg-gray-800 text-gray-400 cursor-not-allowed"
-                        : "bg-gray-700 text-blue-300 border border-blue-500/30 hover:bg-gray-600 hover:border-blue-400"
-                    }`}
-                  aria-label={isPending ? "Item in cart" : "Add to cart"}
-                >
-                  {isPending ? (
-                    <>
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      <span>In Cart</span>
-                    </>
-                  ) : isPurchased ? (
-                    <>
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      <span>Purchased</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                        />
-                      </svg>
-                      <span>Add to Cart</span>
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={handlePurchase}
-                  disabled={isPurchased}
-                  className={`flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 rounded-md text-sm font-medium transition-all duration-200
-                    ${
-                      isPurchased
-                        ? "bg-gray-800 text-gray-400 cursor-not-allowed"
-                        : isPending
-                        ? "bg-yellow-600 text-white hover:bg-yellow-700"
-                        : "bg-[#0576FF] text-white hover:bg-[#0465db]"
-                    }`}
-                  aria-label={
-                    isPurchased
-                      ? "Purchased"
-                      : isPending
-                      ? "Pending"
-                      : "Purchase account"
-                  }
-                >
-                  {isPurchased ? (
-                    <>
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      <span>Purchased</span>
-                    </>
-                  ) : isPending ? (
-                    <>
-                      <svg
-                        className="w-4 h-4 animate-spin"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                        />
-                      </svg>
-                      <span>Pending</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                        />
-                      </svg>
-                      <span>Purchase</span>
-                    </>
-                  )}
-                </button>
-              </div>
+
+              {/* Outlet for dynamic content */}
+              <Outlet
+                context={{
+                  account,
+                  isPurchased,
+                  showCredentials,
+                  toggleCredentialVisibility,
+                  renderCredentials,
+                  handleAddToCart,
+                  handlePurchase,
+                  // isInCart,
+                  currentUser,
+                }}
+              />
             </div>
           </div>
           {selectedImage !== null && account.screenShots?.length > 0 && (

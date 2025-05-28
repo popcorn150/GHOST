@@ -28,6 +28,8 @@ import Community from "./pages/Community";
 import Withdrawal from "./pages/Withdrawal";
 import Cart from "./pages/Cart";
 import AchievementsGrid from "./pages/AchievementsGrid";
+import AccountDetailsDefault from "./pages/AccountDetailsDefault";
+import PurchasedAccountsDetails from "./pages/PurchasedAccounts";
 
 // Session timeout wrapper component
 const SessionTimeoutWrapper = ({ children }) => {
@@ -103,7 +105,9 @@ const App = () => {
             />
             <Route
               path="/account"
-              element={<UserProfile setUploadedAccounts={setUploadedAccounts} />}
+              element={
+                <UserProfile setUploadedAccounts={setUploadedAccounts} />
+              }
             />
             <Route path="/cart" element={<Cart />} />
             <Route path="/account/:slug" element={<AccountDetails />} />
@@ -112,7 +116,9 @@ const App = () => {
             <Route path="/doc" element={<Doc />} />
             <Route
               path="/profile"
-              element={<UserProfile setUploadedAccounts={setUploadedAccounts} />}
+              element={
+                <UserProfile setUploadedAccounts={setUploadedAccounts} />
+              }
             />
             <Route path="/faqs" element={<FAQs />} />
             <Route path="/community" element={<Community />} />
@@ -144,11 +150,14 @@ const App = () => {
                   <UserProfile setUploadedAccounts={setUploadedAccounts} />
                 }
               />
-              <Route path="/account/:slug" element={<AccountDetails />} />
-              
-              
+              <Route path="/account/:slug" element={<AccountDetails />}>
+                <Route index element={<AccountDetailsDefault />} />
+                <Route
+                  path="linked-accounts/:reference"
+                  element={<PurchasedAccountsDetails />}
+                />
+              </Route>
               <Route path="/community" element={<Community />} />
-              
               <Route path="/settings" element={<Settings />} />
               <Route
                 path="/profilevisit/:userId"
