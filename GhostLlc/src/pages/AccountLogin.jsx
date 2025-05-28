@@ -22,7 +22,6 @@ import { Toaster, toast } from "sonner";
 const AccountLogin = () => {
   const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const db = getFirestore();
@@ -81,10 +80,9 @@ const AccountLogin = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
 
     if (!emailOrUsername.trim() || !password.trim()) {
-      setError("Please fill out all required fields.");
+      toast.error("Please fill out all required fields.");
       return;
     }
 
@@ -139,7 +137,7 @@ const AccountLogin = () => {
       const userDetailsCheck = await checkUserDetails(userCredential.user.uid);
 
       if (!userDetailsCheck.exists) {
-        setError(userDetailsCheck.message);
+        toast.error(userDetailsCheck.message);
         return;
       }
 
@@ -150,44 +148,44 @@ const AccountLogin = () => {
       if (error.code) {
         switch (error.code) {
           case "auth/user-not-found":
-            setError("User not found. Please sign up to create an account.");
+            toast.error("User not found. Please sign up to create an account.");
             break;
           case "auth/wrong-password":
-            setError("Incorrect password. Please try again.");
+            toast.error("Incorrect password. Please try again.");
             break;
           case "auth/invalid-email":
-            setError("Invalid email format. Please enter a valid email.");
+            toast.error("Invalid email format. Please enter a valid email.");
             break;
           case "auth/invalid-credential":
-            setError("Invalid credentials. Please check your input.");
+            toast.error("Invalid credentials. Please check your input.");
             break;
           case "auth/too-many-requests":
-            setError("Too many attempts. Please try again later.");
+            toast.error("Too many attempts. Please try again later.");
             break;
           case "auth/user-disabled":
-            setError("This account has been disabled.");
+            toast.error("This account has been disabled.");
             break;
           case "auth/network-request-failed":
-            setError("Network error. Please check your connection.");
+            toast.error("Network error. Please check your connection.");
             break;
           default:
-            setError(
+            toast.error(
               "Login failed. Please try again or sign up for an account."
             );
         }
       } else {
         switch (error.message) {
           case "auth/user-not-found":
-            setError("User not found. Please sign up to create an account.");
+            toast.error("User not found. Please sign up to create an account.");
             break;
           case "Multiple users found with this username. Please contact support.":
-            setError(error.message);
+            toast.error(error.message);
             break;
           case "Invalid email retrieved from database.":
-            setError("Invalid email data. Please contact support.");
+            toast.error("Invalid email data. Please contact support.");
             break;
           default:
-            setError(
+            toast.error(
               "Login failed. Please try again or sign up for an account."
             );
         }
@@ -198,7 +196,6 @@ const AccountLogin = () => {
   };
 
   const handleGoogleSignIn = async () => {
-    setError("");
     setLoading(true);
 
     try {
@@ -212,7 +209,7 @@ const AccountLogin = () => {
       const userDetailsCheck = await checkUserDetails(signedInUser.uid);
 
       if (!userDetailsCheck.exists) {
-        setError(userDetailsCheck.message);
+        toast.error(userDetailsCheck.message);
         return;
       }
 
@@ -223,29 +220,29 @@ const AccountLogin = () => {
       if (error.code) {
         switch (error.code) {
           case "auth/popup-closed-by-user":
-            setError("Google sign-in was canceled. Please try again.");
+            toast.error("Google sign-in was canceled. Please try again.");
             break;
           case "auth/popup-blocked":
-            setError("Popup blocked. Please allow popups and try again.");
+            toast.error("Popup blocked. Please allow popups and try again.");
             break;
           case "auth/account-exists-with-different-credential":
-            setError(
+            toast.error(
               "Account exists with a different sign-in method. Try another method."
             );
             break;
           case "auth/cancelled-popup-request":
-            setError("Another authentication request is in progress.");
+            toast.error("Another authentication request is in progress.");
             break;
           case "auth/network-request-failed":
-            setError("Network error. Please check your connection.");
+            toast.error("Network error. Please check your connection.");
             break;
           default:
-            setError(
+            toast.error(
               "Google sign-in failed. Please try again or sign up for an account."
             );
         }
       } else {
-        setError(
+        toast.error(
           error.message ||
             "Google sign-in failed. Please try again or sign up for an account."
         );
@@ -259,7 +256,7 @@ const AccountLogin = () => {
     try {
       if (auth.currentUser) {
         console.log(
-          "Signingева out current user before navigating to Welcome page"
+          "Signing out current user before navigating to Welcome page"
         );
         await signOut(auth);
         console.log("Sign-out successful");
@@ -270,7 +267,7 @@ const AccountLogin = () => {
         "Error during sign-out before navigating to Welcome page:",
         error
       );
-      setError("Failed to prepare for account creation. Please try again.");
+      toast.error("Failed to prepare for account creation. Please try again.");
     }
   };
 
@@ -299,12 +296,6 @@ const AccountLogin = () => {
           <h1 className="text-white text-xl lg:text-2xl font-semibold mb-4">
             Login
           </h1>
-
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 w-full">
-              <span className="block sm:inline">{error}</span>
-            </div>
-          )}
 
           <form className="space-y-4" onSubmit={handleLogin}>
             <div>
