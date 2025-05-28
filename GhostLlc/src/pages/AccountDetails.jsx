@@ -117,8 +117,8 @@ const AccountDetails = () => {
         (item) => (item.slug || item.id) === (account.slug || account.id)
       );
 
-      setIsPurchased(isAlreadyPurchased);
-      setIsPending(isAlreadyPending);
+      // setIsPurchased(isAlreadyPurchased);
+      // setIsPending(isAlreadyPending);
 
       console.log("Account status:", {
         isAlreadyPurchased,
@@ -159,7 +159,7 @@ const AccountDetails = () => {
       const updatedCart = [...existingCart, account];
       localStorage.setItem("ghost_cart", JSON.stringify(updatedCart));
       setCart(updatedCart);
-      setIsPending(true); // Mark as pending when added to cart
+      // setIsPending(true); // Mark as pending when added to cart
       toast.success(`${account.title} added to cart!`);
 
       // Trigger a storage event to notify other components
@@ -398,7 +398,7 @@ const AccountDetails = () => {
                   renderCredentials,
                   handleAddToCart,
                   handlePurchase,
-                  isInCart,
+                  // isInCart,
                   currentUser,
                 }}
               />
