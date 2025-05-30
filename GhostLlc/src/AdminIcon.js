@@ -1,1 +1,1 @@
-export const AdminIcon = "https://via.placeholder.com/150?text=Admin";
+export const AdminIcon = "https://via.placeholder.com/150?text=Admin"; //Profile Admin Icon

@@ -11,6 +11,7 @@ import { IoHomeOutline } from "react-icons/io5";
 import { HiOutlineQuestionMarkCircle } from "react-icons/hi";
 import { useAuth } from "../../components/AuthContext";
 import { toast, Toaster } from "sonner";
+import AuthTokenPersister from "../../components/AuthTokenPersister";
 
 const NavBar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -52,6 +53,7 @@ const NavBar = () => {
   return (
     <nav className="sticky top-0 bg-[#0E1115] text-white flex items-center justify-between p-4 shadow-md z-50">
       <Toaster richColors position="top-center" />
+      <AuthTokenPersister />
       <button
         onClick={() => setMenuOpen(!menuOpen)}
         className="hover:cursor-pointer"
@@ -111,7 +113,10 @@ const NavBar = () => {
                 <ul className="space-y-2">
                   <li className="flex items-center gap-2">
                     <IoHomeOutline size={16} />
-                    <Link to="/categories" onClick={() => setDropdownOpen(false)}>
+                    <Link
+                      to="/categories"
+                      onClick={() => setDropdownOpen(false)}
+                    >
                       Home
                     </Link>
                   </li>
