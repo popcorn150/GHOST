@@ -53,7 +53,6 @@ export default function BankDetailsModal({ onClose, onSuccess, userId }) {
       setLoading(false);
     }
   };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
       <div className="bg-gray-900 text-gray-100 rounded-2xl p-6 w-full max-w-md shadow-2xl">
