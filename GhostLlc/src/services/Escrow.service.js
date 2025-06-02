@@ -12,6 +12,7 @@ import {
 import { getFunctions, httpsCallable } from "firebase/functions";
 import emailService from "./api/Email.service";
 import withdrawalService from "./api/Withdrawal.service";
+import { getNetAmount } from "../utils/getNetAmount";
 
 export class EscrowService {
   constructor(db = getFirestore(), autoReleaseHours = 12) {
@@ -67,7 +68,10 @@ export class EscrowService {
       sellerId: opts.sellerId,
       paymentId: ref,
       itemDescription: opts.itemDescription,
-      amount: opts.amount,
+      amount: getNetAmount({
+        amountPaid: opts.amount,
+        currency: opts.currency,
+      }),
       currency: opts.currency,
       status: "pending_verification",
       buyerConfirmed: false,
@@ -77,6 +81,23 @@ export class EscrowService {
       cancelRequestBy: null,
       cancellationReviewedByAdmin: false,
       adminNotes: "",
+    });
+
+    // 3. notify seller to verify credentials
+    await emailService.sendEmail({
+      to: opts.sellerEmail,
+      subject: `Payment Received for Account #${opts.accountId}`,
+      htmlBody: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>Action Required: Verify Account Credentials</h2>
+        <p>Someone has successfully paid for your account <strong>#${opts.accountId}</strong>.</p>
+        <p>Please log in and ensure all credentials and access details needed by the buyer are complete and accurate.</p>
+        <p>Reference ID: <strong>${ref}</strong></p>
+        <p>If everything is in order, the buyer will be able to confirm the delivery. Funds are held in escrow until that confirmation.</p>
+        <p>Thank you for using our platform!</p>
+      </div>
+    `,
+      trackOpens: true,
     });
   }
 
