@@ -176,11 +176,34 @@ const AccountDetails = () => {
         return;
       }
 
-      await addDoc(collection(db, `users/${currentUser.uid}/cart`), account);
+      // Create a lightweight version of the account for cart storage
+      const cartAccountData = {
+        id: account.id,
+        title: account.title,
+        img: account.img,
+        details: account.details,
+        views: account.views,
+        accountWorth: account.accountWorth,
+        accountCredential: account.accountCredential,
+        createdAt: account.createdAt,
+        username: account.username,
+        userId: account.userId,
+        userProfilePic: account.userProfilePic,
+        currency: account.currency,
+        slug: account.slug,
+        addedToCartAt: new Date().toISOString(),
+        // Exclude screenshots array to reduce document size
+        // screenShots: account.screenShots, // Remove this line
+      };
+
+      await addDoc(
+        collection(db, `users/${currentUser.uid}/cart`),
+        cartAccountData
+      );
       setIsInCart(true);
-      setCart([...cart, account]);
+      setCart([...cart, cartAccountData]); // Use the lightweight version
       toast.success(`${account.title} added to cart!`);
-      console.log("Successfully added to Firestore cart:", account);
+      console.log("Successfully added to Firestore cart:", cartAccountData);
     } catch (error) {
       console.error("Error adding to cart:", error);
       toast.error("Failed to add to cart. Please try again.");
@@ -209,9 +232,30 @@ const AccountDetails = () => {
       {
         onSuccess: async (reference) => {
           try {
+            // Create a lightweight version of the account for storage
+            const purchasedAccountData = {
+              id: account.id,
+              title: account.title,
+              img: account.img,
+              details: account.details,
+              views: account.views,
+              accountWorth: account.accountWorth,
+              accountCredential: account.accountCredential,
+              createdAt: account.createdAt,
+              username: account.username,
+              userId: account.userId,
+              userProfilePic: account.userProfilePic,
+              currency: account.currency,
+              slug: account.slug,
+              purchaseDate: new Date().toISOString(),
+              paymentReference: reference,
+              // Exclude screenshots array to reduce document size
+              // screenShots: account.screenShots, // Remove this line
+            };
+
             await addDoc(
               collection(db, `users/${currentUser.uid}/purchased`),
-              account
+              purchasedAccountData
             );
             setIsPurchased(true);
             setShowCredentials(true);

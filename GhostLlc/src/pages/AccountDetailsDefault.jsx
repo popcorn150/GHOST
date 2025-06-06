@@ -1,6 +1,9 @@
+// AccountDetailsDefault.jsx
 import { useOutletContext } from "react-router-dom";
 import { Toaster } from "sonner";
 import { useEffect, useState } from "react";
+import { db } from "../database/firebaseConfig";
+import { doc, updateDoc } from "firebase/firestore";
 
 // Currency conversion utilities
 const getCurrencyByCountry = (countryCode) => {
@@ -107,7 +110,7 @@ const AccountDetailsDefault = () => {
     isPurchased,
     renderCredentials,
     handleAddToCart,
-    handlePurchase,
+    handlePurchase: originalHandlePurchase,
     isInCart,
     currentUser,
     handleContinue,
@@ -164,22 +167,61 @@ const AccountDetailsDefault = () => {
     performCurrencyConversion();
   }, [account, userCurrency, originalCurrency, loadingCurrency]);
 
+  // Enhanced purchase handler
+  const handlePurchase = async () => {
+    try {
+      await originalHandlePurchase();
+
+      // Mark the account as sold in Firestore
+      if (account.isFromFirestore) {
+        const accountRef = doc(db, "accounts", account.id);
+        await updateDoc(accountRef, {
+          sold: true,
+          soldAt: new Date().toISOString(),
+          buyerId: currentUser.uid,
+        });
+        console.log(`Marked account ${account.id} as sold in Firestore`);
+      }
+    } catch (error) {
+      console.error("Error during purchase:", error);
+      toast.error("Purchase failed. Please try again.");
+    }
+  };
+
   const renderPrice = () => {
     if (!account.accountWorth) return null;
 
     return (
       <div className="mt-4">
-        <h3 className="text-lg font-semibold text-[#0576FF]">Account Worth</h3>
+        <h3 className="text-lg font-semibold text-[#0576FF] mb-2">
+          Account Worth
+        </h3>
         {convertedPrice !== null ? (
           <div>
-            <p className="text-xl text-[#0576FF] font-bold">
-              {formatCurrency(convertedPrice, userCurrency)}
-            </p>
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm text-[#0576FF] font-medium">
+                {userCurrency}
+              </span>
+              <span className="text-2xl text-[#0576FF] font-bold">
+                {new Intl.NumberFormat("en-US", {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 2,
+                }).format(convertedPrice)}
+              </span>
+            </div>
             {originalCurrency !== userCurrency && (
-              <p className="text-sm text-gray-400">
-                Original:{" "}
-                {formatCurrency(account.accountWorth, originalCurrency)}
-              </p>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="text-xs text-gray-500">Original:</span>
+                <span className="text-xs text-gray-500 font-medium">
+                  {originalCurrency}
+                </span>
+                <span className="text-xs text-gray-400">
+                  {new Intl.NumberFormat("en-US", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2,
+                  }).format(account.accountWorth)}
+                </span>
+              </div>
             )}
           </div>
         ) : (
