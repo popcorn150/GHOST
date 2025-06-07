@@ -1,6 +1,5 @@
-// AccountDetailsDefault.jsx
 import { useOutletContext } from "react-router-dom";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner"; // Import toast
 import { useEffect, useState } from "react";
 import { db } from "../database/firebaseConfig";
 import { doc, updateDoc } from "firebase/firestore";
@@ -170,21 +169,25 @@ const AccountDetailsDefault = () => {
   // Enhanced purchase handler
   const handlePurchase = async () => {
     try {
+      // Validate account ID
+      if (!account.isFromFirestore || !account.id) {
+        throw new Error("Invalid account or not from Firestore");
+      }
+
+      // Call the original purchase handler
       await originalHandlePurchase();
 
       // Mark the account as sold in Firestore
-      if (account.isFromFirestore) {
-        const accountRef = doc(db, "accounts", account.id);
-        await updateDoc(accountRef, {
-          sold: true,
-          soldAt: new Date().toISOString(),
-          buyerId: currentUser.uid,
-        });
-        console.log(`Marked account ${account.id} as sold in Firestore`);
-      }
+      const accountRef = doc(db, "accounts", account.id);
+      await updateDoc(accountRef, {
+        sold: true,
+        soldAt: new Date().toISOString(),
+        buyerId: currentUser.uid,
+      });
+      console.log(`Marked account ${account.id} as sold in Firestore`);
     } catch (error) {
-      console.error("Error during purchase:", error);
-      toast.error("Purchase failed. Please try again.");
+      console.error("Error during purchase:", error.message, error);
+      toast.error(`Purchase failed: ${error.message || "Unknown error"}`);
     }
   };
 
