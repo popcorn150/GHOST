@@ -79,12 +79,12 @@ Represents a successful payment made by a buyer to fund an escrow. All successfu
 
 #### Payment Status Options
 
-| Status     | Description                                             |
-| ---------- | ------------------------------------------------------- |
-| `pending`  | Initial state after popup success, before verification. |
-| `success`  | Payment was processed and confirmed by the gateway.     |
-| `failed`   | Payment failed during processing.                       |
-| `refunded` | The payment was refunded to the buyer.                  |
+| Status | Description ||
+| ---------- | ------------------------------------------------------- ||
+| `pending` | Initial state after popup success, before verification. ||
+| `success` | Payment was processed and confirmed by the gateway. ||
+| `failed` | Payment failed during processing. ||
+| `refunded` | The payment was refunded to the buyer. ||
 
 ---
 
