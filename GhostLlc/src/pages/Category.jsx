@@ -7,7 +7,7 @@ import availableAccounts from "../constants";
 import { fetchAccountsWithImages } from "../utils/firebaseUtils";
 import { useAuth } from "../components/AuthContext";
 import { db } from "../database/firebaseConfig";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, onSnapshot } from "firebase/firestore";
 
 const Category = () => {
   const { currentUser: user } = useAuth();
@@ -19,37 +19,65 @@ const Category = () => {
   const [cartAccounts, setCartAccounts] = useState([]);
   const carouselRef = useRef(null);
 
-  // Load purchased and cart accounts from localStorage
+  // Fetch purchased and cart accounts from Firestore
   useEffect(() => {
-    const loadStoredAccounts = () => {
-      const purchased =
-        JSON.parse(localStorage.getItem("ghost_purchased")) || [];
-      const cart = JSON.parse(localStorage.getItem("ghost_cart")) || [];
+    if (!user) {
+      setPurchasedAccounts([]);
+      setCartAccounts([]);
+      return;
+    }
 
-      setPurchasedAccounts(purchased);
-      setCartAccounts(cart);
-    };
+    // Real-time listener for purchased accounts
+    const purchasedQuery = query(collection(db, `users/${user.uid}/purchased`));
+    const unsubscribePurchased = onSnapshot(
+      purchasedQuery,
+      (snapshot) => {
+        const purchased = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setPurchasedAccounts(purchased);
+        console.log("Updated purchased accounts:", purchased);
+      },
+      (error) => {
+        console.error("Error fetching purchased accounts:", error);
+      }
+    );
 
-    loadStoredAccounts();
-
-    // Add UK for storage changes
-    window.addEventListener("storage", loadStoredAccounts);
+    // Real-time listener for cart accounts
+    const cartQuery = query(collection(db, `users/${user.uid}/cart`));
+    const unsubscribeCart = onSnapshot(
+      cartQuery,
+      (snapshot) => {
+        const cart = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setCartAccounts(cart);
+        console.log("Updated cart accounts:", cart);
+      },
+      (error) => {
+        console.error("Error fetching cart accounts:", error);
+      }
+    );
 
     return () => {
-      window.removeEventListener("storage", loadStoredAccounts);
+      unsubscribePurchased();
+      unsubscribeCart();
     };
-  }, []);
+  }, [user]);
 
-  // Helper function to check if an account is purchased or in cart
+  // Helper function to check if an account is purchased, in cart, or sold
   const isAccountPurchasedOrInCart = (account) => {
     const accountId = account.slug || account.id;
-
     return (
       purchasedAccounts.some((item) => (item.slug || item.id) === accountId) ||
-      cartAccounts.some((item) => (item.slug || item.id) === accountId)
+      cartAccounts.some((item) => (item.slug || item.id) === accountId) ||
+      account.sold === true // Check if account is marked as sold
     );
   };
 
+  // Fetch user profile image
   useEffect(() => {
     const fetchUserData = async () => {
       if (user) {
@@ -67,15 +95,10 @@ const Category = () => {
     fetchUserData();
   }, [user]);
 
+  // Fetch uploaded accounts from Firestore
   useEffect(() => {
     const fetchUploadedAccounts = async () => {
       setLoading(true);
-      if (!user) {
-        setAccounts([]);
-        setLoading(false);
-        return;
-      }
-
       try {
         const fetchedAccounts = await fetchAccountsWithImages();
         if (fetchedAccounts && fetchedAccounts.length > 0) {
@@ -99,7 +122,8 @@ const Category = () => {
               img: img || AdminIcon,
             })),
             isFromFirestore: true,
-            category: account.category || "Other",
+            category: account.category || "Others",
+            sold: account.sold || false, // Include sold status
           }));
           setAccounts(mappedAccounts);
         } else {
@@ -116,13 +140,16 @@ const Category = () => {
     fetchUploadedAccounts();
   }, [user]);
 
-  // Add isFromFirestore:false to each available account
+  // Combine static and Firestore accounts
   const modifiedAvailableAccounts = availableAccounts.map((account) => ({
     ...account,
     isFromFirestore: false,
+    sold: false, // Static accounts are never sold
   }));
 
   const combinedAccounts = [...modifiedAvailableAccounts, ...accounts];
+
+  // Filter accounts for the carousel
   const filteredAccounts = combinedAccounts.filter((account) => {
     const title = account.title || account.accountName || "";
     return (
@@ -187,50 +214,58 @@ const Category = () => {
         ) : (
           <div className="overflow-hidden relative carousel-wrapper">
             <div ref={carouselRef} className="carousel-track space-x-6 pr-6">
-              {duplicatedAccounts.map((account, index) => {
-                const imageSrc =
-                  account.img || account.accountImage || AdminIcon;
-                return (
-                  <div
-                    key={`${account.id || account.slug}-${index}`}
-                    className="relative w-64 flex-shrink-0 bg-[#1C1F26] rounded-xl shadow-xl hover:scale-105 hover:shadow-2xl transition-all duration-300 ease-in-out cursor-pointer"
-                  >
-                    <div className="overflow-hidden rounded-t-xl p-2">
-                      <img
-                        src={imageSrc}
-                        alt={account.title || account.accountName || "Untitled"}
-                        className="w-full h-40 object-cover rounded-md transform hover:scale-110 transition duration-500 ease-in-out"
-                      />
-                    </div>
-                    <div className="p-4">
-                      <h2 className="text-lg text-white font-semibold truncate">
-                        {account.title || account.accountName || "Untitled"}
-                      </h2>
-                      <p className="text-sm text-gray-400 mb-2">
-                        {account.username
-                          ? `By ${account.username}`
-                          : "By Ghost"}
-                      </p>
-                      <div className="flex items-center justify-between text-sm text-gray-400 mb-3">
-                        <span>{account.views || 0} Views</span>
+              {duplicatedAccounts.length > 0 ? (
+                duplicatedAccounts.map((account, index) => {
+                  const imageSrc =
+                    account.img || account.accountImage || AdminIcon;
+                  return (
+                    <div
+                      key={`${account.id || account.slug}-${index}`}
+                      className="relative w-64 flex-shrink-0 bg-[#1C1F26] rounded-xl shadow-xl hover:scale-105 hover:shadow-2xl transition-all duration-300 ease-in-out cursor-pointer"
+                    >
+                      <div className="overflow-hidden rounded-t-xl p-2">
                         <img
-                          src={account.userProfilePic || AdminIcon}
-                          alt="User"
-                          className="w-8 h-8 rounded-full object-cover border border-gray-700"
+                          src={imageSrc}
+                          alt={
+                            account.title || account.accountName || "Untitled"
+                          }
+                          className="w-full h-40 object-cover rounded-md transform hover:scale-110 transition duration-500 ease-in-out"
                         />
                       </div>
-                      {account.isFromFirestore ? (
-                        <Link
-                          to={`/account/${account.slug || account.id}`}
-                          className="inline-block w-full text-center bg-gradient-to-r from-[#4426B9] to-[#6C5DD3] text-white py-2 px-4 rounded-lg font-semibold hover:opacity-90 transition"
-                        >
-                          View Details
-                        </Link>
-                      ) : null}
+                      <div className="p-4">
+                        <h2 className="text-lg text-white font-semibold truncate">
+                          {account.title || account.accountName || "Untitled"}
+                        </h2>
+                        <p className="text-sm text-gray-400 mb-2">
+                          {account.username
+                            ? `By ${account.username}`
+                            : "By Ghost"}
+                        </p>
+                        <div className="flex items-center justify-between text-sm text-gray-400 mb-3">
+                          <span>{account.views || 0} Views</span>
+                          <img
+                            src={account.userProfilePic || AdminIcon}
+                            alt="User"
+                            className="w-8 h-8 rounded-full object-cover border border-gray-700"
+                          />
+                        </div>
+                        {account.isFromFirestore ? (
+                          <Link
+                            to={`/account/${account.slug || account.id}`}
+                            className="inline-block w-full text-center bg-gradient-to-r from-[#4426B9] to-[#6C5DD3] text-white py-2 px-4 rounded-lg font-semibold hover:opacity-90 transition"
+                          >
+                            View Details
+                          </Link>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <p className="text-white text-center">
+                  No featured accounts available.
+                </p>
+              )}
             </div>
           </div>
         )}

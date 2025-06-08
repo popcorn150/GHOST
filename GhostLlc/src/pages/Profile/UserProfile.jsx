@@ -66,7 +66,7 @@ const tabs = [
   { name: "Uploads", icon: UploadCloud },
   { name: "Bio", icon: User },
   { name: "Socials", icon: FaShareAlt },
-  { name: "Achievements", icon: FaTrophy }, // Changed from FaStar to FaTrophy
+  { name: "Achievements", icon: FaTrophy },
 ];
 
 const initialAchievements = [
@@ -144,7 +144,7 @@ const Achievements = ({ userId }) => {
   useEffect(() => {
     const fetchAchievements = async () => {
       if (!userId) {
-        console.error("No userId provided to Achievements component");
+        setError("Invalid user ID");
         toast.error("Invalid user ID");
         setIsLoading(false);
         return;
@@ -170,12 +170,10 @@ const Achievements = ({ userId }) => {
 
           setAchievements(mergedAchievements);
         } else {
-          console.error("User document does not exist for userId:", userId);
           setError("User not found.");
           toast.error("User not found.");
         }
       } catch (err) {
-        console.error("Error fetching achievements:", err);
         setError("Failed to load achievements. Please try again.");
         toast.error(`Failed to load achievements: ${err.message}`);
       } finally {
@@ -235,17 +233,12 @@ const Achievements = ({ userId }) => {
                     src={achievement.img}
                     alt={achievement.title}
                     className="h-16 mb-4"
-                    onError={() =>
-                      console.error(
-                        `Failed to load image for ${achievement.title}`
-                      )
-                    }
                   />
                 ) : (
                   <FaTrophy
                     className="h-16 mb-4 text-gray-400"
                     aria-label={achievement.title}
-                  /> // Changed from FaStar to FaTrophy
+                  />
                 )}
                 <h3 className="text-lg font-semibold mb-1">
                   {achievement.title}
@@ -323,7 +316,7 @@ const Layout = ({
         {isUpdatingUsername && (
           <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
             <div className="flex flex-col items-center gap-3">
-              <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-l-4 border-r-4 border-t-[#0576FF] border-b-[#0576FF] border-l-transparent border-r-transparent"></div>
+  <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-l-4 border-r-4 border-t-[#0576FF] border-b-[#0576FF] border-l-transparent border-r-transparent"></div>
               <p className="text-white text-lg font-semibold">Processing...</p>
             </div>
           </div>
@@ -468,6 +461,9 @@ const Uploads = ({
   const [editingAccount, setEditingAccount] = useState(null);
   const [showShareModal, setShowShareModal] = useState(null);
   const [accountCategory, setAccountCategory] = useState("");
+  const [sellerCut, setSellerCut] = useState(null);
+  const [ghostCut, setGhostCut] = useState(null); // Added for Ghost Cut
+  const [isCalculatingCut, setIsCalculatingCut] = useState(false);
   const minScreenshots = 3;
   const maxScreenshots = 5;
   const maxDescriptionWords = 100;
@@ -476,23 +472,69 @@ const Uploads = ({
   const shareModalRef = useRef(null);
   const navigate = useNavigate();
 
+  // Mock exchange rates (1 unit of currency to NGN)
+  const exchangeRatesToNGN = {
+    USD: 1500,
+    EUR: 1600,
+    GBP: 1800,
+    NGN: 1,
+  };
+
   const formatNumberWithCommas = (value) => {
     if (!value) return "";
     const cleanedValue = value.replace(/[^0-9.]/g, "");
     const parts = cleanedValue.split(".");
     const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    const decimalPart = parts.length > 1 ? `.${parts[1]}` : "";
+    const decimalPart = parts.length > 1 ? `.${parts[1].slice(0, 2)}` : "";
     return integerPart + decimalPart;
   };
 
   const handleAccountWorthChange = (e) => {
     const rawValue = e.target.value.replace(/,/g, "");
     setAccountWorth(rawValue);
+    if (rawValue && !isNaN(parseFloat(rawValue))) {
+      calculateSellerCut(rawValue);
+    } else {
+      setSellerCut(null);
+      setGhostCut(null); // Reset Ghost Cut
+      setIsCalculatingCut(false);
+    }
+  };
+
+  const calculateSellerCut = async (worth) => {
+    setIsCalculatingCut(true);
+    try {
+      // Simulate async calculation for UX
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const worthInUserCurrency = parseFloat(worth);
+      const rateToNGN = exchangeRatesToNGN[userCurrency] || 1500; // Default to USD if unknown
+      const worthInNGN = worthInUserCurrency * rateToNGN;
+
+      // Apply cut based on NGN amount
+      let sellerPercentage = worthInNGN > 100000 ? 0.8 : 0.85; // 80% for >100k, 85% for <=100k
+      const sellerCutInNGN = worthInNGN * sellerPercentage;
+      const ghostCutInNGN = worthInNGN * (1 - sellerPercentage); // Platform's cut (20% or 15%)
+
+      // Convert back to user currency
+      const sellerCutInUserCurrency = sellerCutInNGN / rateToNGN;
+      const ghostCutInUserCurrency = ghostCutInNGN / rateToNGN;
+
+      setSellerCut(sellerCutInUserCurrency.toFixed(2));
+      setGhostCut(ghostCutInUserCurrency.toFixed(2)); // Set Ghost Cut
+    } catch (err) {
+      console.error("Error calculating cuts:", err);
+      setSellerCut(null);
+      setGhostCut(null);
+    } finally {
+      setIsCalculatingCut(false);
+    }
   };
 
   useEffect(() => {
     if (editingAccount && editingAccount.accountWorth) {
       setAccountWorth(editingAccount.accountWorth.toString());
+      calculateSellerCut(editingAccount.accountWorth.toString());
     }
   }, [editingAccount]);
 
@@ -710,7 +752,7 @@ const Uploads = ({
       case "facebook":
         url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
           shareUrl
-        )}"e=${encodeURIComponent(text)}`;
+        )}&quote=${encodeURIComponent(text)}`;
         break;
       case "twitter":
         url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(
@@ -852,6 +894,9 @@ const Uploads = ({
     setScreenshots([]);
     setIsUploading(false);
     setEditingAccount(null);
+    setSellerCut(null);
+    setGhostCut(null); // Reset Ghost Cut
+    setIsCalculatingCut(false);
     if (accountImageInputRef.current) {
       accountImageInputRef.current.value = null;
     }
@@ -1083,6 +1128,28 @@ const Uploads = ({
                   required
                   aria-label={`Account worth in ${userCurrency}`}
                 />
+                <div className="w-full max-w-[450px] mx-auto text-sm text-gray-400">
+                  {isCalculatingCut ? (
+                    <p>Calculating cuts...</p>
+                  ) : sellerCut && ghostCut ? (
+                    <div className="flex flex-col gap-1">
+                      <p>
+                        Seller's Cut:{" "}
+                        <span className="text-green-500 font-medium">
+                          {formatNumberWithCommas(sellerCut)} {userCurrency}
+                        </span>
+                      </p>
+                      <p>
+                        Ghost Cut:{" "}
+                        <span className="text-red-500 font-medium">
+                          {formatNumberWithCommas(ghostCut)} {userCurrency}
+                        </span>
+                      </p>
+                    </div>
+                  ) : (
+                    <p>Enter account worth to see cuts.</p>
+                  )}
+                </div>
                 <select
                   value={accountCategory}
                   onChange={(e) => setAccountCategory(e.target.value)}
@@ -1456,7 +1523,6 @@ const Socials = ({ handleSaveSocials, profileData }) => {
     setTempLinks({ ...tempLinks, [platform]: value });
   };
 
-  // Calculate profile completion status
   const completionIndicators = [
     {
       label: "Username",
@@ -1505,7 +1571,6 @@ const Socials = ({ handleSaveSocials, profileData }) => {
   }, []);
 
   useEffect(() => {
-    // Show pop-up if profile is not fully completed when the user visits the Socials tab
     if (!isProfileComplete && !sessionStorage.getItem("completionPopupShown")) {
       setShowCompletionPopup(true);
       sessionStorage.setItem("completionPopupShown", "true");
@@ -1807,67 +1872,30 @@ const UserProfile = () => {
         setProfileImage(compressedImage);
         setProfileData((prev) => ({ ...prev, profileImage: compressedImage }));
         toast.success("Profile image updated successfully!");
-
-        // Update "Alfred" achievement (ID 5) progress
-        const userDoc = await getDoc(userDocRef);
-        const userData = userDoc.data();
-        const hasUsername =
-          !!userData.username && userData.username !== "UnnamedUser";
-        const hasBio = !!userData.bio && userData.bio.trim() !== "";
-        const hasSocials = Object.values(userData.socials || {}).some(
-          (val) => val && val.trim() !== ""
-        );
-        const progress = Math.min(
-          ((hasUsername + true + hasBio + hasSocials) / 4) * 100,
-          100
-        );
-        await updateDoc(userDocRef, {
-          [`achievementStatuses.5.progress`]: progress,
-          [`achievementStatuses.5.earned`]: progress >= 100,
-        });
       } catch (error) {
         console.error("Error updating profile image:", error);
         toast.error("Failed to update profile image: " + error.message);
       }
     }
   };
-
+  
   const handleSaveUsername = async () => {
-    if (!auth.currentUser) return;
-    if (!tempUsername || tempUsername.trim() === "") {
+    if (tempUsername.trim() === "") {
       toast.error("Username cannot be empty.");
+      return;
+    }
+    if (tempUsername === username) {
+      setIsEditingUsername(false);
       return;
     }
     try {
       setIsUpdatingUsername(true);
       const userDocRef = doc(db, "users", auth.currentUser.uid);
-      await updateDoc(userDocRef, { username: tempUsername });
-      setUsername(tempUsername);
-      setProfileData((prev) => ({ ...prev, username: tempUsername }));
+      await updateDoc(userDocRef, { username: tempUsername.trim() });
+      setUsername(tempUsername.trim());
+      setProfileData((prev) => ({ ...prev, username: tempUsername.trim() }));
       setIsEditingUsername(false);
       toast.success("Username updated successfully!");
-
-      // Update "Alfred" achievement (ID 5) progress
-      const userDoc = await getDoc(userDocRef);
-      const userData = userDoc.data();
-      const hasUsername =
-        !!userData.username && userData.username !== "UnnamedUser";
-      const hasProfileImage = !!userData.profileImage;
-      const hasBio = !!userData.bio && userData.bio.trim() !== "";
-      const hasSocials = Object.values(userData.socials || {}).some(
-        (val) => val && val.trim() !== ""
-      );
-      const progress = Math.min(
-        ((hasUsername + hasProfileImage + hasBio + hasSocials) / 4) * 100,
-        100
-      );
-      await updateDoc(userDocRef, {
-        [`achievementStatuses.5.progress`]: progress,
-        [`achievementStatuses.5.earned`]: progress >= 100,
-      });
-      if (progress >= 100 && !userData.achievementStatuses?.[5]?.earned) {
-        setShowAlfredPopup(true);
-      }
     } catch (error) {
       console.error("Error updating username:", error);
       toast.error("Failed to update username: " + error.message);
@@ -1875,12 +1903,12 @@ const UserProfile = () => {
       setIsUpdatingUsername(false);
     }
   };
-
+  
   const handleDiscardUsername = () => {
     setTempUsername(username);
     setIsEditingUsername(false);
   };
-
+  
   const handleSaveBio = async (bio) => {
     if (!auth.currentUser) return;
     try {
@@ -1888,34 +1916,12 @@ const UserProfile = () => {
       await updateDoc(userDocRef, { bio });
       setProfileData((prev) => ({ ...prev, bio }));
       toast.success("Bio updated successfully!");
-
-      // Update "Alfred" achievement (ID 5) progress
-      const userDoc = await getDoc(userDocRef);
-      const userData = userDoc.data();
-      const hasUsername =
-        !!userData.username && userData.username !== "UnnamedUser";
-      const hasProfileImage = !!userData.profileImage;
-      const hasBio = !!userData.bio && userData.bio.trim() !== "";
-      const hasSocials = Object.values(userData.socials || {}).some(
-        (val) => val && val.trim() !== ""
-      );
-      const progress = Math.min(
-        ((hasUsername + hasProfileImage + hasBio + hasSocials) / 4) * 100,
-        100
-      );
-      await updateDoc(userDocRef, {
-        [`achievementStatuses.5.progress`]: progress,
-        [`achievementStatuses.5.earned`]: progress >= 100,
-      });
-      if (progress >= 100 && !userData.achievementStatuses?.[5]?.earned) {
-        setShowAlfredPopup(true);
-      }
     } catch (error) {
-      console.error("Error updating bio:", error);
-      toast.error("Failed to update bio: " + error.message);
+      console.error("Error saving bio:", error);
+      toast.error("Failed to save bio: " + error.message);
     }
   };
-
+  
   const handleSaveSocials = async (socials) => {
     if (!auth.currentUser) return;
     try {
@@ -1923,103 +1929,76 @@ const UserProfile = () => {
       await updateDoc(userDocRef, { socials });
       setProfileData((prev) => ({ ...prev, socials }));
       toast.success("Social links updated successfully!");
-
-      // Update "Alfred" achievement (ID 5) progress
-      const userDoc = await getDoc(userDocRef);
-      const userData = userDoc.data();
-      const hasUsername =
-        !!userData.username && userData.username !== "UnnamedUser";
-      const hasProfileImage = !!userData.profileImage;
-      const hasBio = !!userData.bio && userData.bio.trim() !== "";
-      const hasSocials = Object.values(userData.socials || {}).some(
-        (val) => val && val.trim() !== ""
-      );
-      const progress = Math.min(
-        ((hasUsername + hasProfileImage + hasBio + hasSocials) / 4) * 100,
-        100
-      );
-      await updateDoc(userDocRef, {
-        [`achievementStatuses.5.progress`]: progress,
-        [`achievementStatuses.5.earned`]: progress >= 100,
-      });
-      if (progress >= 100 && !userData.achievementStatuses?.[5]?.earned) {
-        setShowAlfredPopup(true);
-      }
     } catch (error) {
-      console.error("Error updating socials:", error);
-      toast.error("Failed to update social links: " + error.message);
+      console.error("Error saving socials:", error);
+      toast.error("Failed to save social links: " + error.message);
     }
   };
-
+  
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (!user) {
-        navigate("/login");
-      } else {
-        const fetchUserData = async () => {
-          try {
-            const userDocRef = doc(db, "users", user.uid);
-            const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists()) {
-              const data = userDoc.data();
-              setUsername(data.username || "UnnamedUser");
-              setTempUsername(data.username || "UnnamedUser");
-              setProfileImage(data.profileImage || null);
-              setProfileData({
-                username: data.username || "UnnamedUser",
-                profileImage: data.profileImage || null,
-                bio: data.bio || "",
-                socials: data.socials || {
-                  instagram: "",
-                  tiktok: "",
-                  twitter: "",
-                  facebook: "",
-                },
-              });
-              setUserCurrency(data.currency || "USD");
-            } else {
-              await setDoc(userDocRef, {
-                username: "UnnamedUser",
-                createdAt: new Date(),
-                currency: "USD",
-              });
-              setUsername("UnnamedUser");
-              setTempUsername("UnnamedUser");
-              setProfileData({
-                username: "UnnamedUser",
-                profileImage: null,
-                bio: "",
-                socials: {
-                  instagram: "",
-                  tiktok: "",
-                  twitter: "",
-                  facebook: "",
-                },
-              });
-              setUserCurrency("USD");
-            }
-            fetchAccounts();
-          } catch (error) {
-            console.error("Error fetching user data:", error);
-            toast.error("Failed to fetch user data: " + error.message);
+    const fetchUserData = async () => {
+      if (auth.currentUser) {
+        try {
+          const userDocRef = doc(db, "users", auth.currentUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setUsername(data.username || "UnnamedUser");
+            setTempUsername(data.username || "UnnamedUser");
+            setProfileImage(data.profileImage || null);
+            setProfileData({
+              username: data.username || "UnnamedUser",
+              profileImage: data.profileImage || null,
+              bio: data.bio || "",
+              socials: data.socials || {
+                instagram: "",
+                tiktok: "",
+                twitter: "",
+                facebook: "",
+              },
+            });
+            setUserCurrency(data.currency || "USD");
           }
-        };
-        fetchUserData();
-      }
-    });
-    return () => unsubscribe();
-  }, [navigate]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (popupRef.current && !popupRef.current.contains(event.target)) {
-        setShowAlfredPopup(false);
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          toast.error("Failed to fetch user data: " + error.message);
+        }
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    fetchUserData();
+    fetchAccounts();
   }, []);
-
+  
+  useEffect(() => {
+    const checkProfileCompletion = async () => {
+      if (
+        !auth.currentUser ||
+        !profileData.username ||
+        profileData.username === "UnnamedUser" ||
+        !profileData.profileImage ||
+        !profileData.bio ||
+        !Object.values(profileData.socials).some((val) => val.trim() !== "")
+      ) {
+        return;
+      }
+      try {
+        const userDocRef = doc(db, "users", auth.currentUser.uid);
+        await updateDoc(userDocRef, {
+          [`achievementStatuses.5.progress`]: 100,
+          [`achievementStatuses.5.earned`]: true,
+        });
+        if (showAlfredAlert) {
+          setShowAlfredPopup(true);
+          setShowAlfredAlert(false);
+        }
+      } catch (error) {
+        console.error("Error updating Alfred achievement:", error);
+        toast.error("Failed to update achievement: " + error.message);
+      }
+    };
+    checkProfileCompletion();
+  }, [profileData, showAlfredAlert]);
+  
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape" && showAlfredPopup) {
@@ -2029,48 +2008,39 @@ const UserProfile = () => {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [showAlfredPopup]);
-
+  
   return (
-    <div className="min-h-screen text-white">
-      {showAlfredAlert && (
-        <div className="fixed top-4 right-4 bg-[#161B22] p-4 rounded-lg border border-gray-800 shadow-lg z-50">
-          <div className="flex items-center gap-3">
-            <FaTrophy className="text-yellow-500 w-6 h-6" />
-            <p className="text-white text-sm">
-              Complete your profile to earn the &quot;Alfred&quot; achievement!
-            </p>
-            <button
-              onClick={() => setShowAlfredAlert(false)}
-              className="text-gray-400 hover:text-white"
-              aria-label="Close Alfred alert"
-            >
-              <FaTimesCircle className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      )}
+    <Layout
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      username={username}
+      profileImage={profileImage}
+      handleImageChange={handleImageChange}
+      isEditingUsername={isEditingUsername}
+      setIsEditingUsername={setIsEditingUsername}
+      tempUsername={tempUsername}
+      setTempUsername={setTempUsername}
+      handleSaveUsername={handleSaveUsername}
+      handleDiscardUsername={handleDiscardUsername}
+      isUpdatingUsername={isUpdatingUsername}
+    >
       {showAlfredPopup && (
         <div
           className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
           ref={popupRef}
         >
-          <div className="bg-[#161B22] p-6 sm:p-8 rounded-xl border border-gray-800 max-w-sm w-full mx-4">
-            <div className="flex flex-col items-center gap-4">
-              <img
-                src={AlfredIcon}
-                alt="Alfred Achievement"
-                className="h-16 mb-2"
-              />
-              <h3 className="text-white text-lg sm:text-xl font-semibold">
-                Alfred Achieved!
-              </h3>
-              <p className="text-gray-300 text-sm sm:text-base text-center">
-                You've completed your profile setup. Suit up & ready to go!
-              </p>
+          <div className="bg-[#161B22] p-6 rounded-xl border border-gray-800 max-w-sm w-full mx-4">
+            <h3 className="text-white text-lg font-semibold mb-4">
+              Achievement Unlocked!
+            </h3>
+            <p className="text-gray-300 mb-6">
+              Congratulations! You've earned the "Alfred" achievement for completing your profile.
+            </p>
+            <div className="flex justify-end">
               <button
                 onClick={() => setShowAlfredPopup(false)}
-                className="bg-[#4426B9] text-white px-4 py-2 rounded-lg hover:bg-[#2F1A7F] transition"
-                aria-label="Close Alfred achievement popup"
+                className="px-4 py-2 bg-[#4426B9] text-white rounded-md hover:bg-[#2F1A7F] transition"
+                aria-label="Close achievement popup"
               >
                 Awesome!
               </button>
@@ -2078,58 +2048,27 @@ const UserProfile = () => {
           </div>
         </div>
       )}
-      <Layout
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        username={username}
-        profileImage={profileImage}
-        handleImageChange={handleImageChange}
-        isEditingUsername={isEditingUsername}
-        setIsEditingUsername={setIsEditingUsername}
-        tempUsername={tempUsername}
-        setTempUsername={setTempUsername}
-        handleSaveUsername={handleSaveUsername}
-        handleDiscardUsername={handleDiscardUsername}
-        isUpdatingUsername={isUpdatingUsername}
-      >
-        {activeTab === "Uploads" && (
-          <Uploads
-            profileImage={profileImage}
-            uploadedAccounts={uploadedAccounts}
-            setUploadedAccounts={setUploadedAccounts}
-            fetchAccounts={fetchAccounts}
-            username={username}
-            userCurrency={userCurrency}
-          />
-        )}
-        {activeTab === "Bio" && <About handleSaveBio={handleSaveBio} />}
-        {activeTab === "Socials" && (
-          <Socials
-            handleSaveSocials={handleSaveSocials}
-            profileData={profileData}
-          />
-        )}
-        {activeTab === "Achievements" && (
-          <Achievements userId={auth.currentUser?.uid} />
-        )}
-      </Layout>
-    </div>
+      {activeTab === "Uploads" && (
+        <Uploads
+          profileImage={profileImage}
+          uploadedAccounts={uploadedAccounts}
+          setUploadedAccounts={setUploadedAccounts}
+          fetchAccounts={fetchAccounts}
+          username={username}
+          userCurrency={userCurrency}
+        />
+      )}
+      {activeTab === "Bio" && <About handleSaveBio={handleSaveBio} />}
+      {activeTab === "Socials" && (
+        <Socials handleSaveSocials={handleSaveSocials} profileData={profileData} />
+      )}
+      {activeTab === "Achievements" && <Achievements userId={auth.currentUser?.uid} />}
+    </Layout>
   );
-};
-
-UserProfile.propTypes = {
-  activeTab: PropTypes.string.isRequired,
-  setActiveTab: PropTypes.func.isRequired,
-  username: PropTypes.string.isRequired,
-  profileImage: PropTypes.string,
-  handleImageChange: PropTypes.func.isRequired,
-  isEditingUsername: PropTypes.bool.isRequired,
-  setIsEditingUsername: PropTypes.func.isRequired,
-  tempUsername: PropTypes.string.isRequired,
-  setTempUsername: PropTypes.func.isRequired,
-  handleSaveUsername: PropTypes.func.isRequired,
-  handleDiscardUsername: PropTypes.func.isRequired,
-  isUpdatingUsername: PropTypes.bool.isRequired,
-};
-
-export default UserProfile;
+  };
+  
+  UserProfile.propTypes = {
+    // Define prop types if needed
+  };
+  
+  export default UserProfile;

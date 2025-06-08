@@ -1,5 +1,107 @@
 import { useOutletContext } from "react-router-dom";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner"; // Import toast
+import { useEffect, useState } from "react";
+import { db } from "../database/firebaseConfig";
+import { doc, updateDoc } from "firebase/firestore";
+
+// Currency conversion utilities
+const getCurrencyByCountry = (countryCode) => {
+  const currencyMap = {
+    US: "USD",
+    GB: "GBP",
+    EU: "EUR",
+    DE: "EUR",
+    FR: "EUR",
+    IT: "EUR",
+    ES: "EUR",
+    CA: "CAD",
+    AU: "AUD",
+    JP: "JPY",
+    CN: "CNY",
+    IN: "INR",
+    BR: "BRL",
+    RU: "RUB",
+    KR: "KRW",
+    MX: "MXN",
+    ZA: "ZAR",
+    NG: "NGN",
+    KE: "KES",
+    GH: "GHS",
+    EG: "EGP",
+    MA: "MAD",
+    TZ: "TZS",
+    UG: "UGX",
+    ZM: "ZMW",
+    ZW: "ZWL",
+    BW: "BWP",
+    MW: "MWK",
+    MZ: "MZN",
+    AO: "AOA",
+    ET: "ETB",
+  };
+  return currencyMap[countryCode] || "USD";
+};
+
+const detectUserLocation = async () => {
+  try {
+    const response = await fetch("https://ipapi.co/json/");
+    const data = await response.json();
+    return {
+      country: data.country_code,
+      currency: getCurrencyByCountry(data.country_code),
+    };
+  } catch (error) {
+    console.error("Error detecting location:", error);
+    const locale = navigator.language || navigator.languages[0];
+    const countryCode = locale.split("-")[1] || "US";
+    return {
+      country: countryCode,
+      currency: getCurrencyByCountry(countryCode),
+    };
+  }
+};
+
+const convertCurrency = async (amount, fromCurrency, toCurrency) => {
+  if (fromCurrency === toCurrency) return amount;
+
+  try {
+    const response = await fetch(
+      `https://api.exchangerate-api.com/v4/latest/${fromCurrency}`
+    );
+    const data = await response.json();
+
+    if (data.rates && data.rates[toCurrency]) {
+      return amount * data.rates[toCurrency];
+    }
+
+    const fallbackResponse = await fetch(
+      `https://api.fxratesapi.com/latest?base=${fromCurrency}&symbols=${toCurrency}`
+    );
+    const fallbackData = await fallbackResponse.json();
+
+    if (fallbackData.rates && fallbackData.rates[toCurrency]) {
+      return amount * fallbackData.rates[toCurrency];
+    }
+
+    throw new Error("Currency conversion failed");
+  } catch (error) {
+    console.error("Currency conversion error:", error);
+    return amount;
+  }
+};
+
+const formatCurrency = (amount, currency) => {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch (error) {
+    return `${currency} ${amount.toLocaleString()}`;
+  }
+};
 
 const AccountDetailsDefault = () => {
   const {
@@ -7,23 +109,140 @@ const AccountDetailsDefault = () => {
     isPurchased,
     renderCredentials,
     handleAddToCart,
-    handlePurchase,
+    handlePurchase: originalHandlePurchase,
     isInCart,
-    // currentUser
+    currentUser,
+    handleContinue,
+    paymentReference,
   } = useOutletContext();
+
+  const [userCurrency, setUserCurrency] = useState("USD");
+  const [convertedPrice, setConvertedPrice] = useState(null);
+  const [originalCurrency, setOriginalCurrency] = useState("USD");
+  const [loadingCurrency, setLoadingCurrency] = useState(true);
+
+  useEffect(() => {
+    const setupCurrency = async () => {
+      try {
+        const location = await detectUserLocation();
+        setUserCurrency(location.currency);
+        setOriginalCurrency(account.currency || "USD");
+        console.log("Detected user currency:", location.currency);
+      } catch (error) {
+        console.error("Error setting up currency:", error);
+        setUserCurrency("USD");
+      } finally {
+        setLoadingCurrency(false);
+      }
+    };
+
+    setupCurrency();
+  }, [account]);
+
+  useEffect(() => {
+    const performCurrencyConversion = async () => {
+      if (account && account.accountWorth && !loadingCurrency) {
+        try {
+          if (originalCurrency !== userCurrency) {
+            console.log(
+              `Converting ${account.accountWorth} from ${originalCurrency} to ${userCurrency}`
+            );
+            const converted = await convertCurrency(
+              account.accountWorth,
+              originalCurrency,
+              userCurrency
+            );
+            setConvertedPrice(converted);
+          } else {
+            setConvertedPrice(account.accountWorth);
+          }
+        } catch (error) {
+          console.error("Error converting currency:", error);
+          setConvertedPrice(account.accountWorth);
+        }
+      }
+    };
+
+    performCurrencyConversion();
+  }, [account, userCurrency, originalCurrency, loadingCurrency]);
+
+  // Enhanced purchase handler
+  const handlePurchase = async () => {
+    try {
+      // Validate account ID
+      if (!account.isFromFirestore || !account.id) {
+        throw new Error("Invalid account or not from Firestore");
+      }
+
+      // Call the original purchase handler
+      await originalHandlePurchase();
+
+      // Mark the account as sold in Firestore
+      const accountRef = doc(db, "accounts", account.id);
+      await updateDoc(accountRef, {
+        sold: true,
+        soldAt: new Date().toISOString(),
+        buyerId: currentUser.uid,
+      });
+      console.log(`Marked account ${account.id} as sold in Firestore`);
+    } catch (error) {
+      console.error("Error during purchase:", error.message, error);
+      toast.error(`Purchase failed: ${error.message || "Unknown error"}`);
+    }
+  };
+
+  const renderPrice = () => {
+    if (!account.accountWorth) return null;
+
+    return (
+      <div className="mt-4">
+        <h3 className="text-lg font-semibold text-[#0576FF] mb-2">
+          Account Worth
+        </h3>
+        {convertedPrice !== null ? (
+          <div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm text-[#0576FF] font-medium">
+                {userCurrency}
+              </span>
+              <span className="text-2xl text-[#0576FF] font-bold">
+                {new Intl.NumberFormat("en-US", {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 2,
+                }).format(convertedPrice)}
+              </span>
+            </div>
+            {originalCurrency !== userCurrency && (
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="text-xs text-gray-500">Original:</span>
+                <span className="text-xs text-gray-500 font-medium">
+                  {originalCurrency}
+                </span>
+                <span className="text-xs text-gray-400">
+                  {new Intl.NumberFormat("en-US", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2,
+                  }).format(account.accountWorth)}
+                </span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <div className="animate-pulse bg-gray-600 h-6 w-24 rounded"></div>
+            <span className="text-sm text-gray-400">Converting...</span>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <>
+      <Toaster richColors position="top-center" />
       <p className="text-gray-300 text-sm sm:text-base">{account.details}</p>
 
-      {account.accountWorth && (
-        <div className="mt-4">
-          <h3 className="text-lg font-semibold text-[#0576FF]">
-            Account Worth
-          </h3>
-          <p className="text-xl text-[#0576FF]">${account.accountWorth}</p>
-        </div>
-      )}
+      {renderPrice()}
 
       {renderCredentials()}
 
@@ -41,17 +260,22 @@ const AccountDetailsDefault = () => {
       )}
 
       <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
-        <Toaster richColors position="top-center" />
         <button
           onClick={handleAddToCart}
-          disabled={isInCart}
+          disabled={isInCart || isPurchased}
           className={`flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 rounded-md text-sm font-medium transition-all duration-200
             ${
-              isInCart
+              isInCart || isPurchased
                 ? "bg-gray-800 text-gray-400 cursor-not-allowed"
                 : "bg-gray-700 text-blue-300 border border-blue-500/30 hover:bg-gray-600 hover:border-blue-400"
             }`}
-          aria-label={isInCart ? "Item in cart" : "Add to cart"}
+          aria-label={
+            isInCart
+              ? "Item in cart"
+              : isPurchased
+              ? "Purchased"
+              : "Add to cart"
+          }
         >
           {isInCart ? (
             <>
@@ -140,6 +364,29 @@ const AccountDetailsDefault = () => {
             </>
           )}
         </button>
+        {isPurchased && currentUser && paymentReference && (
+          <button
+            onClick={handleContinue}
+            className="flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 rounded-md text-sm font-medium transition-all duration-200 bg-green-600 text-white hover:bg-green-700"
+            aria-label="Continue to linked accounts"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 7l5 5m0 0l-5 5m5-5H6"
+              />
+            </svg>
+            <span>Continue</span>
+          </button>
+        )}
       </div>
     </>
   );

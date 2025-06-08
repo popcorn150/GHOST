@@ -11,6 +11,7 @@ import { GiCancel } from "react-icons/gi";
 import { toast } from "sonner";
 import { db } from "../database/firebaseConfig";
 import { EscrowService } from "../services/Escrow.service";
+import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
 
 // Fallback image URL if AdminIcon is undefined
 const FALLBACK_IMAGE = "https://via.placeholder.com/150?text=Placeholder";
@@ -24,13 +25,10 @@ const AccountDetails = () => {
   const [account, setAccount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState([]);
-  const [isPurchased] = useState(false);
+  const [isPurchased, setIsPurchased] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
-  const [currency] = useState("NGN");
-
-  useEffect(() => {
-    console.log("Current user:", currentUser);
-  }, [currentUser]);
+  const [isInCart, setIsInCart] = useState(false);
+  const [paymentReference, setPaymentReference] = useState(null);
 
   useEffect(() => {
     const fetchAccountData = async () => {
@@ -66,7 +64,8 @@ const AccountDetails = () => {
                 }))
               : [],
             isFromFirestore: true,
-            slug: slug, // Ensure slug is included
+            slug: slug,
+            currency: firestoreAccount.currency || "USD",
           };
           console.log("Mapped account with views:", foundAccount.views);
           setAccount(foundAccount);
@@ -98,35 +97,52 @@ const AccountDetails = () => {
     }
   }, [isPurchased]);
 
-  // Check for purchased status and cart status whenever account is loaded
   useEffect(() => {
-    if (account) {
-      const existingCart = JSON.parse(localStorage.getItem("ghost_cart")) || [];
-      const purchasedAccounts =
-        JSON.parse(localStorage.getItem("ghost_purchased")) || [];
+    if (account && currentUser) {
+      const checkCartAndPurchased = async () => {
+        try {
+          // Check cart
+          const cartQuery = query(
+            collection(db, `users/${currentUser.uid}/cart`),
+            where("id", "==", account.id)
+          );
+          const cartSnapshot = await getDocs(cartQuery);
+          setIsInCart(!cartSnapshot.empty);
 
-      setCart(existingCart);
+          // Check purchased
+          const purchasedQuery = query(
+            collection(db, `users/${currentUser.uid}/purchased`),
+            where("id", "==", account.id)
+          );
+          const purchasedSnapshot = await getDocs(purchasedQuery);
+          setIsPurchased(!purchasedSnapshot.empty);
 
-      // Check if account is already purchased
-      const isAlreadyPurchased = purchasedAccounts.some(
-        (item) => (item.slug || item.id) === (account.slug || account.id)
-      );
+          // Fetch cart items
+          const cartCollection = collection(
+            db,
+            `users/${currentUser.uid}/cart`
+          );
+          const cartDocs = await getDocs(cartCollection);
+          const cartItems = cartDocs.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setCart(cartItems);
 
-      // Check if account is already in cart (pending)
-      const isAlreadyPending = existingCart.some(
-        (item) => (item.slug || item.id) === (account.slug || account.id)
-      );
+          console.log("Account status:", {
+            isPurchased: !purchasedSnapshot.empty,
+            isInCart: !cartSnapshot.empty,
+            slug: account.slug || account.id,
+          });
+        } catch (error) {
+          console.error("Error checking cart/purchased status:", error);
+          toast.error("Failed to load cart or purchased status.");
+        }
+      };
 
-      // setIsPurchased(isAlreadyPurchased);
-      // setIsPending(isAlreadyPending);
-
-      console.log("Account status:", {
-        isAlreadyPurchased,
-        isAlreadyPending,
-        slug: account.slug || account.id,
-      });
+      checkCartAndPurchased();
     }
-  }, [account]);
+  }, [account, currentUser]);
 
   const handleImageClick = (index) => setSelectedImage(index);
 
@@ -141,35 +157,60 @@ const AccountDetails = () => {
         (prev - 1 + account.screenShots.length) % account.screenShots.length
     );
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!currentUser) {
       toast.error("Please log in to add to cart.");
       navigate("/login");
       return;
     }
 
-    const existingCart = JSON.parse(localStorage.getItem("ghost_cart")) || [];
-    const alreadyInCart = existingCart.some(
-      (item) => (item.slug || item.id) === (account.slug || account.id)
-    );
+    try {
+      const cartQuery = query(
+        collection(db, `users/${currentUser.uid}/cart`),
+        where("id", "==", account.id)
+      );
+      const cartSnapshot = await getDocs(cartQuery);
 
-    if (alreadyInCart) {
-      toast.warning(`${account.title} is already in your cart!`);
-    } else {
-      const updatedCart = [...existingCart, account];
-      localStorage.setItem("ghost_cart", JSON.stringify(updatedCart));
-      setCart(updatedCart);
-      // setIsPending(true); // Mark as pending when added to cart
+      if (!cartSnapshot.empty) {
+        toast.warning(`${account.title} is already in your cart!`);
+        return;
+      }
+
+      // Create a lightweight version of the account for cart storage
+      const cartAccountData = {
+        id: account.id,
+        title: account.title,
+        img: account.img,
+        details: account.details,
+        views: account.views,
+        accountWorth: account.accountWorth,
+        accountCredential: account.accountCredential,
+        createdAt: account.createdAt,
+        username: account.username,
+        userId: account.userId,
+        userProfilePic: account.userProfilePic,
+        currency: account.currency,
+        slug: account.slug,
+        addedToCartAt: new Date().toISOString(),
+        // Exclude screenshots array to reduce document size
+        // screenShots: account.screenShots, // Remove this line
+      };
+
+      await addDoc(
+        collection(db, `users/${currentUser.uid}/cart`),
+        cartAccountData
+      );
+      setIsInCart(true);
+      setCart([...cart, cartAccountData]); // Use the lightweight version
       toast.success(`${account.title} added to cart!`);
-
-      // Trigger a storage event to notify other components
-      window.dispatchEvent(new Event("storage"));
-
-      console.log("Saved to localStorage:", updatedCart);
+      console.log("Successfully added to Firestore cart:", cartAccountData);
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast.error("Failed to add to cart. Please try again.");
     }
   };
 
-  const handlePurchase = () => {
+  const handlePurchase = async () => {
     if (!currentUser) {
       toast.error("Please log in to purchase.");
       navigate("/login");
@@ -185,25 +226,65 @@ const AccountDetails = () => {
         itemDescription: account.title,
         accountCredential: account.accountCredential,
         amount: Number(account.accountWorth),
-        currency,
+        currency: account.currency,
         email: currentUser.email,
       },
       {
-        onSuccess: (reference) => {
-          /* UI update */
-          navigate("/account/" + slug + "/linked-accounts/" + reference);
+        onSuccess: async (reference) => {
+          try {
+            // Create a lightweight version of the account for storage
+            const purchasedAccountData = {
+              id: account.id,
+              title: account.title,
+              img: account.img,
+              details: account.details,
+              views: account.views,
+              accountWorth: account.accountWorth,
+              accountCredential: account.accountCredential,
+              createdAt: account.createdAt,
+              username: account.username,
+              userId: account.userId,
+              userProfilePic: account.userProfilePic,
+              currency: account.currency,
+              slug: account.slug,
+              purchaseDate: new Date().toISOString(),
+              paymentReference: reference,
+              // Exclude screenshots array to reduce document size
+              // screenShots: account.screenShots, // Remove this line
+            };
+
+            await addDoc(
+              collection(db, `users/${currentUser.uid}/purchased`),
+              purchasedAccountData
+            );
+            setIsPurchased(true);
+            setShowCredentials(true);
+            setPaymentReference(reference);
+            toast.success("Purchase successful! Credentials are now visible.");
+          } catch (error) {
+            console.error("Error saving purchased account:", error);
+            toast.error(
+              "Purchase recorded, but failed to save to purchased list."
+            );
+          }
         },
         onClose: () => {
-          /* popup closed */
+          toast.info("Payment window closed.");
         },
         onError: (err) => {
-          console.log("Error Occured during payment");
-          console.log({ err });
-
-          /* handle error */
+          console.error("Error during payment:", err);
+          toast.error("Payment failed. Please try again.");
         },
       }
     );
+  };
+
+  const handleContinue = () => {
+    if (paymentReference) {
+      navigate(`/account/${slug}/linked-accounts/${paymentReference}`);
+    } else {
+      toast.error("No payment reference available.");
+    }
   };
 
   const toggleCredentialVisibility = () => {
@@ -387,8 +468,6 @@ const AccountDetails = () => {
               <h2 className="text-xl font-semibold border-b border-gray-800 pb-2 mb-4">
                 Details
               </h2>
-
-              {/* Outlet for dynamic content */}
               <Outlet
                 context={{
                   account,
@@ -398,8 +477,10 @@ const AccountDetails = () => {
                   renderCredentials,
                   handleAddToCart,
                   handlePurchase,
-                  // isInCart,
+                  isInCart,
                   currentUser,
+                  handleContinue,
+                  paymentReference,
                 }}
               />
             </div>
