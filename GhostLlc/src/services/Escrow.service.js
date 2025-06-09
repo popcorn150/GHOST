@@ -1,7 +1,3 @@
-
-
-
-
 import PropTypes from "prop-types";
 import PaystackPop from "@paystack/inline-js";
 import {
@@ -17,6 +13,7 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 import emailService from "./api/Email.service";
 import withdrawalService from "./api/Withdrawal.service";
 import { getNetAmount } from "../utils/getNetAmount";
+// Fix: Use default import for validator
 import validator from "validator";
 
 export class EscrowService {
@@ -46,6 +43,8 @@ export class EscrowService {
       console.error("Missing required fields in checkout:", opts);
       throw new Error("Missing required checkout fields");
     }
+    
+    // Fix: Add null/undefined check before validator call
     if (!opts.email || !validator.isEmail(opts.email)) {
       console.error("Invalid or missing buyer email in checkout:", opts.email);
       throw new Error("Invalid buyer email provided");
@@ -257,7 +256,7 @@ export class EscrowService {
   /**
    * Public: process a withdrawal for a seller
    * @param escrowId   - the escrow document ID
-   * @param sellerId   - the seller’s user ID
+   * @param sellerId   - the seller's user ID
    */
   async processWithdrawal({ escrowId, sellerId }) {
     // 1) Make sure the seller has bank details set up (for UX)
@@ -271,8 +270,8 @@ export class EscrowService {
   }
 
   /**
-   * Private: confirm the seller’s user doc has a Paystack recipient code
-   * (so you can prompt “Please add your bank details” before any API call)
+   * Private: confirm the seller's user doc has a Paystack recipient code
+   * (so you can prompt "Please add your bank details" before any API call)
    */
   async ensureBankDetailsOnUser(sellerId) {
     const userRef = doc(this.db, "users", sellerId);
