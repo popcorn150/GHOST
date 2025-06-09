@@ -1,219 +1,203 @@
 import { useRef, useState } from "react";
-import NavBar from "../components/NavBar";
+import { toast } from "sonner";
+import emailService from "../services/api/Email.service";
 import BackButton from "../components/BackButton";
-import gameDoc from "./gameDoc";
-import emailjs from "@emailjs/browser";
-
-const Doc = () => {
-    const [search, setSearch] = useState("");
-
-    const filteredDocs = Array.isArray(gameDoc)
-        ? gameDoc.filter((Doc) =>
-            Doc.game.toLowerCase().includes(search.toLowerCase())
-        ) : [];
-
-    return (
-        <>
-            <NavBar />
-            <div className="container mx-auto px-4 py-5">
-                <BackButton className="my-5" />
-                <h1 className="text-white text-xl text-center font-bold mb-4">Ghost Account Ownership Transfer Guide</h1>
-
-                <div>
-                    <h1 className="text-white text-2xl text-start font-bold mb-4">Introduction</h1>
-                    <p className="text-white text-base text-start font-normal mb-5">
-                        This guide provides detailed instructions on how to transfer ownership
-                        of game accounts securely and successfully. Different games have unique transfer processes,
-                        so follow the steps carefully for each specific title.
-                    </p>
-                    <input
-                        type="text"
-                        placeholder="Search for a game guide..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full p-2 mb-4 bg-[#161B22] text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
-                    />
-                </div>
-
-                {filteredDocs.map((game) => (
-                    <div key={game.id} className="mb-10 border-b border-white/10 pb-8">
-                        <h3 className="text-white text-xl md:text-2xl font-semibold mb-4">
-                            {game.game}
-                        </h3>
-
-                        <div className="mb-4">
-                            <h4 className="text-white text-lg font-medium mb-2">
-                                Steps to Transfer Ownership:
-                            </h4>
-                            <ul className="text-white space-y-2 list-disc ml-5">
-                                {game.steps.map((step) => (
-                                    <li key={step.id}>
-                                        {step.step}
-                                        {step.list && (
-                                            <ul className="list-decimal ml-6 mt-2 space-y-1">
-                                                {step.list.map((sub, i) => (
-                                                    <li key={i}>
-                                                        {sub.step}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        <div>
-                            <h4 className="text-lg text-white font-medium mb-2">
-                                Precautions:
-                            </h4>
-                            <ul className="space-y-2 list-disc ml-5 text-red-300">
-                                {game.precautions.map((precaution) => (
-                                    <li key={precaution.id}>
-                                        {precaution.step}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                ))}
-
-                <section className="mb-10 bg-gradient-to-br from-blue-800 to-purple-800 p-5 rounded-2xl shadow-lg">
-                    <h2 className="text-white text-xl md:text-2xl font-bold mb-2">
-                        🎮 Share a Guide & Get Rewarded!
-                    </h2>
-                    <p className="mb-4 text-white">
-                        Know how to transfer ownership for a game we haven’t covered yet?
-                        Submit your step-by-step guide and tag us on X (Twitter).
-                        If your guide is verified, we’ll upload it publicly,
-                        give you a shoutout, and even drop a reward! 🎁
-                    </p>
-                </section>
-
-                <GuideUploadForm />
-            </div>
-
-            <div className="relative bottom-0 pb-3 px-7">
-                <h4 className="text-white text-xs font-mdium md:text-sm text-center"><b>Ghost - Secure Gaming Account Marketplace.</b></h4>
-            </div>
-        </>
-    );
-}
 
 const GuideUploadForm = () => {
-    const formRef = useRef(null);
+  const formRef = useRef(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
 
-        const form = formRef.current;
-        if (!form) return;
+    const form = formRef.current;
+    if (!form) {
+      setIsSubmitting(false);
+      toast.error("Form not found. Please try again.");
+      return;
+    }
 
-        const formData = {
-            name: form.name.value,
-            email: form.email.value,
-            title: form.title.value,
-            message: form.message.value
-        };
-
-        const serviceID = 'service_bi18dxk';
-        const userTemplateID = 'template_fdhifdx';
-        const ghostTemplateID = 'template_ws1e4pv';
-        const publicKey = 'NWRHwzniQ3Ke5CkXt';
-
-        // Send to Ghost email
-        emailjs.send(serviceID, ghostTemplateID, formData, publicKey)
-            .then(() => {
-                console.log('Sent to Ghost successfully');
-            })
-            .catch((error) => {
-                console.error('Error sending to Ghost:', error);
-            });
-
-
-        // Send confirmation to user
-        emailjs.send(serviceID, userTemplateID, formData, publicKey)
-            .then(() => {
-                console.log('Confirmation sent to user');
-                alert('Submitted successfully!');
-                form.reset(); // Optional: clear the form
-            })
-            .catch((error) => {
-                console.error('Error sending confirmation:', error);
-                alert('Something went wrong. Please try again.');
-            });
+    const formData = {
+      name: form.name.value,
+      email: form.email.value,
+      title: form.title.value,
+      message: form.message.value,
     };
 
-    return (
-        <div className="my-3">
-            <h2 className="text-white text-2xl font-bold mb-6 text-center">Submit Your Ownership Guide</h2>
-            <p className="text-gray-500 mb-8 text-center">
-                Help us keep Ghost up to date.
-                Submit accurate ownership guides and earn rewards when your submission is approved.
-            </p>
+    try {
+      // Send to Ghost email (support@ghostplay.store)
+      await emailService.sendNoReplyEmail(
+        "support@ghostplay.store",
+        `New Guide Submission: ${formData.title}`,
+        `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>New Ownership Guide Submission</h2>
+            <p><strong>Twitter Username:</strong> ${formData.name}</p>
+            <p><strong>Email:</strong> ${formData.email}</p>
+            <p><strong>Game Title:</strong> ${formData.title}</p>
+            <p><strong>Guide Details:</strong></p>
+            <p>${formData.message.replace(/\n/g, "<br>")}</p>
+          </div>
+        `,
+        `New Guide Submission\nTwitter Username: ${formData.name}\nEmail: ${formData.email}\nGame Title: ${formData.title}\nGuide Details:\n${formData.message}`
+      );
 
-            <form ref={formRef} onSubmit={handleSubmit} className="space-y-6 bg-gray-900 p-6 rounded-2xl">
-                <div>
-                    <label className="block text-sm font-medium text-white">
-                        Twitter Username
-                    </label>
-                    <input
-                        type="text"
-                        name="name"
-                        placeholder="@username"
-                        required
-                        className="w-full p-2 mt-3 bg-[#161B22] text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
-                    />
-                </div>
+      // Send confirmation to user
+      await emailService.sendNoReplyEmail(
+        formData.email,
+        "Thank You for Your Guide Submission",
+        `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Submission Received!</h2>
+            <p>Thank you, ${
+              formData.name
+            }, for submitting your ownership guide for <strong>${
+          formData.title
+        }</strong>.</p>
+            <p>We’ll review your guide and get back to you soon. If approved, you’ll receive a reward and a shoutout!</p>
+            <p><strong>Your Submission:</strong></p>
+            <p>${formData.message.replace(/\n/g, "<br>")}</p>
+          </div>
+        `,
+        `Thank you, ${formData.name}, for submitting your guide for ${formData.title}.\nWe’ll review it and get back to you soon.\n\nYour Submission:\n${formData.message}`
+      );
 
-                <div>
-                    <label className="blobk text-sm font-medium text-white">
-                        Email
-                    </label>
-                    <input
-                        type="email"
-                        name="email"
-                        placeholder="you@example.com"
-                        required
-                        className="w-full p-2 mt-3 bg-[#161B22] text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
-                    />
-                </div>
+      // Success feedback
+      toast.success("Guide submitted successfully!");
+      form.reset();
+    } catch (error) {
+      console.error("Error sending emails:", error);
+      toast.error("Failed to submit guide. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-                <div>
-                    <label className="block text-sm font-medium text-white">
-                        Game Title
-                    </label>
-                    <input
-                        type="text"
-                        name="title"
-                        placeholder="Call of Duty: Modern Warfare"
-                        required
-                        className="w-full p-2 mt-3 bg-[#161B22] text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
-                    />
-                </div>
+  return (
+    <div className="my-6 mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+      <BackButton className="mb-6" />
+      <h2 className="text-white text-2xl sm:text-3xl font-bold mb-4 text-center">
+        Submit Your Ownership Guide
+      </h2>
+      <p className="text-gray-400 text-sm sm:text-base mb-8 text-center max-w-lg mx-auto">
+        Help us keep Ghost up to date. Submit accurate ownership guides and earn
+        rewards when your submission is approved.
+      </p>
 
-                <div>
-                    <label className="block text-sm font-medium text-white">
-                        Ownership Guide Details
-                    </label>
-                    <textarea
-                        name="message"
-                        rows={6}
-                        placeholder="Include steps, screenshots (optional links), and anything that helps others verify and use the account..."
-                        required
-                        className="w-full p-2 mt-3 bg-[#161B22] text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
-                    ></textarea>
-                </div>
-
-                <button
-                    type="submit"
-                    className="w-full bg-gradient-to-br from-blue-800 to-purple-800 text-white py-3 rounded-xl cursor-pointer"
-                >
-                    Submit Guide
-                </button>
-            </form>
+      <form
+        ref={formRef}
+        onSubmit={handleSubmit}
+        className="space-y-5 bg-gray-900 p-6 sm:p-8 rounded-2xl shadow-lg"
+      >
+        <div>
+          <label
+            htmlFor="name"
+            className="block text-sm sm:text-base font-medium text-white mb-2"
+          >
+            Twitter Username
+          </label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            placeholder="@username"
+            required
+            className="w-full p-3 bg-[#161B22] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] transition-all duration-200 hover:border-gray-400"
+          />
         </div>
-    )
-}
 
-export default Doc
+        <div>
+          <label
+            htmlFor="email"
+            className="block text-sm sm:text-base font-medium text-white mb-2"
+          >
+            Email
+          </label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="you@example.com"
+            required
+            className="w-full p-3 bg-[#161B22] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] transition-all duration-200 hover:border-gray-400"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="title"
+            className="block text-sm sm:text-base font-medium text-white mb-2"
+          >
+            Game Title
+          </label>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            placeholder="Call of Duty: Modern Warfare"
+            required
+            className="w-full p-3 bg-[#161B22] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] transition-all duration-200 hover:border-gray-400"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="message"
+            className="block text-sm sm:text-base font-medium text-white mb-2"
+          >
+            Ownership Guide Details
+          </label>
+          <textarea
+            id="message"
+            name="message"
+            rows={6}
+            placeholder="Include steps, screenshots (optional links), and anything that helps others verify and use the account..."
+            required
+            className="w-full p-3 bg-[#161B22] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] transition-all duration-200 hover:border-gray-400 resize-vertical"
+          ></textarea>
+        </div>
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className={`w-full bg-gradient-to-br from-blue-800 to-purple-800 text-white py-3 rounded-xl font-semibold transition-all duration-300 ${
+            isSubmitting
+              ? "opacity-70 cursor-not-allowed"
+              : "hover:from-blue-700 hover:to-purple-700 hover:shadow-lg"
+          }`}
+        >
+          {isSubmitting ? (
+            <span className="flex items-center justify-center">
+              <svg
+                className="animate-spin h-5 w-5 mr-2 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8H4z"
+                ></path>
+              </svg>
+              Submitting...
+            </span>
+          ) : (
+            "Submit Guide"
+          )}
+        </button>
+      </form>
+    </div>
+  );
+};
+
+export default GuideUploadForm;
