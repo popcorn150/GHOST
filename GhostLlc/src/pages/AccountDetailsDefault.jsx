@@ -1,5 +1,5 @@
 import { useOutletContext } from "react-router-dom";
-import { Toaster, toast } from "sonner"; // Import toast
+import { Toaster, toast } from "sonner";
 import { useEffect, useState } from "react";
 import { db } from "../database/firebaseConfig";
 import { doc, updateDoc } from "firebase/firestore";
@@ -52,6 +52,7 @@ const detectUserLocation = async () => {
     };
   } catch (error) {
     console.error("Error detecting location:", error);
+    toast.error("Failed to detect location. Defaulting to USD.");
     const locale = navigator.language || navigator.languages[0];
     const countryCode = locale.split("-")[1] || "US";
     return {
@@ -86,6 +87,7 @@ const convertCurrency = async (amount, fromCurrency, toCurrency) => {
     throw new Error("Currency conversion failed");
   } catch (error) {
     console.error("Currency conversion error:", error);
+    toast.error("Currency conversion failed. Displaying original amount.");
     return amount;
   }
 };
@@ -99,6 +101,8 @@ const formatCurrency = (amount, currency) => {
       maximumFractionDigits: 2,
     }).format(amount);
   } catch (error) {
+    console.error("Currency formatting error:", error);
+    toast.error("Currency formatting failed. Displaying raw amount.");
     return `${currency} ${amount.toLocaleString()}`;
   }
 };
@@ -120,6 +124,7 @@ const AccountDetailsDefault = () => {
   const [convertedPrice, setConvertedPrice] = useState(null);
   const [originalCurrency, setOriginalCurrency] = useState("USD");
   const [loadingCurrency, setLoadingCurrency] = useState(true);
+  const [isOwnAccount, setIsOwnAccount] = useState(false);
 
   useEffect(() => {
     const setupCurrency = async () => {
@@ -166,12 +171,26 @@ const AccountDetailsDefault = () => {
     performCurrencyConversion();
   }, [account, userCurrency, originalCurrency, loadingCurrency]);
 
+  // Check if the current user is the seller
+  useEffect(() => {
+    if (currentUser && account) {
+      setIsOwnAccount(currentUser.uid === account.userId);
+    }
+  }, [currentUser, account]);
+
   // Enhanced purchase handler
   const handlePurchase = async () => {
     try {
+      // Check if the user is the seller
+      if (currentUser && currentUser.uid === account.userId) {
+        toast.error("You cannot purchase your own account.");
+        return;
+      }
+
       // Validate account ID
       if (!account.isFromFirestore || !account.id) {
-        throw new Error("Invalid account or not from Firestore");
+        toast.error("Invalid account or not from Firestore.");
+        return;
       }
 
       // Call the original purchase handler
@@ -185,6 +204,7 @@ const AccountDetailsDefault = () => {
         buyerId: currentUser.uid,
       });
       console.log(`Marked account ${account.id} as sold in Firestore`);
+      toast.success(`Successfully purchased ${account.title}!`);
     } catch (error) {
       console.error("Error during purchase:", error.message, error);
       toast.error(`Purchase failed: ${error.message || "Unknown error"}`);
@@ -192,7 +212,10 @@ const AccountDetailsDefault = () => {
   };
 
   const renderPrice = () => {
-    if (!account.accountWorth) return null;
+    if (!account.accountWorth) {
+      toast.warning("Account worth not specified.");
+      return null;
+    }
 
     return (
       <div className="mt-4">
@@ -262,10 +285,10 @@ const AccountDetailsDefault = () => {
       <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
         <button
           onClick={handleAddToCart}
-          disabled={isInCart || isPurchased}
+          disabled={isInCart || isPurchased || isOwnAccount}
           className={`flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 rounded-md text-sm font-medium transition-all duration-200
             ${
-              isInCart || isPurchased
+              isInCart || isPurchased || isOwnAccount
                 ? "bg-gray-800 text-gray-400 cursor-not-allowed"
                 : "bg-gray-700 text-blue-300 border border-blue-500/30 hover:bg-gray-600 hover:border-blue-400"
             }`}
@@ -274,6 +297,8 @@ const AccountDetailsDefault = () => {
               ? "Item in cart"
               : isPurchased
               ? "Purchased"
+              : isOwnAccount
+              ? "Your own account"
               : "Add to cart"
           }
         >
@@ -317,14 +342,20 @@ const AccountDetailsDefault = () => {
         </button>
         <button
           onClick={handlePurchase}
-          disabled={isPurchased}
+          disabled={isPurchased || isOwnAccount}
           className={`flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 rounded-md text-sm font-medium transition-all duration-200
             ${
-              isPurchased
+              isPurchased || isOwnAccount
                 ? "bg-gray-800 text-gray-400 cursor-not-allowed"
                 : "bg-[#0576FF] text-white hover:bg-[#0465db]"
             }`}
-          aria-label={isPurchased ? "Purchased" : "Purchase account"}
+          aria-label={
+            isPurchased
+              ? "Purchased"
+              : isOwnAccount
+              ? "Your own account"
+              : "Purchase account"
+          }
         >
           {isPurchased ? (
             <>
@@ -360,7 +391,7 @@ const AccountDetailsDefault = () => {
                   d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                 />
               </svg>
-              <span>Purchase</span>
+              <span>{isOwnAccount ? "Your Account" : "Purchase"}</span>
             </>
           )}
         </button>

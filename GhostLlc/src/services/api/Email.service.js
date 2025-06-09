@@ -3,73 +3,53 @@ import validator from "validator";
 
 /**
  * Email service that routes through your backend API with Postmark
- * Supports both test and live modes
+ * Now supports live mode with proper email type routing
  */
 export class EmailService {
   constructor(baseApiUrl = import.meta.env.VITE_API_URL || "/api") {
     this.apiUrl = `${baseApiUrl}/email`;
-    // Check multiple sources for test mode configuration
-    this.isTestMode = import.meta.env.VITE_POSTMARK_TEST_MODE === 'true' || 
-                     import.meta.env.MODE === 'test' ||
-                     import.meta.env.NODE_ENV === 'test';
-    
     console.log("EmailService API URL:", this.apiUrl);
-    console.log("EmailService Test Mode:", this.isTestMode ? "ENABLED" : "DISABLED");
-    console.log("Environment variables:", {
-      VITE_POSTMARK_TEST_MODE: import.meta.env.VITE_POSTMARK_TEST_MODE,
-      MODE: import.meta.env.MODE,
-      NODE_ENV: import.meta.env.NODE_ENV
-    });
+    console.log("EmailService Mode: LIVE");
   }
 
   async sendEmail(request, retries = 3) {
-    let { from, to, subject, htmlBody, textBody, trackOpens } = request;
-    from = from || "support@ghostplay.store"; // Default to support
+    let { from, to, subject, htmlBody, textBody, trackOpens, emailType } =
+      request;
 
-    // Real implementation: No domain restriction needed in test mode
+    // Email validation
     if (!validator.isEmail(to)) {
       throw new Error("Invalid recipient email address.");
     }
-    if (!validator.isEmail(from)) {
+    if (from && !validator.isEmail(from)) {
       throw new Error("Invalid sender email address.");
     }
 
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        const logPrefix = this.isTestMode ? "[TEST]" : "[LIVE]";
-        console.log(`${logPrefix} Sending email (attempt ${attempt}) with payload:`, {
+        console.log(`[LIVE] Sending email (attempt ${attempt}) with payload:`, {
           from,
           to,
           subject,
+          emailType,
         });
-        
+
         const response = await axios.post(
           `${this.apiUrl}/send`,
-          { from, to, subject, htmlBody, textBody, trackOpens },
+          { from, to, subject, htmlBody, textBody, trackOpens, emailType },
           {
             headers: { "Content-Type": "application/json" },
           }
         );
-        
-        // Log response details including any rerouting info
-        if (response.data.testMode) {
-          console.log(`${logPrefix} Email simulated successfully:`, response.data);
-        } else if (response.data.rerouted) {
-          console.log(`${logPrefix} Email rerouted due to pending approval:`, {
-            originalRecipient: to,
-            actualRecipient: response.data.actualRecipient,
-            messageId: response.data.messageId
-          });
-        } else {
-          console.log(`${logPrefix} Email sent successfully:`, response.data);
-        }
-        
+
+        console.log("[LIVE] Email sent successfully:", response.data);
         return response.data;
       } catch (error) {
         const errorDetails = error.response?.data || error.message;
-        const logPrefix = this.isTestMode ? "[TEST ERROR]" : "[LIVE ERROR]";
-        console.error(`${logPrefix} Attempt ${attempt} failed to send email:`, errorDetails);
-        
+        console.error(
+          `[LIVE ERROR] Attempt ${attempt} failed to send email:`,
+          errorDetails
+        );
+
         if (attempt === retries) {
           throw new Error(
             `Email sending failed: ${JSON.stringify(errorDetails)}`
@@ -89,56 +69,49 @@ export class EmailService {
     amount,
     currency
   ) {
-    try {
-      const from = "finance@ghostplay.store";
-      const logPrefix = this.isTestMode ? "[TEST]" : "[LIVE]";
-      console.log(`${logPrefix} Sending account purchased emails for escrow: ${escrowRef}`);
-      
-      const sellerResponse = await this.sendEmail({
-        from,
-        to: sellerEmail,
-        subject: `Payment Received for Account #${accountId}`,
-        htmlBody: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Action Required: Verify Account Credentials</h2>
-            <p>Buyer ${buyerEmail} has paid for account <strong>#${accountId}</strong>.</p>
-            <p>Please log in and ensure all credentials and access details are complete and accurate.</p>
-            <p><strong>Reference ID:</strong> ${escrowRef}</p>
-            <p><strong>Amount:</strong> ${amount} ${currency}</p>
-            <p><strong>Item:</strong> ${itemDescription}</p>
-            <p>Funds are held in escrow until buyer confirmation.</p>
-            ${this.isTestMode ? '<p><em>⚠️ This is a test email - no actual payment was processed</em></p>' : ''}
-          </div>
-        `,
-        textBody: `Buyer ${buyerEmail} has paid for account #${accountId}. Reference ID: ${escrowRef}. Amount: ${amount} ${currency}. Please verify credentials.${this.isTestMode ? ' [TEST EMAIL]' : ''}`,
-        trackOpens: true,
-      });
-      
-      const buyerResponse = await this.sendEmail({
-        from,
-        to: buyerEmail,
-        subject: `Payment Confirmation - Account #${accountId}`,
-        htmlBody: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Payment Successful!</h2>
-            <p>Thank you for your purchase, ${buyerEmail}!</p>
-            <p><strong>Account ID:</strong> #${accountId}</p>
-            <p><strong>Reference ID:</strong> ${escrowRef}</p>
-            <p><strong>Amount:</strong> ${amount} ${currency}</p>
-            <p><strong>Item:</strong> ${itemDescription}</p>
-            <p>Awaiting seller verification.</p>
-            ${this.isTestMode ? '<p><em>⚠️ This is a test email - no actual payment was processed</em></p>' : ''}
-          </div>
-        `,
-        textBody: `Payment successful! Account #${accountId}, Reference: ${escrowRef}, Amount: ${amount} ${currency}. Awaiting seller verification.${this.isTestMode ? ' [TEST EMAIL]' : ''}`,
-        trackOpens: true,
-      });
-      
-      return { sellerResponse, buyerResponse };
-    } catch (error) {
-      console.error("Failed to send account purchased emails:", error);
-      throw error;
-    }
+    console.log(
+      `[LIVE] Sending account purchased emails for escrow: ${escrowRef}`
+    );
+
+    const sellerResponse = await this.sendEmail({
+      to: sellerEmail,
+      subject: `Payment Received for Account #${accountId}`,
+      emailType: "finance",
+      htmlBody: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Action Required: Verify Account Credentials</h2>
+          <p>Buyer ${buyerEmail} has paid for account <strong>#${accountId}</strong>.</p>
+          <p>Please log in and ensure all credentials and access details are complete and accurate.</p>
+          <p><strong>Reference ID:</strong> ${escrowRef}</p>
+          <p><strong>Amount:</strong> ${amount} ${currency}</p>
+          <p><strong>Item:</strong> ${itemDescription}</p>
+          <p>Funds are held in escrow until buyer confirmation.</p>
+        </div>
+      `,
+      textBody: `Buyer ${buyerEmail} has paid for account #${accountId}. Reference ID: ${escrowRef}. Amount: ${amount} ${currency}. Please verify credentials.`,
+      trackOpens: true,
+    });
+
+    const buyerResponse = await this.sendEmail({
+      to: buyerEmail,
+      subject: `Payment Confirmation - Account #${accountId}`,
+      emailType: "finance",
+      htmlBody: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Payment Successful!</h2>
+          <p>Thank you for your purchase, ${buyerEmail}!</p>
+          <p><strong>Account ID:</strong> #${accountId}</p>
+          <p><strong>Reference ID:</strong> ${escrowRef}</p>
+          <p><strong>Amount:</strong> ${amount} ${currency}</p>
+          <p><strong>Item:</strong> ${itemDescription}</p>
+          <p>Awaiting seller verification.</p>
+        </div>
+      `,
+      textBody: `Payment successful! Account #${accountId}, Reference: ${escrowRef}, Amount: ${amount} ${currency}. Awaiting seller verification.`,
+      trackOpens: true,
+    });
+
+    return { sellerResponse, buyerResponse };
   }
 
   async sendCredentialRequestEmail(
@@ -148,31 +121,24 @@ export class EmailService {
     accountId,
     requestDetails
   ) {
-    try {
-      const from = "support@ghostplay.store";
-      const response = await this.sendEmail({
-        from,
-        to: sellerEmail,
-        subject: `Credential Request for Account #${accountId}`,
-        htmlBody: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Additional Credentials Requested</h2>
-            <p><strong>Buyer:</strong> ${buyerEmail}</p>
-            <p><strong>Account ID:</strong> #${accountId}</p>
-            <p><strong>Reference ID:</strong> ${escrowRef}</p>
-            <p><strong>Request Details:</strong> ${requestDetails}</p>
-            <p>Please provide the requested information.</p>
-            ${this.isTestMode ? '<p><em>⚠️ This is a test email</em></p>' : ''}
-          </div>
-        `,
-        textBody: `Credential request for Account #${accountId}. Buyer: ${buyerEmail}. Reference: ${escrowRef}. Details: ${requestDetails}${this.isTestMode ? ' [TEST EMAIL]' : ''}`,
-        trackOpens: true,
-      });
-      return response;
-    } catch (error) {
-      console.error("Failed to send credential request emails:", error);
-      throw error;
-    }
+    const response = await this.sendEmail({
+      to: sellerEmail,
+      subject: `Credential Request for Account #${accountId}`,
+      emailType: "support",
+      htmlBody: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Additional Credentials Requested</h2>
+          <p><strong>Buyer:</strong> ${buyerEmail}</p>
+          <p><strong>Account ID:</strong> #${accountId}</p>
+          <p><strong>Reference ID:</strong> ${escrowRef}</p>
+          <p><strong>Request Details:</strong> ${requestDetails}</p>
+          <p>Please provide the requested information.</p>
+        </div>
+      `,
+      textBody: `Credential request for Account #${accountId}. Buyer: ${buyerEmail}. Reference: ${escrowRef}. Details: ${requestDetails}`,
+      trackOpens: true,
+    });
+    return response;
   }
 
   async sendNewAccountUploadedEmail(
@@ -183,35 +149,33 @@ export class EmailService {
     price,
     currency
   ) {
-    try {
-      const from = "updates@ghostplay.store";
-      const logPrefix = this.isTestMode ? "[TEST]" : "[LIVE]";
-      console.log(`${logPrefix} Sending new account notifications to ${followerEmails.length} followers`);
-      
-      const followerPromises = followerEmails.map((followerEmail) =>
-        this.sendEmail({
-          from,
-          to: followerEmail,
-          subject: `New Account Available from ${sellerEmail}`,
-          htmlBody: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2>New Account Available</h2>
+    console.log(
+      `[LIVE] Sending new account notifications to ${followerEmails.length} followers`
+    );
+
+    const followerPromises = followerEmails.map((followerEmail) =>
+      this.sendEmail({
+        to: followerEmail,
+        subject: `New Account Available from ${sellerEmail}`,
+        emailType: "updates",
+        htmlBody: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>🎮 New Account Available!</h2>
+            <p>A seller you follow has uploaded a new account:</p>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
               <p><strong>Account ID:</strong> #${accountId}</p>
               <p><strong>Description:</strong> ${itemDescription}</p>
               <p><strong>Price:</strong> ${price} ${currency}</p>
-              <p>Available for purchase now!</p>
-              ${this.isTestMode ? '<p><em>⚠️ This is a test email</em></p>' : ''}
+              <p><strong>Seller:</strong> ${sellerEmail}</p>
             </div>
-          `,
-          textBody: `New account uploaded: ${itemDescription} - ${price} ${currency}. Account ID: #${accountId}. Seller: ${sellerEmail}.${this.isTestMode ? ' [TEST EMAIL]' : ''}`,
-          trackOpens: true,
-        })
-      );
-      return await Promise.all(followerPromises);
-    } catch (error) {
-      console.error("Failed to send new account uploaded emails:", error);
-      throw error;
-    }
+            <p>🚀 Available for purchase now on GhostPlay!</p>
+          </div>
+        `,
+        textBody: `New account uploaded: ${itemDescription} - ${price} ${currency}. Account ID: #${accountId}. Seller: ${sellerEmail}.`,
+        trackOpens: true,
+      })
+    );
+    return await Promise.all(followerPromises);
   }
 
   async sendEscrowStatusEmail(
@@ -221,171 +185,313 @@ export class EmailService {
     status,
     details = ""
   ) {
-    try {
-      const from = "finance@ghostplay.store";
-      const logPrefix = this.isTestMode ? "[TEST]" : "[LIVE]";
-      console.log(`${logPrefix} Sending escrow status update: ${status} for ${escrowRef}`);
-      
-      const buyerResponse = await this.sendEmail({
-        from,
-        to: buyerEmail,
-        subject: `Escrow Status Update - ${escrowRef}`,
-        htmlBody: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Escrow Status: ${status.toUpperCase()}</h2>
-            <p><strong>Reference ID:</strong> ${escrowRef}</p>
-            <p><strong>Status:</strong> ${status}</p>
-            ${details ? `<p><strong>Details:</strong> ${details}</p>` : ""}
-            ${this.isTestMode ? '<p><em>⚠️ This is a test email</em></p>' : ''}
+    console.log(
+      `[LIVE] Sending escrow status update: ${status} for ${escrowRef}`
+    );
+
+    const buyerResponse = await this.sendEmail({
+      to: buyerEmail,
+      subject: `Escrow Status Update - ${escrowRef}`,
+      emailType: "finance",
+      htmlBody: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>💰 Escrow Status: ${status.toUpperCase()}</h2>
+          <p><strong>Reference ID:</strong> ${escrowRef}</p>
+          <p><strong>Status:</strong> ${status}</p>
+          ${details ? `<p><strong>Details:</strong> ${details}</p>` : ""}
+          <div style="background: #e3f2fd; padding: 15px; border-radius: 5px; margin: 15px 0;">
+            <p><strong>What this means:</strong></p>
+            ${this.getStatusExplanation(status, "buyer")}
           </div>
-        `,
-        textBody: `Escrow Status Update: ${status}. Reference ID: ${escrowRef}. ${
-          details ? `Details: ${details}` : ""
-        }${this.isTestMode ? ' [TEST EMAIL]' : ''}`,
-        trackOpens: true,
-      });
-      
-      const sellerResponse = await this.sendEmail({
-        from,
-        to: sellerEmail,
-        subject: `Escrow Status Update - ${escrowRef}`,
-        htmlBody: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Escrow Status: ${status.toUpperCase()}</h2>
-            <p><strong>Reference ID:</strong> ${escrowRef}</p>
-            <p><strong>Status:</strong> ${status}</p>
-            ${details ? `<p><strong>Details:</strong> ${details}</p>` : ""}
-            ${this.isTestMode ? '<p><em>⚠️ This is a test email</em></p>' : ''}
+        </div>
+      `,
+      textBody: `Escrow Status Update: ${status}. Reference ID: ${escrowRef}. ${
+        details ? `Details: ${details}` : ""
+      }`,
+      trackOpens: true,
+    });
+
+    const sellerResponse = await this.sendEmail({
+      to: sellerEmail,
+      subject: `Escrow Status Update - ${escrowRef}`,
+      emailType: "finance",
+      htmlBody: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>💰 Escrow Status: ${status.toUpperCase()}</h2>
+          <p><strong>Reference ID:</strong> ${escrowRef}</p>
+          <p><strong>Status:</strong> ${status}</p>
+          ${details ? `<p><strong>Details:</strong> ${details}</p>` : ""}
+          <div style="background: #e8f5e8; padding: 15px; border-radius: 5px; margin: 15px 0;">
+            <p><strong>What this means:</strong></p>
+            ${this.getStatusExplanation(status, "seller")}
           </div>
-        `,
-        textBody: `Escrow Status Update: ${status}. Reference ID: ${escrowRef}. ${
-          details ? `Details: ${details}` : ""
-        }${this.isTestMode ? ' [TEST EMAIL]' : ''}`,
-        trackOpens: true,
-      });
-      
-      return { buyerResponse, sellerResponse };
-    } catch (error) {
-      console.error("Failed to send escrow status emails:", error);
-      throw error;
-    }
+        </div>
+      `,
+      textBody: `Escrow Status Update: ${status}. Reference ID: ${escrowRef}. ${
+        details ? `Details: ${details}` : ""
+      }`,
+      trackOpens: true,
+    });
+
+    return { buyerResponse, sellerResponse };
+  }
+
+  getStatusExplanation(status, userType) {
+    const explanations = {
+      pending: {
+        buyer:
+          "<p>Your payment is being processed. You'll be notified once the seller verifies the account credentials.</p>",
+        seller:
+          "<p>Payment received! Please verify and complete the account credentials for the buyer.</p>",
+      },
+      verified: {
+        buyer:
+          "<p>The seller has verified the account. You can now access your purchase details.</p>",
+        seller:
+          "<p>Account verified successfully. Funds will be released once the buyer confirms receipt.</p>",
+      },
+      completed: {
+        buyer: "<p>Transaction completed! Your account is ready for use.</p>",
+        seller:
+          "<p>Transaction completed! Funds have been released to your account.</p>",
+      },
+      disputed: {
+        buyer:
+          "<p>There's an issue with this transaction. Our support team will contact you shortly.</p>",
+        seller:
+          "<p>The buyer has raised a concern. Our support team will mediate this transaction.</p>",
+      },
+      refunded: {
+        buyer:
+          "<p>Your payment has been refunded and will appear in your account within 3-5 business days.</p>",
+        seller: "<p>This transaction has been refunded to the buyer.</p>",
+      },
+    };
+
+    return explanations[status]?.[userType] || "<p>Status update received.</p>";
   }
 
   async sendWeeklyStatsDigest(sellerEmail, stats) {
-    try {
-      const from = "updates@ghostplay.store";
-      const response = await this.sendEmail({
-        from,
-        to: sellerEmail,
-        subject: `Weekly Stats Digest - ${new Date().toLocaleDateString()}`,
-        htmlBody: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Weekly Stats for ${sellerEmail}</h2>
-            <p><strong>Week of:</strong> ${new Date().toLocaleDateString()}</p>
-            <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <p><strong>Views:</strong> ${stats.views || 0}</p>
-              <p><strong>Followers:</strong> ${stats.followers || 0}</p>
-              <p><strong>Sales:</strong> ${stats.sales || 0}</p>
-              <p><strong>Revenue:</strong> ${stats.revenue || 0} ${
-          stats.currency || "NGN"
-        }</p>
+    const response = await this.sendEmail({
+      to: sellerEmail,
+      subject: `📊 Weekly Stats Digest - ${new Date().toLocaleDateString()}`,
+      emailType: "updates",
+      htmlBody: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>📈 Weekly Performance for ${sellerEmail}</h2>
+          <p><strong>Week of:</strong> ${new Date().toLocaleDateString()}</p>
+          
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin: 0 0 15px 0; color: white;">Your Weekly Summary</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+              <div>
+                <p style="margin: 5px 0; font-size: 14px; opacity: 0.9;">Profile Views</p>
+                <p style="margin: 0; font-size: 24px; font-weight: bold;">${
+                  stats.views || 0
+                }</p>
+              </div>
+              <div>
+                <p style="margin: 5px 0; font-size: 14px; opacity: 0.9;">New Followers</p>
+                <p style="margin: 0; font-size: 24px; font-weight: bold;">${
+                  stats.followers || 0
+                }</p>
+              </div>
+              <div>
+                <p style="margin: 5px 0; font-size: 14px; opacity: 0.9;">Sales Made</p>
+                <p style="margin: 0; font-size: 24px; font-weight: bold;">${
+                  stats.sales || 0
+                }</p>
+              </div>
+              <div>
+                <p style="margin: 5px 0; font-size: 14px; opacity: 0.9;">Revenue Earned</p>
+                <p style="margin: 0; font-size: 24px; font-weight: bold;">${
+                  stats.revenue || 0
+                } ${stats.currency || "NGN"}</p>
+              </div>
             </div>
-            ${this.isTestMode ? '<p><em>⚠️ This is a test email</em></p>' : ''}
           </div>
-        `,
-        textBody: `Weekly Stats for ${sellerEmail}: Views: ${
-          stats.views || 0
-        }, Followers: ${stats.followers || 0}, Sales: ${
-          stats.sales || 0
-        }, Revenue: ${stats.revenue || 0} ${stats.currency || "NGN"}.${this.isTestMode ? ' [TEST EMAIL]' : ''}`,
-        trackOpens: true,
-      });
-      return response;
-    } catch (error) {
-      console.error("Failed to send weekly stats digest:", error);
-      throw error;
-    }
+
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h4>💡 Tips to Improve:</h4>
+            <ul>
+              <li>Upload more accounts to increase visibility</li>
+              <li>Update your profile with detailed descriptions</li>
+              <li>Respond quickly to buyer inquiries</li>
+              <li>Maintain high-quality account credentials</li>
+            </ul>
+          </div>
+        </div>
+      `,
+      textBody: `Weekly Stats for ${sellerEmail}: Views: ${
+        stats.views || 0
+      }, Followers: ${stats.followers || 0}, Sales: ${
+        stats.sales || 0
+      }, Revenue: ${stats.revenue || 0} ${stats.currency || "NGN"}`,
+      trackOpens: true,
+    });
+    return response;
   }
 
   async sendPasswordResetEmail(userEmail, resetToken, resetUrl) {
-    try {
-      const from = "support@ghostplay.store";
-      const response = await this.sendEmail({
-        from,
-        to: userEmail,
-        subject: "Password Reset Request",
-        htmlBody: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Password Reset Request</h2>
-            <p>You requested a password reset for your account: ${userEmail}</p>
-            <p><a href="${resetUrl}" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">Reset Password</a></p>
-            <p>This link expires in 1 hour.</p>
-            <p>If you didn't request this, please ignore.</p>
-            ${this.isTestMode ? '<p><em>⚠️ This is a test email - reset link may not work</em></p>' : ''}
+    const response = await this.sendEmail({
+      to: userEmail,
+      subject: "🔐 Password Reset Request",
+      emailType: "noreply",
+      htmlBody: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="text-align: center; padding: 40px 20px;">
+            <h2 style="color: #333;">🔐 Password Reset Request</h2>
+            <p style="font-size: 16px; color: #666;">You requested a password reset for your GhostPlay account:</p>
+            <p style="font-size: 18px; font-weight: bold; color: #333;">${userEmail}</p>
           </div>
-        `,
-        textBody: `Password reset requested for ${userEmail}. Reset link: ${resetUrl}. Link expires in 1 hour.${this.isTestMode ? ' [TEST EMAIL]' : ''}`,
-        trackOpens: true,
-      });
-      return response;
-    } catch (error) {
-      console.error("Failed to send password reset email:", error);
-      throw error;
-    }
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold; display: inline-block;">Reset My Password</a>
+          </div>
+          
+          <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0; color: #856404;"><strong>⏰ Important:</strong> This link expires in 1 hour for security reasons.</p>
+          </div>
+          
+          <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 14px; color: #6c757d;">If you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+          </div>
+        </div>
+      `,
+      textBody: `Password reset requested for ${userEmail}. Reset link: ${resetUrl}. Link expires in 1 hour. If you didn't request this, please ignore this email.`,
+      trackOpens: true,
+    });
+    return response;
   }
 
   async sendLoginAlertEmail(userEmail, loginDetails) {
-    try {
-      const from = "support@ghostplay.store";
-      const response = await this.sendEmail({
-        from,
-        to: userEmail,
-        subject: "New Login to Your Account",
-        htmlBody: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>New Login Detected</h2>
-            <p>We detected a new login to your account: ${userEmail}</p>
-            <ul>
-              <li><strong>Time:</strong> ${
-                loginDetails.timestamp || new Date().toLocaleString()
-              }</li>
-              <li><strong>IP Address:</strong> ${
-                loginDetails.ipAddress || "Unknown"
-              }</li>
-              <li><strong>Device:</strong> ${
-                loginDetails.device || "Unknown"
-              }</li>
-              <li><strong>Location:</strong> ${
-                loginDetails.location || "Unknown"
-              }</li>
-            </ul>
-            <p>If this wasn't you, contact support.</p>
-            ${this.isTestMode ? '<p><em>⚠️ This is a test email</em></p>' : ''}
+    const response = await this.sendEmail({
+      to: userEmail,
+      subject: "🚨 New Login Detected",
+      emailType: "noreply",
+      htmlBody: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: #dc3545; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+            <h2 style="margin: 0; color: white;">🚨 Security Alert: New Login Detected</h2>
           </div>
-        `,
-        textBody: `New login detected for ${userEmail}. Time: ${
-          loginDetails.timestamp || new Date().toLocaleString()
-        }, IP: ${
-          loginDetails.ipAddress || "Unknown"
-        }. Contact support if unauthorized.${this.isTestMode ? ' [TEST EMAIL]' : ''}`,
-        trackOpens: true,
-      });
-      return response;
+          
+          <div style="border: 1px solid #dc3545; border-top: none; padding: 20px; border-radius: 0 0 8px 8px;">
+            <p>We detected a new login to your GhostPlay account:</p>
+            <p style="font-size: 18px; font-weight: bold; color: #333;">${userEmail}</p>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+              <h4 style="margin: 0 0 10px 0;">Login Details:</h4>
+              <ul style="margin: 0; padding-left: 20px;">
+                <li><strong>Time:</strong> ${
+                  loginDetails.timestamp || new Date().toLocaleString()
+                }</li>
+                <li><strong>IP Address:</strong> ${
+                  loginDetails.ipAddress || "Unknown"
+                }</li>
+                <li><strong>Device:</strong> ${
+                  loginDetails.device || "Unknown"
+                }</li>
+                <li><strong>Location:</strong> ${
+                  loginDetails.location || "Unknown"
+                }</li>
+              </ul>
+            </div>
+            
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <p style="margin: 0; color: #856404;"><strong>⚠️ If this wasn't you:</strong> Please contact our support team immediately and consider changing your password.</p>
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0;">
+              <a href="mailto:support@ghostplay.store" style="background: #dc3545; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Contact Support</a>
+            </div>
+          </div>
+        </div>
+      `,
+      textBody: `SECURITY ALERT: New login detected for ${userEmail}. Time: ${
+        loginDetails.timestamp || new Date().toLocaleString()
+      }, IP: ${loginDetails.ipAddress || "Unknown"}, Device: ${
+        loginDetails.device || "Unknown"
+      }, Location: ${
+        loginDetails.location || "Unknown"
+      }. If this wasn't you, contact support immediately.`,
+      trackOpens: true,
+    });
+    return response;
+  }
+
+  async sendNoReplyEmail(to, subject, htmlBody, textBody = null) {
+    const enhancedHtmlBody =
+      htmlBody +
+      `
+        <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 4px; font-size: 12px; color: #6c757d; border-top: 2px solid #dee2e6;">
+          <p style="margin: 0 0 10px 0;"><strong>📧 This is an automated email</strong></p>
+          <p style="margin: 0;">Please do not reply to this message. If you need assistance, contact our support team at <a href="mailto:support@ghostplay.store" style="color: #007bff;">support@ghostplay.store</a></p>
+        </div>
+      `;
+
+    const enhancedTextBody =
+      (textBody || "") +
+      `\n\n---\n📧 AUTOMATED EMAIL - DO NOT REPLY\nThis is an automated email. Please do not reply to this message.\nFor assistance, contact support@ghostplay.store`;
+
+    return await this.sendEmail({
+      to,
+      subject,
+      htmlBody: enhancedHtmlBody,
+      textBody: enhancedTextBody,
+      emailType: "noreply",
+      trackOpens: true,
+    });
+  }
+
+  // New method for handling inbound email processing
+  async processInboundEmail(inboundData) {
+    try {
+      console.log("[LIVE] Processing inbound email locally:", inboundData);
+
+      const response = await axios.post(
+        `${this.apiUrl}/inbound-email`,
+        inboundData,
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      console.log("[LIVE] Inbound email processed:", response.data);
+      return response.data;
     } catch (error) {
-      console.error("Failed to send login alert email:", error);
+      const errorDetails = error.response?.data || error.message;
+      console.error(
+        "[LIVE ERROR] Failed to process inbound email:",
+        errorDetails
+      );
+      throw new Error(
+        `Inbound email processing failed: ${JSON.stringify(errorDetails)}`
+      );
+    }
+  }
+
+  // Method to get email configuration from backend
+  async getEmailConfig() {
+    try {
+      const response = await axios.get(`${this.apiUrl}/config`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to get email config:", error);
       throw error;
     }
   }
 
-  // Utility method to check if service is in test mode
-  getTestMode() {
-    return this.isTestMode;
-  }
-
-  // Method to manually toggle test mode (useful for development)
-  setTestMode(enabled) {
-    this.isTestMode = enabled;
-    console.log(`EmailService Test Mode: ${enabled ? "ENABLED" : "DISABLED"}`);
+  // Health check method
+  async healthCheck() {
+    try {
+      const response = await axios.get(
+        `${this.apiUrl.replace("/email", "")}/health`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Health check failed:", error);
+      throw error;
+    }
   }
 }
 
