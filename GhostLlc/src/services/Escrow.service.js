@@ -1,3 +1,7 @@
+
+
+
+
 import PropTypes from "prop-types";
 import PaystackPop from "@paystack/inline-js";
 import {
@@ -13,6 +17,7 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 import emailService from "./api/Email.service";
 import withdrawalService from "./api/Withdrawal.service";
 import { getNetAmount } from "../utils/getNetAmount";
+import validator from "validator";
 
 export class EscrowService {
   constructor(db = getFirestore(), autoReleaseHours = 12) {
@@ -25,22 +30,89 @@ export class EscrowService {
   // 1) Buyer-side: make a payment
   // —————————————————————
   async checkout(opts, callbacks = {}) {
+    // Log opts for debugging
+    console.log("Checkout called with opts:", JSON.stringify(opts, null, 2));
+
+    // Validate required fields
+    if (
+      !opts.buyerId ||
+      !opts.sellerId ||
+      !opts.accountId ||
+      !opts.itemDescription ||
+      !opts.accountCredential ||
+      !opts.amount ||
+      !opts.currency
+    ) {
+      console.error("Missing required fields in checkout:", opts);
+      throw new Error("Missing required checkout fields");
+    }
+    if (!opts.email || !validator.isEmail(opts.email)) {
+      console.error("Invalid or missing buyer email in checkout:", opts.email);
+      throw new Error("Invalid buyer email provided");
+    }
+
+    // Fetch sellerEmail from Firestore if not provided
+    let sellerEmail = opts.sellerEmail;
+    if (!sellerEmail) {
+      try {
+        const sellerDoc = await getDoc(doc(this.db, "users", opts.sellerId));
+        if (!sellerDoc.exists()) {
+          console.error(
+            "Seller profile not found for sellerId:",
+            opts.sellerId
+          );
+          throw new Error("Seller profile not found");
+        }
+        sellerEmail = sellerDoc.data().email;
+        if (!sellerEmail || !validator.isEmail(sellerEmail)) {
+          console.error(
+            "Invalid or missing email in seller profile:",
+            sellerEmail
+          );
+          throw new Error("Invalid seller email in profile");
+        }
+      } catch (error) {
+        console.error("Failed to fetch seller email:", error);
+        throw new Error("Unable to fetch seller email");
+      }
+    } else if (!validator.isEmail(sellerEmail)) {
+      console.error("Invalid seller email provided:", sellerEmail);
+      throw new Error("Invalid seller email provided");
+    }
+
+    // Update opts with fetched sellerEmail
+    const validatedOpts = { ...opts, sellerEmail };
+
     const popup = new PaystackPop();
     popup.checkout({
       key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-      email: opts.email,
-      amount: opts.amount * 100,
-      currency: opts.currency,
+      email: validatedOpts.email,
+      amount: validatedOpts.amount * 100,
+      currency: validatedOpts.currency,
       onSuccess: async (tx) => {
-        await this._recordPaymentAndEscrow(tx.reference, opts);
-        callbacks.onSuccess?.(tx.reference);
+        try {
+          await this._recordPaymentAndEscrow(tx.reference, validatedOpts);
+          callbacks.onSuccess?.(tx.reference);
+        } catch (error) {
+          console.error("Error in onSuccess callback:", error);
+          callbacks.onError?.(error);
+        }
       },
-      onError: callbacks.onError,
+      onError: (error) => {
+        console.error("Paystack checkout error:", error);
+        callbacks.onError?.(error);
+      },
       onClose: callbacks.onClose,
     });
   }
 
   async _recordPaymentAndEscrow(ref, opts) {
+    // Validate sellerEmail
+    if (!opts.sellerEmail || !validator.isEmail(opts.sellerEmail)) {
+      console.error("Invalid or missing seller email:", opts.sellerEmail);
+      throw new Error("Invalid seller email provided");
+    }
+
     // 1. record payment (status=pending_verification)
     await setDoc(doc(this.db, "payments", ref), {
       userId: opts.buyerId,
@@ -84,21 +156,15 @@ export class EscrowService {
     });
 
     // 3. notify seller to verify credentials
-    await emailService.sendEmail({
-      to: opts.sellerEmail,
-      subject: `Payment Received for Account #${opts.accountId}`,
-      htmlBody: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Action Required: Verify Account Credentials</h2>
-        <p>Someone has successfully paid for your account <strong>#${opts.accountId}</strong>.</p>
-        <p>Please log in and ensure all credentials and access details needed by the buyer are complete and accurate.</p>
-        <p>Reference ID: <strong>${ref}</strong></p>
-        <p>If everything is in order, the buyer will be able to confirm the delivery. Funds are held in escrow until that confirmation.</p>
-        <p>Thank you for using our platform!</p>
-      </div>
-    `,
-      trackOpens: true,
-    });
+    await emailService.sendAccountPurchasedEmail(
+      ref,
+      opts.email,
+      opts.sellerEmail,
+      opts.accountId,
+      opts.itemDescription,
+      opts.amount,
+      opts.currency
+    );
   }
 
   async markHolding(escrowRef, reason = "", buyerEmail, sellerEmail) {
@@ -245,4 +311,5 @@ EscrowService.InitPaymentOptionsPropTypes = PropTypes.shape({
   amount: PropTypes.number.isRequired,
   currency: PropTypes.string.isRequired,
   email: PropTypes.string.isRequired,
+  sellerEmail: PropTypes.string, // Optional since we fetch from Firestore
 });
