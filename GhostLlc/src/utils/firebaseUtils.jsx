@@ -9,8 +9,11 @@ import {
   updateDoc,
   increment,
   runTransaction,
-  setDoc,
 } from "firebase/firestore";
+
+// Cache for user profiles to avoid duplicate requests
+const userProfileCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 // Generate or retrieve a unique anonymous ID for unauthenticated users
 const getAnonymousId = () => {
@@ -30,19 +33,19 @@ export const initializeViews = async () => {
     const snapshot = await getDocs(accountsRef);
     let updatedCount = 0;
 
-    for (const accountDoc of snapshot.docs) {
+    // Process in batches for better performance
+    const batchPromises = [];
+    snapshot.docs.forEach(accountDoc => {
       const data = accountDoc.data();
       if (data.views === undefined || data.views === null) {
-        await updateDoc(doc(db, "accounts", accountDoc.id), { views: 0 });
-        console.log(`Initialized views to 0 for account ${accountDoc.id}`);
-        updatedCount++;
-      } else {
-        console.log(
-          `Views already set for account ${accountDoc.id}: ${data.views}`
+        batchPromises.push(
+          updateDoc(doc(db, "accounts", accountDoc.id), { views: 0 })
         );
+        updatedCount++;
       }
-    }
+    });
 
+    await Promise.all(batchPromises);
     console.log(`Initialization complete. Updated ${updatedCount} accounts.`);
     return { success: true, updatedCount };
   } catch (error) {
@@ -51,10 +54,89 @@ export const initializeViews = async () => {
   }
 };
 
+// Optimized function to fetch user profile with caching
+const fetchUserProfileOptimized = async (userId, username) => {
+  const cacheKey = userId || username;
+  const cached = userProfileCache.get(cacheKey);
+  
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.profilePic;
+  }
+
+  try {
+    let userData = null;
+    
+    if (userId) {
+      const userRef = doc(db, "users", userId);
+      const userDoc = await getDoc(userRef);
+      if (userDoc.exists()) {
+        userData = userDoc.data();
+      }
+    }
+    
+    // Only try username lookup if userId lookup failed
+    if (!userData && username) {
+      const userQuery = query(
+        collection(db, "users"),
+        where("username", "==", username)
+      );
+      const userSnapshot = await getDocs(userQuery);
+      if (!userSnapshot.empty) {
+        userData = userSnapshot.docs[0].data();
+      }
+    }
+
+    const profilePic = userData ? (
+      userData.profilePic ||
+      userData.profileImage ||
+      userData.photoURL ||
+      userData.profilePicture ||
+      userData.avatar ||
+      null
+    ) : null;
+
+    // Cache the result
+    userProfileCache.set(cacheKey, {
+      profilePic,
+      timestamp: Date.now()
+    });
+
+    return profilePic;
+  } catch (error) {
+    console.error(`Error fetching user profile for ${cacheKey}:`, error);
+    return null;
+  }
+};
+
+// Optimized function to fetch account images
+const fetchAccountImages = async (accountId) => {
+  try {
+    const imagesRef = collection(db, `accounts/${accountId}/images`);
+    const imagesSnap = await getDocs(imagesRef);
+    const images = {};
+    
+    imagesSnap.forEach((imgDoc) => {
+      images[imgDoc.id] = imgDoc.data().image || "";
+    });
+
+    return {
+      accountImage: images.accountImage || "",
+      screenshots: Object.keys(images)
+        .filter((key) => key.startsWith("screenshot"))
+        .map((key) => images[key])
+        .filter((img) => img)
+    };
+  } catch (error) {
+    console.error(`Error fetching images for account ${accountId}:`, error);
+    return { accountImage: "", screenshots: [] };
+  }
+};
+
 // Fetch a single account by ID with its images and user profile picture
 export const fetchAccountByIdWithImages = async (
   accountId,
-  user = null // Pass currentUser or null
+  user = null,
+  shouldIncrementViews = true // New parameter to control view increments
 ) => {
   try {
     console.log(`Fetching account with ID: ${accountId}`);
@@ -67,182 +149,58 @@ export const fetchAccountByIdWithImages = async (
     }
 
     const accountData = { id: accountDoc.id, ...accountDoc.data() };
-    console.log(`Initial account data:`, accountData);
 
-    // Increment views for unique users
-    const viewerId = user ? user.uid : getAnonymousId();
-    const viewType = user ? "authenticated" : "anonymous";
-    console.log(`Viewer ID: ${viewerId} (${viewType})`);
+    // Only increment views if explicitly requested (e.g., when viewing account details)
+    if (shouldIncrementViews) {
+      const viewerId = user ? user.uid : getAnonymousId();
+      const viewType = user ? "authenticated" : "anonymous";
 
-    try {
-      await runTransaction(db, async (transaction) => {
-        const viewRef = doc(db, `accounts/${accountId}/views`, viewerId);
-        const viewDoc = await transaction.get(viewRef);
-
-        if (!viewDoc.exists()) {
-          // New viewer, record the view and increment views
-          transaction.set(viewRef, {
-            [viewType === "authenticated" ? "userId" : "anonymousId"]: viewerId,
-            viewedAt: new Date().toISOString(),
-          });
-          transaction.update(accountRef, {
-            views: accountData.views != null ? increment(1) : 1, // Initialize to 1 if null
-          });
-          console.log(
-            `Recording new view for ${viewerId} on account ${accountId}`
-          );
-        } else {
-          console.log(`Viewer ${viewerId} already viewed account ${accountId}`);
-        }
-      });
-      console.log(`View transaction completed for account ${accountId}`);
-    } catch (viewError) {
-      console.error(
-        `Failed to record view for account ${accountId}:`,
-        viewError
-      );
-    }
-
-    // Fetch the updated document to get the latest view count
-    const updatedAccountDoc = await getDoc(accountRef);
-    const updatedAccountData = {
-      id: updatedAccountDoc.id,
-      ...updatedAccountDoc.data(),
-    };
-    console.log(`Updated account data with views:`, updatedAccountData.views);
-
-    let userProfilePic = null;
-
-    if (updatedAccountData.userId) {
-      console.log(
-        `Fetching user profile for userId: ${updatedAccountData.userId}`
-      );
       try {
-        const userRef = doc(db, "users", updatedAccountData.userId);
-        const userDoc = await getDoc(userRef);
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          userProfilePic =
-            userData.profilePic ||
-            userData.profileImage ||
-            userData.photoURL ||
-            userData.profilePicture ||
-            userData.avatar ||
-            null;
-          console.log(
-            `User profile data for ${updatedAccountData.userId}:`,
-            userData
-          );
-          if (!userProfilePic) {
-            console.log(
-              `No profile picture found for userId: ${updatedAccountData.userId}`
-            );
+        await runTransaction(db, async (transaction) => {
+          const viewRef = doc(db, `accounts/${accountId}/views`, viewerId);
+          const viewDoc = await transaction.get(viewRef);
+
+          if (!viewDoc.exists()) {
+            transaction.set(viewRef, {
+              [viewType === "authenticated" ? "userId" : "anonymousId"]: viewerId,
+              viewedAt: new Date().toISOString(),
+            });
+            transaction.update(accountRef, {
+              views: accountData.views != null ? increment(1) : 1,
+            });
           }
-        } else {
-          console.log(
-            `No user document found for userId: ${updatedAccountData.userId}`
-          );
-        }
-      } catch (error) {
-        console.error(
-          `Error fetching user profile for userId ${updatedAccountData.userId}:`,
-          error
-        );
+        });
+      } catch (viewError) {
+        console.error(`Failed to record view for account ${accountId}:`, viewError);
       }
+
+      // Fetch updated document to get latest view count
+      const updatedAccountDoc = await getDoc(accountRef);
+      const updatedData = { id: updatedAccountDoc.id, ...updatedAccountDoc.data() };
+      
+      // Fetch images and user profile in parallel
+      const [imageData, userProfilePic] = await Promise.all([
+        fetchAccountImages(accountId),
+        fetchUserProfileOptimized(updatedData.userId, updatedData.username)
+      ]);
+
+      return {
+        ...updatedData,
+        ...imageData,
+        userProfilePic
+      };
     } else {
-      console.log(`No userId field in account ${accountId}`);
-    }
+      // For listing views, fetch images and user profile in parallel without incrementing views
+      const [imageData, userProfilePic] = await Promise.all([
+        fetchAccountImages(accountId),
+        fetchUserProfileOptimized(accountData.userId, accountData.username)
+      ]);
 
-    if (!userProfilePic && updatedAccountData.username) {
-      console.log(
-        `Fetching user profile for username: ${updatedAccountData.username}`
-      );
-      try {
-        const userRef = doc(db, "users", updatedAccountData.username);
-        const userDoc = await getDoc(userRef);
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          userProfilePic =
-            userData.profilePic ||
-            userData.profileImage ||
-            userData.photoURL ||
-            userData.profilePicture ||
-            userData.avatar ||
-            null;
-          console.log(
-            `User profile data for username ${updatedAccountData.username}:`,
-            userData
-          );
-          if (!userProfilePic) {
-            console.log(
-              `No profile picture found for username: ${updatedAccountData.username}`
-            );
-          }
-        } else {
-          console.log(
-            `No user document found for username: ${updatedAccountData.username}`
-          );
-          const userQuery = query(
-            collection(db, "users"),
-            where("username", "==", updatedAccountData.username)
-          );
-          const userSnapshot = await getDocs(userQuery);
-          if (!userSnapshot.empty) {
-            const userDoc = userSnapshot.docs[0];
-            const userData = userDoc.data();
-            userProfilePic =
-              userData.profilePic ||
-              userData.profileImage ||
-              userData.photoURL ||
-              userData.profilePicture ||
-              userData.avatar ||
-              null;
-            console.log(`User profile data via username query:`, userData);
-            if (!userProfilePic) {
-              console.log(`No profile picture found in username query`);
-            }
-          } else {
-            console.log(
-              `No user found with username field: ${updatedAccountData.username}`
-            );
-          }
-        }
-      } catch (error) {
-        console.error(
-          `Error fetching user profile for username ${updatedAccountData.username}:`,
-          error
-        );
-      }
-    }
-
-    try {
-      const imagesRef = collection(db, `accounts/${accountId}/images`);
-      const imagesSnap = await getDocs(imagesRef);
-      const images = {};
-      imagesSnap.forEach((imgDoc) => {
-        images[imgDoc.id] = imgDoc.data().image || "";
-      });
-      const accountWithImages = {
-        ...updatedAccountData,
-        accountImage: images.accountImage || "",
-        screenshots: Object.keys(images)
-          .filter((key) => key.startsWith("screenshot"))
-          .map((key) => images[key])
-          .filter((img) => img),
-        userProfilePic: userProfilePic,
+      return {
+        ...accountData,
+        ...imageData,
+        userProfilePic
       };
-      console.log(`Final account data with images:`, accountWithImages);
-      return accountWithImages;
-    } catch (error) {
-      console.error(`Error fetching images for account ${accountId}:`, error);
-      const accountWithImages = {
-        ...updatedAccountData,
-        accountImage: "",
-        screenshots: [],
-        userProfilePic: userProfilePic,
-      };
-      console.log(`Final account data (no images):`, accountWithImages);
-      return accountWithImages;
     }
   } catch (err) {
     console.error(`Error fetching account ${accountId}:`, err);
@@ -250,105 +208,115 @@ export const fetchAccountByIdWithImages = async (
   }
 };
 
-// Fetch all accounts with images (used by Category.jsx)
+// Heavily optimized function to fetch all accounts with images
 export const fetchAccountsWithImages = async (userId = null) => {
   try {
     console.log(`Fetching accounts${userId ? ` for user ${userId}` : ""}`);
     const accountsRef = collection(db, "accounts");
     let accountsQuery = accountsRef;
 
-    // If userId is provided, filter by userId
     if (userId) {
       accountsQuery = query(accountsRef, where("userId", "==", userId));
     }
 
     const accountsSnapshot = await getDocs(accountsQuery);
-    const accounts = [];
-
-    for (const accountDoc of accountsSnapshot.docs) {
-      const accountData = { id: accountDoc.id, ...accountDoc.data() };
-
-      // Fetch images for the account
-      let accountImage = "";
-      let screenshots = [];
-      try {
-        const imagesRef = collection(db, `accounts/${accountDoc.id}/images`);
-        const imagesSnap = await getDocs(imagesRef);
-        const images = {};
-        imagesSnap.forEach((imgDoc) => {
-          images[imgDoc.id] = imgDoc.data().image || "";
-        });
-        accountImage = images.accountImage || "";
-        screenshots = Object.keys(images)
-          .filter((key) => key.startsWith("screenshot"))
-          .map((key) => images[key])
-          .filter((img) => img);
-      } catch (error) {
-        console.error(
-          `Error fetching images for account ${accountDoc.id}:`,
-          error
-        );
-      }
-
-      // Fetch user profile picture
-      let userProfilePic = null;
-      if (accountData.userId) {
-        try {
-          const userRef = doc(db, "users", accountData.userId);
-          const userDoc = await getDoc(userRef);
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            userProfilePic =
-              userData.profilePic ||
-              userData.profileImage ||
-              userData.photoURL ||
-              userData.profilePicture ||
-              userData.avatar ||
-              null;
-          }
-        } catch (error) {
-          console.error(
-            `Error fetching user profile for userId ${accountData.userId}:`,
-            error
-          );
-        }
-      } else if (accountData.username) {
-        try {
-          const userQuery = query(
-            collection(db, "users"),
-            where("username", "==", accountData.username)
-          );
-          const userSnapshot = await getDocs(userQuery);
-          if (!userSnapshot.empty) {
-            const userData = userSnapshot.docs[0].data();
-            userProfilePic =
-              userData.profilePic ||
-              userData.profileImage ||
-              userData.photoURL ||
-              userData.profilePicture ||
-              userData.avatar ||
-              null;
-          }
-        } catch (error) {
-          console.error(
-            `Error fetching user profile for username ${accountData.username}:`,
-            error
-          );
-        }
-      }
-
-      accounts.push({
-        ...accountData,
-        accountImage,
-        screenshots,
-        userProfilePic,
-      });
+    
+    if (accountsSnapshot.empty) {
+      console.log("No accounts found");
+      return [];
     }
 
+    // Process all accounts in parallel
+    const accountPromises = accountsSnapshot.docs.map(async (accountDoc) => {
+      const accountData = { id: accountDoc.id, ...accountDoc.data() };
+
+      // Fetch images and user profile in parallel
+      const [imageData, userProfilePic] = await Promise.all([
+        fetchAccountImages(accountDoc.id),
+        fetchUserProfileOptimized(accountData.userId, accountData.username)
+      ]);
+
+      return {
+        ...accountData,
+        ...imageData,
+        userProfilePic
+      };
+    });
+
+    // Wait for all accounts to be processed
+    const accounts = await Promise.all(accountPromises);
+    
     console.log(`Fetched ${accounts.length} accounts`);
     return accounts;
   } catch (error) {
     console.error("Error fetching accounts:", error);
     return [];
+  }
+};
+
+// New function specifically for fast initial loading (minimal data)
+export const fetchAccountsMinimal = async (userId = null) => {
+  try {
+    console.log(`Fetching minimal account data${userId ? ` for user ${userId}` : ""}`);
+    const accountsRef = collection(db, "accounts");
+    let accountsQuery = accountsRef;
+
+    if (userId) {
+      accountsQuery = query(accountsRef, where("userId", "==", userId));
+    }
+
+    const accountsSnapshot = await getDocs(accountsQuery);
+    
+    if (accountsSnapshot.empty) {
+      return [];
+    }
+
+    // Return only essential data for initial render
+    const accounts = accountsSnapshot.docs.map(accountDoc => {
+      const data = accountDoc.data();
+      return {
+        id: accountDoc.id,
+        accountName: data.accountName || "Untitled",
+        username: data.username || "Ghost",
+        views: data.views || 0,
+        currency: data.currency || "USD",
+        accountWorth: data.accountWorth || "N/A",
+        category: data.category || "Others",
+        sold: data.sold || false,
+        accountDescription: data.accountDescription || "No description",
+        // Placeholder image initially
+        accountImage: "",
+        screenshots: [],
+        userProfilePic: null
+      };
+    });
+
+    console.log(`Fetched ${accounts.length} minimal accounts`);
+    return accounts;
+  } catch (error) {
+    console.error("Error fetching minimal accounts:", error);
+    return [];
+  }
+};
+
+// Function to lazy load images for accounts
+export const loadAccountImages = async (accountIds) => {
+  try {
+    const imagePromises = accountIds.map(async (accountId) => {
+      const imageData = await fetchAccountImages(accountId);
+      return { accountId, ...imageData };
+    });
+
+    const results = await Promise.all(imagePromises);
+    return results.reduce((acc, result) => {
+      acc[result.accountId] = {
+        accountImage: result.accountImage,
+        screenshots: result.screenshots
+      };
+      return acc;
+    }, {});
+  } catch (error) {
+    console.error("Error loading account images:", error);
+    return {};
   }
 };

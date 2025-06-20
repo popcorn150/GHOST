@@ -192,38 +192,121 @@ const Settings: React.FC = () => {
   };
 
   const handleFinalDelete = async () => {
-    if (auth.currentUser) {
-      try {
-        const userId = auth.currentUser.uid;
+    if (!auth.currentUser) {
+      alert("No user is currently logged in.");
+      return;
+    }
 
+    // Show confirmation dialog
+    const confirmation = window.confirm(
+      "Are you absolutely sure you want to delete your account? This action cannot be undone and will permanently delete all your data."
+    );
+
+    if (!confirmation) {
+      return;
+    }
+
+    try {
+      const userId = auth.currentUser.uid;
+
+      console.log("Starting account deletion for user:", userId);
+
+      // Step 1: Delete all game accounts uploaded by this user
+      try {
         const accountsQuery = query(
           collection(db, "accounts"),
           where("userId", "==", userId)
         );
         const accountsSnapshot = await getDocs(accountsQuery);
-        const deletePromises = accountsSnapshot.docs.map((doc) =>
-          deleteDoc(doc.ref)
-        );
-        await Promise.all(deletePromises);
+        console.log(`Found ${accountsSnapshot.docs.length} accounts to delete`);
+        
+        for (const accountDoc of accountsSnapshot.docs) {
+          await deleteDoc(accountDoc.ref);
+          console.log(`Deleted account: ${accountDoc.id}`);
+        }
+      } catch (error) {
+        console.error("Error deleting accounts:", error);
+        // Continue with other deletions even if this fails
+      }
 
+      // Step 2: Delete user's profile from UserProfile collection (only if it exists)
+      try {
+        const userProfileRef = doc(db, "UserProfile", userId);
+        await deleteDoc(userProfileRef);
+        console.log("Deleted UserProfile");
+      } catch (error) {
+        console.error("Error deleting UserProfile:", error);
+        // Continue with other deletions
+      }
+
+      // Step 3: Delete username mapping if it exists
+      try {
+        const usernamesQuery = query(
+          collection(db, "usernames"),
+          where("uid", "==", userId)
+        );
+        const usernamesSnapshot = await getDocs(usernamesQuery);
+        console.log(`Found ${usernamesSnapshot.docs.length} username mappings to delete`);
+        
+        for (const usernameDoc of usernamesSnapshot.docs) {
+          await deleteDoc(usernameDoc.ref);
+          console.log(`Deleted username mapping: ${usernameDoc.id}`);
+        }
+      } catch (error) {
+        console.error("Error deleting username mappings:", error);
+        // Continue with other deletions
+      }
+
+      // Step 4: Delete subcollections under users/{userId} (like visitors)
+      try {
+        // Delete visitors subcollection
+        const visitorsQuery = query(collection(db, `users/${userId}/visitors`));
+        const visitorsSnapshot = await getDocs(visitorsQuery);
+        console.log(`Found ${visitorsSnapshot.docs.length} visitor records to delete`);
+        
+        for (const visitorDoc of visitorsSnapshot.docs) {
+          await deleteDoc(visitorDoc.ref);
+          console.log(`Deleted visitor record: ${visitorDoc.id}`);
+        }
+      } catch (error) {
+        console.error("Error deleting visitor records:", error);
+        // Continue with other deletions
+      }
+
+      // Step 5: Delete user document from users collection
+      try {
         const userDocRef = doc(db, "users", userId);
         await deleteDoc(userDocRef);
-
-        await deleteUser(auth.currentUser);
-
-        navigate("/login");
+        console.log("Deleted main user document");
       } catch (error) {
-        console.error("Error deleting account:", error);
-        if ((error as any).code === "auth/requires-recent-login") {
+        console.error("Error deleting main user document:", error);
+        // Continue to try deleting auth user
+      }
+
+      // Step 6: Finally, delete the Firebase Auth user
+      try {
+        await deleteUser(auth.currentUser);
+        console.log("Deleted Firebase Auth user");
+        
+        alert("Your account has been successfully deleted.");
+        window.location.href = "/login";
+      } catch (authError) {
+        console.error("Error deleting Firebase Auth user:", authError);
+        if ((authError as any).code === "auth/requires-recent-login") {
           alert(
             "This operation requires recent authentication. You will be signed out. Please log back in and try deleting your account again."
           );
           await signOut(auth);
-          navigate("/login");
+          window.location.href = "/login";
         } else {
-          alert("Failed to delete account: " + (error as Error).message);
+          // Even if auth deletion fails, we've deleted the data
+          alert("Account data deleted, but there was an issue removing authentication. Please contact support.");
         }
       }
+
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      alert("Failed to delete account: " + (error as Error).message);
     }
   };
 
@@ -586,6 +669,9 @@ const Settings: React.FC = () => {
                 <li>
                   All your achievements would be lost and you won't get them
                   back after signing up again.
+                </li>
+                <li>
+                  All your uploaded game accounts will be permanently deleted.
                 </li>
                 <li>
                   Deleting your account without removing your finances first
