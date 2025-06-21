@@ -1,4 +1,3 @@
-// CategoryFilter.jsx
 import "../App.css";
 import { useState, useEffect, useMemo } from "react";
 import categoryAccounts from "../constants/category";
@@ -33,7 +32,6 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
       return;
     }
 
-    // Real-time listener for purchased accounts
     const purchasedQuery = query(
       collection(db, `users/${currentUser.uid}/purchased`)
     );
@@ -52,7 +50,6 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
       }
     );
 
-    // Real-time listener for cart accounts
     const cartQuery = query(collection(db, `users/${currentUser.uid}/cart`));
     const unsubscribeCart = onSnapshot(
       cartQuery,
@@ -75,17 +72,15 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
     };
   }, [currentUser]);
 
-  // Helper function to check if an account is purchased, in cart, or sold
   const isAccountPurchasedOrInCart = (account) => {
     const accountId = account.slug || account.id;
     return (
       purchasedAccounts.some((item) => (item.slug || item.id) === accountId) ||
       cartAccounts.some((item) => (item.slug || item.id) === accountId) ||
-      account.sold === true // Check if account is marked as sold
+      account.sold === true
     );
   };
 
-  // Memoized merged categories with proper account mapping
   const mergedCategories = useMemo(() => {
     const processUploadedAccounts = () => {
       if (!combinedAccounts || !combinedAccounts.length) return [];
@@ -186,21 +181,33 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
 
         const category = mapAccountToCategory(account);
 
+        let accountImage = AdminIcon;
+        if (account.img) {
+          accountImage = account.img;
+        } else if (account.accountImage) {
+          accountImage = account.accountImage;
+        } else if (account.images?.accountImage) {
+          accountImage = account.images.accountImage;
+        }
+
+        let userProfilePic = AdminIcon;
+        if (account.userProfilePic) {
+          userProfilePic = account.userProfilePic;
+        }
+
         const gameData = {
           title: account.title || account.accountName || "Untitled Account",
           slug: account.slug || account.id || `account-${Date.now()}`,
-          img:
-            account.img ||
-            account.accountImage ||
-            account.images?.accountImage ||
-            AdminIcon,
+          img: accountImage,
           views: account.views || 0,
-          userProfilePic: account.userProfilePic || AdminIcon,
+          userProfilePic: userProfilePic,
           username: account.username || "Ghost",
           category: category,
           isFromFirestore: account.isFromFirestore || false,
-          sold: account.sold || false, // Include sold status
+          sold: account.sold || false,
         };
+
+        console.log(`Processing account: ${gameData.title}, Image: ${accountImage}, Profile: ${userProfilePic}`);
 
         categorizedGames[category].push(gameData);
       });
@@ -224,7 +231,7 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
           .map((game) => ({
             ...game,
             isFromFirestore: false,
-            sold: false, // Static accounts are never sold
+            sold: false,
           })),
       }));
 
@@ -277,8 +284,8 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
   }, [searchTerm, activeCategory, mergedCategories]);
 
   return (
-    <div className="p-2 md:p-8">
-      <div className="flex overflow-x-auto gap-5 mb-6 no-scrollbar">
+    <div className="px-0 md:px-4 py-2 md:py-8"> {/* Further reduced from px-1 md:px-6 to px-0 md:px-4 */}
+      <div className="flex overflow-x-auto gap-3 mb-6 no-scrollbar"> {/* Further reduced from gap-4 to gap-3 */}
         {categoryNames.map((category) => (
           <button
             key={category}
@@ -286,7 +293,7 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
             className={`rounded-lg cursor-pointer font-semibold px-6 py-3 transition-all duration-300 ease-in-out
               ${
                 activeCategory === category
-                  ? "bg-blue-900 text-white shadow-lg"
+                  ? "bg-blue-900 text-white"
                   : "bg-gray-200 text-black hover:bg-blue-600 hover:text-white"
               }
               text-sm md:text-base
@@ -305,7 +312,7 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
           <div className="category-loader w-16 h-16 rounded-full animate-spin border-4 border-gray-300 border-t-blue-600"></div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2"> {/* Further reduced from gap-3 to gap-2 */}
           {filteredGames.length > 0 ? (
             filteredGames.map((game, index) => (
               <div
@@ -317,22 +324,23 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
                   alt={game.title}
                   className="w-full h-24 md:h-40 object-cover rounded-lg"
                   onError={(e) => {
-                    console.error(`Failed to load image for ${game.title}`);
+                    console.error(`Failed to load image for ${game.title}:`, e.target.src);
                     e.target.src = AdminIcon;
                   }}
+                  onLoad={() => {
+                    console.log(`Successfully loaded image for ${game.title}:`, game.img);
+                  }}
                 />
-                <h3 className="mt-1 md:mt-2 text-sm md:text-lg font-bold">
+                <h3 className="mt-2 text-sm md:text-lg font-bold">
                   {game.title}
                 </h3>
-                <div className="flex items-center mt-1 md:mt-2">
+                <div className="flex items-center mt-2">
                   <img
                     src={game.userProfilePic || AdminIcon}
                     alt="User Profile"
                     className="w-6 h-6 rounded-full object-cover mr-2"
                     onError={(e) => {
-                      console.error(
-                        `Failed to load profile pic for ${game.title}`
-                      );
+                      console.error(`Failed to load profile pic for ${game.title}:`, e.target.src);
                       e.target.src = AdminIcon;
                     }}
                   />
@@ -340,7 +348,7 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
                     By {game.username}
                   </p>
                 </div>
-                <span className="flex justify-between items-center mt-1 md:mt-2">
+                <span className="flex justify-between items-center mt-2">
                   <p className="text-gray-400 text-xs md:text-sm">
                     {game.views} Total Views
                   </p>

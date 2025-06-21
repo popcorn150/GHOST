@@ -1,5 +1,6 @@
+// src/components/UserProfile.jsx
 import { useState, useEffect, useRef } from "react";
-import { auth, db } from "../../database/firebaseConfig";
+import { auth, db } from "../database/firebaseConfig";
 import PropTypes from "prop-types";
 import {
   collection,
@@ -15,8 +16,9 @@ import {
 } from "firebase/firestore";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "./AuthContext"; // Import useAuth
 import NavBar from "./NavBar";
-import BackButton from "../../components/BackButton";
+import BackButton from "./BackButton"; // Corrected path
 import { MdOutlineCameraEnhance } from "react-icons/md";
 import { BsPencilSquare } from "react-icons/bs";
 import {
@@ -29,11 +31,10 @@ import {
   FaShareAlt,
   FaLink,
   FaWhatsapp,
-  FaCheckCircle,
-  FaTimesCircle,
+  FaSquareFacebook,
+  FaXTwitter,
 } from "react-icons/fa";
 import { UploadCloud, User } from "lucide-react";
-import { FaSquareFacebook, FaXTwitter } from "react-icons/fa6";
 import { IoAdd } from "react-icons/io5";
 import { LuUpload } from "react-icons/lu";
 import {
@@ -45,11 +46,15 @@ import {
   PeacockIcon,
   RichhIcon,
   SplendidIcon,
-} from "../../utils";
+} from "../utils";
+import slugify from "slugify";
 
-let imageCompression;
+let imageCompression = null;
 import("browser-image-compression").then((mod) => {
   imageCompression = mod.default;
+}).catch((err) => {
+  console.error("Failed to load browser-image-compression:", err);
+  toast.error("Image compression library failed to load.");
 });
 
 const ALLOWED_CATEGORIES = [
@@ -199,8 +204,8 @@ const Achievements = ({ userId }) => {
 
   if (error) {
     return (
-      <div className="mt-16 mb-20 p-6 bg-gradient-to-br from-[#0E1115] to-[#1A1F29] rounded-2xl border border-gray-800 text-center">
-        <p className="text-gray-400 text-base font-light tracking-wider">
+      <div className="mt-16 mb-20 p-6 bg-gradient-to-br from-[#0E1115] to-[#1A1F29] rounded-2xl">
+        <p className="text-gray-400 text-xs font-light tracking-wider">
           {error}
         </p>
       </div>
@@ -208,11 +213,11 @@ const Achievements = ({ userId }) => {
   }
 
   return (
-    <div className="mt-16 mb-20 p-4 xs:p-5 sm:p-6 md:p-7 lg:p-8 xl:p-10 bg-gradient-to-br from-[#0E1115] via-[#1A1F29] to-[#252A36] rounded-2xl border border-gray-800">
-      <h2 className="text-gray-100 text-lg xs:text-xl sm:text-2xl md:text-2xl lg:text-3xl font-semibold tracking-wider mb-10 sm:mb-12 lg:mb-14">
+    <div className="mt-12 mb-12 p-4 sm:p-5 md:p-6 lg:p-7 bg-white rounded-lg shadow-md">
+      <h2 className="text-gray-900 text-lg xs:text-xl sm:text-2xl md:text-2xl font-bold mb-8 sm:mb-10">
         Achievements
       </h2>
-      <h3 className="text-start font-medium text-lg text-white mb-4">
+      <h3 className="text-start font-medium text-base text-gray-700 mb-4">
         Earned {achievements.filter((a) => a.earned).length} out of{" "}
         {achievements.length}
       </h3>
@@ -221,10 +226,10 @@ const Achievements = ({ userId }) => {
           {achievements.map((achievement) => (
             <div
               key={achievement.id}
-              className={`rounded-2xl p-4 border shadow-xl transition-all duration-300 ${
+              className={`rounded-xl p-4 border shadow-md transition-all duration-300 ${
                 achievement.earned
-                  ? "bg-gradient-to-br from-green-500/20 to-blue-500/10 border-green-500"
-                  : "bg-zinc-900 border-zinc-700 opacity-50"
+                  ? "bg-gradient-to-br from-green-100 to-blue-100 border-green-400"
+                  : "bg-gray-100 border-gray-300 opacity-50"
               }`}
             >
               <div className="flex flex-col items-center text-center">
@@ -240,25 +245,25 @@ const Achievements = ({ userId }) => {
                     aria-label={achievement.title}
                   />
                 )}
-                <h3 className="text-lg font-semibold mb-1">
+                <h3 className="text-lg font-semibold mb-1 text-gray-800">
                   {achievement.title}
                 </h3>
-                <p className="text-sm text-zinc-400">
+                <p className="text-sm text-gray-600">
                   {achievement.description}
                 </p>
               </div>
               <div className="mt-4 w-full">
-                <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-green-500 transition-all duration-500"
                     style={{ width: `${achievement.progress}%` }}
                   ></div>
                 </div>
-                <p className="text-gray-300 text-sm mt-2">
+                <p className="text-gray-600 text-sm mt-2">
                   Progress: {achievement.progress}%
                 </p>
                 {achievement.earned && (
-                  <div className="mt-2 text-green-500 text-sm font-medium">
+                  <div className="mt-2 text-green-600 text-sm font-medium">
                     Unlocked ✓
                   </div>
                 )}
@@ -268,7 +273,7 @@ const Achievements = ({ userId }) => {
         </div>
       ) : (
         <div className="py-12 text-center">
-          <p className="text-gray-400 text-sm sm:text-base font-light tracking-wider">
+          <p className="text-gray-500 text-sm sm:text-base font-light tracking-wider">
             No achievements available.
           </p>
         </div>
@@ -311,13 +316,13 @@ const Layout = ({
 
   return (
     <>
-      <NavBar profileImage={profileImage || "/default-profile.png"} />
-      <div className="flex flex-col items-center justify-center p-2">
+      <NavBar profileImage={profileImage} />
+      <div className="flex flex-col items-center justify-center p-2 bg-gray-100 min-h-screen">
         {isUpdatingUsername && (
           <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
             <div className="flex flex-col items-center gap-3">
-  <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-l-4 border-r-4 border-t-[#0576FF] border-b-[#0576FF] border-l-transparent border-r-transparent"></div>
-              <p className="text-white text-lg font-semibold">Processing...</p>
+              <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-l-4 border-r-4 border-t-[#0576FF] border-b-[#0576FF] border-l-transparent border-r-transparent"></div>
+              <p className="text-gray-800 text-lg font-semibold">Processing...</p>
             </div>
           </div>
         )}
@@ -335,7 +340,7 @@ const Layout = ({
             className="absolute bottom-2 right-2 bg-black/50 p-2 rounded-full cursor-pointer hover:bg-black/70 transition"
             aria-label="Upload profile image"
           >
-            <MdOutlineCameraEnhance className="text-white w-5 h-5" />
+            <MdOutlineCameraEnhance className="text-gray-200 w-5 h-5" />
           </label>
           <input
             id="file-upload"
@@ -351,7 +356,7 @@ const Layout = ({
               className="absolute bottom-2 left-2 bg-[#EB3223] p-2 rounded-full cursor-pointer hover:bg-[#B71C1C] transition"
               aria-label="Cancel profile image upload"
             >
-              <FaTrashAlt className="text-white w-5 h-5" />
+              <FaTrashAlt className="text-gray-200 w-5 h-5" />
             </button>
           )}
         </div>
@@ -362,7 +367,7 @@ const Layout = ({
                 type="text"
                 value={tempUsername}
                 onChange={(e) => setTempUsername(e.target.value)}
-                className="p-2 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#0576FF] text-xl font-semibold"
+                className="p-2 rounded bg-gray-200 text-gray-800 border border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0576FF] text-xl font-semibold"
                 aria-label="Edit username"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleSaveUsername();
@@ -372,14 +377,14 @@ const Layout = ({
               <div className="flex gap-2">
                 <button
                   onClick={handleSaveUsername}
-                  className="flex items-center gap-2 bg-[#4426B9] text-white px-3 py-1 rounded-md hover:bg-[#2F1A7F] transition"
+                  className="flex items-center gap-2 bg-[#4426B9] text-gray-200 px-3 py-1 rounded-md hover:bg-[#2F1A7F] transition"
                   aria-label="Save username"
                 >
                   <FaSave className="w-4 h-4" /> Save
                 </button>
                 <button
                   onClick={handleDiscardUsername}
-                  className="flex items-center gap-2 bg-[#EB3223] text-white px-3 py-1 rounded-md hover:bg-[#B71C1C] transition"
+                  className="flex items-center gap-2 bg-[#EB3223] text-gray-200 px-3 py-1 rounded-md hover:bg-[#B71C1C] transition"
                   aria-label="Discard username changes"
                 >
                   <FaTrashAlt className="w-4 h-4" /> Discard
@@ -388,12 +393,12 @@ const Layout = ({
             </div>
           ) : (
             <>
-              <h2 className="text-white text-xl font-semibold">
+              <h2 className="text-gray-800 text-xl font-semibold">
                 {username || "User"}
               </h2>
               <button
                 onClick={() => setIsEditingUsername(true)}
-                className="flex items-center gap-2 border-2 border-[#0576FF] text-white px-2 py-1 rounded-md hover:bg-[#0576FF]/20 transition"
+                className="flex items-center gap-2 border-2 border-[#0576FF] text-gray-800 px-2 py-1 rounded-md hover:bg-[#0576FF]/20 transition"
                 aria-label="Edit username"
               >
                 <BsPencilSquare className="w-4 h-4" />
@@ -411,8 +416,8 @@ const Layout = ({
                   onClick={() => setActiveTab(tab.name)}
                   className={`py-2 flex-1 text-center cursor-pointer flex items-center justify-center gap-1 ${
                     activeTab === tab.name
-                      ? "text-white font-semibold"
-                      : "text-gray-400"
+                      ? "text-gray-800 font-semibold"
+                      : "text-gray-500"
                   }`}
                   aria-label={tab.name}
                   title={tab.name}
@@ -423,7 +428,7 @@ const Layout = ({
               );
             })}
           </div>
-          <div className="relative w-full h-1 bg-[#0E1115] border-none">
+          <div className="relative w-full h-1 bg-gray-200 border-none">
             <div
               className="h-full bg-purple-500 transition-all duration-300"
               style={{
@@ -462,7 +467,7 @@ const Uploads = ({
   const [showShareModal, setShowShareModal] = useState(null);
   const [accountCategory, setAccountCategory] = useState("");
   const [sellerCut, setSellerCut] = useState(null);
-  const [ghostCut, setGhostCut] = useState(null); // Added for Ghost Cut
+  const [ghostCut, setGhostCut] = useState(null);
   const [isCalculatingCut, setIsCalculatingCut] = useState(false);
   const minScreenshots = 3;
   const maxScreenshots = 5;
@@ -472,7 +477,6 @@ const Uploads = ({
   const shareModalRef = useRef(null);
   const navigate = useNavigate();
 
-  // Mock exchange rates (1 unit of currency to NGN)
   const exchangeRatesToNGN = {
     USD: 1500,
     EUR: 1600,
@@ -496,7 +500,7 @@ const Uploads = ({
       calculateSellerCut(rawValue);
     } else {
       setSellerCut(null);
-      setGhostCut(null); // Reset Ghost Cut
+      setGhostCut(null);
       setIsCalculatingCut(false);
     }
   };
@@ -504,24 +508,17 @@ const Uploads = ({
   const calculateSellerCut = async (worth) => {
     setIsCalculatingCut(true);
     try {
-      // Simulate async calculation for UX
       await new Promise((resolve) => setTimeout(resolve, 500));
-
       const worthInUserCurrency = parseFloat(worth);
-      const rateToNGN = exchangeRatesToNGN[userCurrency] || 1500; // Default to USD if unknown
+      const rateToNGN = exchangeRatesToNGN[userCurrency] || 1500;
       const worthInNGN = worthInUserCurrency * rateToNGN;
-
-      // Apply cut based on NGN amount
-      let sellerPercentage = worthInNGN > 100000 ? 0.8 : 0.85; // 80% for >100k, 85% for <=100k
+      let sellerPercentage = worthInNGN > 100000 ? 0.8 : 0.85;
       const sellerCutInNGN = worthInNGN * sellerPercentage;
-      const ghostCutInNGN = worthInNGN * (1 - sellerPercentage); // Platform's cut (20% or 15%)
-
-      // Convert back to user currency
+      const ghostCutInNGN = worthInNGN * (1 - sellerPercentage);
       const sellerCutInUserCurrency = sellerCutInNGN / rateToNGN;
       const ghostCutInUserCurrency = ghostCutInNGN / rateToNGN;
-
       setSellerCut(sellerCutInUserCurrency.toFixed(2));
-      setGhostCut(ghostCutInUserCurrency.toFixed(2)); // Set Ghost Cut
+      setGhostCut(ghostCutInUserCurrency.toFixed(2));
     } catch (err) {
       console.error("Error calculating cuts:", err);
       setSellerCut(null);
@@ -539,6 +536,9 @@ const Uploads = ({
   }, [editingAccount]);
 
   const compressImage = async (file) => {
+    if (!imageCompression) {
+      throw new Error("Image compression library not loaded.");
+    }
     const options = {
       maxSizeMB: 0.5,
       maxWidthOrHeight: 1024,
@@ -700,7 +700,7 @@ const Uploads = ({
   };
 
   const copyLink = (account) => {
-    const shareUrl = `${window.location.origin}/categories`;
+    const shareUrl = `${window.location.origin}/account/${account.slug || account.id}`;
     if (
       window.location.protocol !== "https:" &&
       window.location.hostname !== "localhost"
@@ -744,7 +744,7 @@ const Uploads = ({
   };
 
   const shareToSocial = (platform, account) => {
-    const shareUrl = `${window.location.origin}/categories`;
+    const shareUrl = `${window.location.origin}/account/${account.slug || account.id}`;
     const text = `Check out "${account.accountName}" on our platform!`;
     let url = "";
 
@@ -813,6 +813,8 @@ const Uploads = ({
       try {
         setIsProcessing(true);
         const userId = auth.currentUser.uid;
+        const baseSlug = slugify(accountName, { lower: true, strict: true });
+        const slug = `${baseSlug}-${Date.now()}`;
         const uploadData = {
           userId,
           username,
@@ -824,6 +826,7 @@ const Uploads = ({
           createdAt: new Date(),
           currency: userCurrency,
           views: 0,
+          slug,
         };
         const accountDocRef = await addDoc(
           collection(db, "accounts"),
@@ -840,7 +843,6 @@ const Uploads = ({
           });
         }
 
-        // Update "Entrepreneur" achievement (ID 3)
         const userDocRef = doc(db, "users", userId);
         const userDoc = await getDoc(userDocRef);
         let totalAccountsUploaded = 0;
@@ -895,7 +897,7 @@ const Uploads = ({
     setIsUploading(false);
     setEditingAccount(null);
     setSellerCut(null);
-    setGhostCut(null); // Reset Ghost Cut
+    setGhostCut(null);
     setIsCalculatingCut(false);
     if (accountImageInputRef.current) {
       accountImageInputRef.current.value = null;
@@ -915,41 +917,37 @@ const Uploads = ({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [showShareModal]);
 
-  const handleNavigateToCategories = () => {
-    navigate("/categories");
-  };
-
   return (
     <div className="p-2">
       {isProcessing && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
           <div className="flex flex-col items-center gap-3">
             <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-l-4 border-r-4 border-t-[#0576FF] border-b-[#0576FF] border-l-transparent border-r-transparent"></div>
-            <p className="text-white text-lg font-semibold">Processing...</p>
+            <p className="text-gray-800 text-lg font-semibold">Processing...</p>
           </div>
         </div>
       )}
       {showDeleteConfirm && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-          <div className="bg-[#161B22] p-6 rounded-xl border border-gray-800 max-w-sm w-full mx-4">
-            <h3 className="text-white text-lg font-semibold mb-4">
+          <div className="bg-gray-100 p-6 rounded-xl border border-gray-300 max-w-sm w-full mx-4">
+            <h3 className="text-gray-800 text-lg font-semibold mb-4">
               Confirm Deletion
             </h3>
-            <p className="text-gray-300 mb-6">
+            <p className="text-gray-600 mb-6">
               Are you sure you want to delete the account "
               {showDeleteConfirm.accountName}"? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(null)}
-                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition"
+                className="px-4 py-2 bg-gray-400 text-gray-800 rounded-md hover:bg-gray-500 transition"
                 aria-label="Cancel deletion"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDelete(showDeleteConfirm)}
-                className="px-4 py-2 bg-[#EB3223] text-white rounded-md hover:bg-[#B71C1C] transition"
+                className="px-4 py-2 bg-[#EB3223] text-gray-200 rounded-md hover:bg-[#B71C1C] transition"
                 aria-label="Confirm deletion"
               >
                 Delete
@@ -963,14 +961,14 @@ const Uploads = ({
           className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
           ref={shareModalRef}
         >
-          <div className="bg-[#161B22] p-6 rounded-xl border border-gray-800 max-w-sm w-full mx-4">
-            <h3 className="text-white text-lg font-semibold mb-4">
+          <div className="bg-gray-100 p-6 rounded-xl border border-gray-300 max-w-sm w-full mx-4">
+            <h3 className="text-gray-800 text-lg font-semibold mb-4">
               Share {showShareModal.accountName}
             </h3>
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => copyLink(showShareModal)}
-                className="flex items-center gap-2 bg-[#0576FF] text-white px-4 py-2 rounded-md hover:bg-[#045FCC] transition"
+                className="flex items-center gap-2 bg-[#0576FF] text-gray-200 px-4 py-2 rounded-md hover:bg-[#045FCC] transition"
                 aria-label={`Copy link for ${showShareModal.accountName}`}
                 tabIndex={0}
                 onKeyDown={(e) => {
@@ -983,7 +981,7 @@ const Uploads = ({
               </button>
               <button
                 onClick={() => shareToSocial("facebook", showShareModal)}
-                className="flex items-center gap-2 bg-[#4267B2] text-white px-4 py-2 rounded-md hover:bg-[#365899] transition"
+                className="flex items-center gap-2 bg-[#4267B2] text-gray-200 px-4 py-2 rounded-md hover:bg-[#365899] transition"
                 aria-label={`Share ${showShareModal.accountName} to Facebook`}
                 tabIndex={0}
                 onKeyDown={(e) => {
@@ -996,7 +994,7 @@ const Uploads = ({
               </button>
               <button
                 onClick={() => shareToSocial("twitter", showShareModal)}
-                className="flex items-center gap-2 bg-[#000000] text-white px-4 py-2 rounded-md hover:bg-[#333333] transition"
+                className="flex items-center gap-2 bg-[#000000] text-gray-200 px-4 py-2 rounded-md hover:bg-[#333333] transition"
                 aria-label={`Share ${showShareModal.accountName} to Twitter`}
                 tabIndex={0}
                 onKeyDown={(e) => {
@@ -1009,7 +1007,7 @@ const Uploads = ({
               </button>
               <button
                 onClick={() => shareToSocial("whatsapp", showShareModal)}
-                className="flex items-center gap-2 bg-[#25D366] text-white px-4 py-2 rounded-md hover:bg-[#20B158] transition"
+                className="flex items-center gap-2 bg-[#25D366] text-gray-200 px-4 py-2 rounded-md hover:bg-[#20B158] transition"
                 aria-label={`Share ${showShareModal.accountName} to WhatsApp`}
                 tabIndex={0}
                 onKeyDown={(e) => {
@@ -1024,7 +1022,7 @@ const Uploads = ({
             <div className="flex justify-end mt-4">
               <button
                 onClick={() => setShowShareModal(null)}
-                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition"
+                className="px-4 py-2 bg-gray-400 text-gray-800 rounded-md hover:bg-gray-500 transition"
                 aria-label="Close share modal"
                 tabIndex={0}
                 onKeyDown={(e) => {
@@ -1039,8 +1037,8 @@ const Uploads = ({
           </div>
         </div>
       )}
-      <div className="flex flex-col mb-12 sm:flex-row justify-between items-center gap-4 sm:gap-10 p-3 xs:p-4 sm:p-6 my-3 border border-gray-200 rounded-lg">
-        <h2 className="text-white text-md xs:text-lg sm:text-xl text-center sm:text-left font-semibold tracking-wide">
+      <div className="flex flex-col mb-12 sm:flex-row justify-between items-center gap-4 sm:gap-10 p-3 xs:p-4 sm:p-6 my-3 border border-gray-200 rounded">
+        <h2 className="text-gray-900 text-md sm:text-xl text-center sm:text-left font-semibold tracking-wide">
           {editingAccount ? "Edit Account" : "Upload An Account"}
         </h2>
         <button
@@ -1053,12 +1051,12 @@ const Uploads = ({
           }}
           aria-label={isUploading ? "Close form" : "Open form"}
         >
-          <IoAdd className="w-5 h-5 xs:w-6 xs:h-6 sm:w-7 sm:h-7" />
+          <IoAdd className="w-5 h-5 text-gray-600" />
         </button>
       </div>
 
       {isUploading && (
-        <div className="bg-[#0E1115] p-4 sm:p-6 rounded-lg border border-gray-600 mb-12">
+        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200 mb-12 shadow-md">
           <div className="flex flex-col lg:flex-row gap-6">
             <div className="flex-1 flex flex-col gap-4">
               <div className="relative w-full max-w-[450px] mx-auto aspect-[4/3] border-2 border-[#0576FF] rounded-xl overflow-hidden">
@@ -1075,8 +1073,8 @@ const Uploads = ({
                     />
                   ) : (
                     <>
-                      <MdOutlineCameraEnhance className="text-gray-500 w-12 h-12 sm:w-16 sm:h-16" />
-                      <p className="text-gray-400 text-xs sm:text-sm text-center mt-2">
+                      <MdOutlineCameraEnhance className="text-gray-400 w-12 h-12 sm:w-16 sm:h-16" />
+                      <p className="text-gray-500 text-xs sm:text-sm text-center mt-2">
                         Click to upload account image
                       </p>
                     </>
@@ -1088,7 +1086,7 @@ const Uploads = ({
                     className="absolute top-2 right-2 bg-[#EB3223] p-2 rounded-full cursor-pointer hover:bg-[#B71C1C] transition"
                     aria-label="Remove account image"
                   >
-                    <FaTrashAlt className="text-white w-4 h-4" />
+                    <FaTrashAlt className="text-gray-200 w-4 h-4" />
                   </button>
                 )}
                 <input
@@ -1106,7 +1104,7 @@ const Uploads = ({
                   placeholder="Name of Account"
                   value={accountName}
                   onChange={(e) => setAccountName(e.target.value)}
-                  className="w-full max-w-[450px] mx-auto p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] text-sm"
+                  className="w-full max-w-[450px] mx-auto p-3 rounded bg-gray-100 text-gray-800 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   required
                   aria-label="Account name"
                 />
@@ -1115,7 +1113,7 @@ const Uploads = ({
                   placeholder="Account Credential"
                   value={accountCredential}
                   onChange={(e) => setAccountCredential(e.target.value)}
-                  className="w-full max-w-[450px] mx-auto p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] text-sm"
+                  className="w-full max-w-[450px] mx-auto p-3 rounded bg-gray-100 text-gray-800 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   required
                   aria-label="Account credential"
                 />
@@ -1124,24 +1122,24 @@ const Uploads = ({
                   placeholder={`Account's Worth (in ${userCurrency})`}
                   value={formatNumberWithCommas(accountWorth)}
                   onChange={handleAccountWorthChange}
-                  className="w-full max-w-[450px] mx-auto p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] text-sm"
+                  className="w-full max-w-[450px] mx-auto p-3 rounded bg-gray-100 text-gray-800 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   required
                   aria-label={`Account worth in ${userCurrency}`}
                 />
-                <div className="w-full max-w-[450px] mx-auto text-sm text-gray-400">
+                <div className="w-full max-w-[450px] mx-auto text-xs sm:text-sm text-gray-600">
                   {isCalculatingCut ? (
                     <p>Calculating cuts...</p>
                   ) : sellerCut && ghostCut ? (
                     <div className="flex flex-col gap-1">
                       <p>
                         Seller's Cut:{" "}
-                        <span className="text-green-500 font-medium">
+                        <span className="text-green-600 font-medium">
                           {formatNumberWithCommas(sellerCut)} {userCurrency}
                         </span>
                       </p>
                       <p>
                         Ghost Cut:{" "}
-                        <span className="text-red-500 font-medium">
+                        <span className="text-red-600 font-medium">
                           {formatNumberWithCommas(ghostCut)} {userCurrency}
                         </span>
                       </p>
@@ -1153,7 +1151,7 @@ const Uploads = ({
                 <select
                   value={accountCategory}
                   onChange={(e) => setAccountCategory(e.target.value)}
-                  className="w-full max-w-[450px] mx-auto p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] text-sm"
+                  className="w-full max-w-[450px] mx-auto p-3 rounded bg-gray-100 text-gray-800 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   required
                   aria-label="Account category"
                 >
@@ -1164,7 +1162,7 @@ const Uploads = ({
                     </option>
                   ))}
                 </select>
-                <div className="mt-2 text-gray-400 text-sm">
+                <div className="mt-2 text-gray-600 text-sm">
                   Selected Category: {accountCategory || "None"}
                 </div>
               </div>
@@ -1174,15 +1172,15 @@ const Uploads = ({
                 placeholder={`Full Account Description (max ${maxDescriptionWords} words)`}
                 value={accountDescription}
                 onChange={(e) => setAccountDescription(e.target.value)}
-                className="w-full h-[200px] sm:h-[240px] p-3 rounded bg-[#0E1115] text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] text-sm resize-none"
+                className="w-full h-[200px] sm:h-[240px] p-3 rounded bg-gray-100 text-gray-800 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
                 required
                 aria-label="Account description"
               ></textarea>
             </div>
           </div>
           <div className="mt-6 border border-gray-300 p-4 sm:p-5 rounded-lg">
-            <p className="text-white text-lg font-semibold mb-2">Screenshots</p>
-            <p className="text-gray-400 text-sm mb-3">
+            <p className="text-gray-800 text-lg font-semibold mb-2">Screenshots</p>
+            <p className="text-gray-600 text-sm mb-3">
               Minimum {minScreenshots}, Maximum {maxScreenshots}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -1198,17 +1196,17 @@ const Uploads = ({
                     className="absolute top-1 right-1 bg-[#EB3223] p-1.5 rounded-full cursor-pointer hover:bg-[#B71C1C] transition"
                     aria-label={`Remove screenshot ${index + 1}`}
                   >
-                    <FaTrashAlt className="text-white w-3 h-3" />
+                    <FaTrashAlt className="text-gray-200 w-3 h-3" />
                   </button>
                 </div>
               ))}
               {screenshots.length < maxScreenshots && (
                 <label
                   htmlFor="screenshot-upload"
-                  className="w-full h-24 sm:h-28 lg:h-32 rounded-md flex items-center justify-center bg-gray-700 cursor-pointer"
+                  className="w-full h-24 sm:h-28 lg:h-32 rounded-md flex items-center justify-center bg-gray-200 cursor-pointer"
                   aria-label="Upload screenshot"
                 >
-                  <MdOutlineCameraEnhance className="text-white w-6 h-6 sm:w-8 sm:h-8" />
+                  <MdOutlineCameraEnhance className="text-gray-500 w-6 h-6 sm:w-8 sm:h-8" />
                 </label>
               )}
               <input
@@ -1221,18 +1219,17 @@ const Uploads = ({
               />
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row justify-end mt-6 gap-3 sm:gap-4">
+          <div className="mt-6 flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
             <button
               onClick={resetForm}
-              className="flex items-center justify-center gap-2 text-white font-medium bg-[#EB3223] px-4 py-2 rounded-lg cursor-pointer w-full sm:w-32 hover:bg-[#B71C1C] transition"
+              className="flex items-center justify-center gap-2 bg-[#EB3223] text-gray-200 font-medium px-4 py-2 rounded-lg cursor-pointer w-full sm:w-32 hover:bg-[#B71C1C] transition"
               aria-label="Discard form"
             >
               <FaTrashAlt className="w-4 h-4" /> Discard
             </button>
             <button
               onClick={handleUpload}
-              className="flex items-center justify-center gap-2 text-white font-medium bg-[#4426B9] px-4 py-2 rounded-lg cursor-pointer w-full sm:w-32 hover:bg-[#2F1A7F] transition"
-              aria-label={editingAccount ? "Update account" : "Upload account"}
+              className="flex items-center justify-center gap-2 text-gray-200 font-medium bg-[#4426B9] px-4 py-2 rounded-lg cursor-pointer w-full sm:w-32 hover:bg-[#2F1A7F] transition"
             >
               {editingAccount ? (
                 <>
@@ -1248,8 +1245,8 @@ const Uploads = ({
         </div>
       )}
 
-      <div className="w-full max-w-screen-2xl mx-auto p-4 sm:p-6 lg:px-8 py-6 bg-gradient-to-br from-[#0E1115] via-[#1A1F29] to-[#252A36] rounded-xl border border-gray-800 mt-8">
-        <h2 className="text-gray-100 text-lg sm:text-2xl md:text-3xl lg:text-4xl font-semibold tracking-wider mb-6 md:mb-8 lg:mb-10">
+      <div className="w-full max-w-screen-2xl mx-auto p-4 sm:p-6 lg:p-8 py-6 bg-white rounded-lg border border-gray-200 mt-8 shadow-md">
+        <h2 className="text-gray-900 text-lg sm:text-2xl md:text-3xl font-semibold tracking-wider mb-6 md:mb-8 lg:mb-10">
           Accounts Uploaded
         </h2>
         {uploadedAccounts.length > 0 ? (
@@ -1257,20 +1254,20 @@ const Uploads = ({
             {uploadedAccounts.map((acc) => (
               <div
                 key={acc.id}
-                className="w-full min-w-[240px] bg-[#161B22]/80 p-4 rounded-xl shadow-lg border border-gray-800 active:scale-95 transition-all duration-300 group cursor-pointer"
-                onClick={handleNavigateToCategories}
+                className="w-full min-w-[240px] bg-gray-50 p-4 rounded-lg shadow-md border active:scale-95 transition-all duration-300 group cursor-pointer"
+                onClick={() => navigate(`/account/${acc.slug || acc.id}`)}
               >
                 <div className="flex items-center mb-4">
                   <img
                     src={profileImage || "/default-profile.png"}
                     alt="User Profile"
-                    className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-full border-2 border-[#0576FF]/60 mr-3 object-cover"
+                    className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-lg border-2 border-[#0576FF]/60 mr-3 object-cover"
                   />
                   <div className="flex-1">
-                    <h3 className="text-gray-100 text-sm sm:text-base md:text-lg font-medium tracking-wider truncate">
+                    <h3 className="text-gray-800 text-sm sm:text-base md:text-lg font-medium tracking-wider truncate">
                       {acc.accountName}
                     </h3>
-                    <p className="text-gray-400 text-xs sm:text-sm tracking-wider leading-relaxed">
+                    <p className="text-gray-600 text-sm tracking-wider leading-relaxed">
                       <span className="text-[#0576FF] font-light uppercase">
                         Uploaded by:
                       </span>{" "}
@@ -1280,91 +1277,78 @@ const Uploads = ({
                 </div>
 
                 {acc.images?.accountImage ? (
-                  <div className="relative overflow-hidden rounded-lg mb-4 group/image">
+                  <div className="relative overflow-hidden rounded-lg">
                     <img
                       src={acc.images.accountImage}
                       alt={acc.accountName}
-                      className="w-full h-36 sm:h-40 md:h-44 object-cover rounded-lg shadow-md transition-transform duration-300 group-hover/image:scale-105"
+                      className="w-full h-36 sm:h-40 md:h-44 object-cover rounded-lg-auto shadow-md transition-transform duration-300 group-hover:scale-105"
                       style={{ aspectRatio: "16/9" }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300"></div>
+                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
                   </div>
                 ) : (
-                  <div className="w-full h-36 sm:h-40 md:h-44 bg-gradient-to-br from-[#1A1F29] to-[#252A36] flex items-center justify-center rounded-lg shadow-md mb-4">
-                    <FaImage className="text-gray-500 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
-                    <p className="text-gray-500 text-xs sm:text-sm font-light tracking-wider ml-2">
+                  <div className="w-full h-36 sm:h-40 md:h-44 bg-gray-200 flex items-center justify-center rounded-lg-auto shadow-md">
+                    <FaImage className="text-gray-400 w-6 h-6 sm:w-7 sm:h-7 md:h-8" />
+                    <p className="text-gray-500 text-xs sm:text-sm font-light tracking ml-2">
                       No Image
                     </p>
                   </div>
                 )}
 
                 <div className="space-y-2 mb-4">
-                  <p className="text-gray-200 text-xs sm:text-sm tracking-wider leading-relaxed">
-                    <span className="text-[#0576FF] font-bold text-xs">
+                  <p className="text-gray-700 text-sm sm:text-sm tracking-wider leading-relaxed">
+                    <span className="text-[#0576FF] font-bold text-xs sm:text-sm">
                       Credential:
                     </span>{" "}
-                    <span className="text-xs break-all">
+                    <span className="text-xs sm:text-sm break-all">
                       {acc.accountCredential}
                     </span>
                   </p>
-                  <p className="text-gray-200 text-xs sm:text-sm tracking-wider leading-relaxed">
-                    <span className="text-[#0576FF] font-bold text-xs">
+                  <p className="text-gray-700 text-sm sm:text-sm tracking-wider leading-relaxed">
+                    <span className="text-[#0576FF] font-bold text-xs sm:text-sm">
                       Worth:
                     </span>{" "}
-                    <span className="text-xs">
+                    <span className="text-xs sm:text-sm">
                       {formatNumberWithCommas(acc.accountWorth.toString())} (
                       {acc.currency || userCurrency})
                     </span>
                   </p>
-                  <p className="text-gray-200 text-xs sm:text-sm tracking-wider leading-relaxed line-clamp-2">
-                    <span className="text-[#0576FF] font-bold text-xs">
+                  <p className="text-gray-700 text-sm sm:text-sm tracking-wider leading-relaxed line-clamp-2">
+                    <span className="text-[#0576FF] font-bold text-xs sm:text-sm">
                       Description:
                     </span>{" "}
-                    <span className="text-xs">{acc.accountDescription}</span>
+                    <span className="text-xs sm:text-sm">{acc.accountDescription}</span>
                   </p>
                 </div>
 
                 {acc.images &&
                 Object.keys(acc.images).filter((key) =>
-                  key.startsWith("screenshot")
-                ).length > 0 ? (
-                  <div className="mb-2">
-                    <p className="text-gray-200 text-xs md:text-sm font-bold tracking-wider mb-2">
-                      Screenshots:
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {Object.keys(acc.images)
-                        .filter((key) => key.startsWith("screenshot"))
-                        .map((key, index) =>
-                          acc.images[key] ? (
-                            <div
-                              key={index}
-                              className="relative group/screenshot"
-                            >
+                  key.startsWith("screenshot")).length > 0 ? (
+                    <div className="mb-2">
+                      <p className="text-gray-700 text-xs sm:text-sm font-bold tracking-wider mb-2">
+                        Screenshots:
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {Object.keys(acc.images)
+                          .filter((key) => key.startsWith("screenshot"))
+                          .map((key, index) => (
+                            <div key={index} className="relative group">
                               <img
                                 src={acc.images[key]}
                                 alt={`Screenshot ${index + 1}`}
-                                className="w-full h-16 md:h-20 object-cover rounded-md shadow-sm transition-transform duration-300 group-hover/screenshot:scale-105"
+                                className="w-full h-16 md:h-20 object-cover rounded-md shadow-sm transition-transform duration-300 group-hover:scale-105"
                                 style={{ aspectRatio: "4/3" }}
                               />
-                              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/screenshot:opacity-100 transition-opacity duration-300 rounded-md"></div>
+                              <div className="absolute top-0 left-0 w-full h-full bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-md"></div>
                             </div>
-                          ) : (
-                            <div
-                              key={index}
-                              className="w-full h-16 md:h-20 bg-gradient-to-br from-[#1A1F29] to-[#252A36] flex items-center justify-center rounded-md shadow-sm"
-                            >
-                              <FaImage className="text-gray-500 w-4 h-4 md:w-6 md:h-6" />
-                            </div>
-                          )
-                        )}
+                          ))}
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <p className="text-gray-400 text-xs md:text-sm font-light tracking-wider mb-2">
-                    No screenshots available.
-                  </p>
-                )}
+                  ) : (
+                    <p className="text-gray-600 text-xs sm:text-sm font-light tracking-wider mb-2">
+                      No screenshots available.
+                    </p>
+                  )}
 
                 <div className="flex justify-between items-center">
                   <button
@@ -1372,7 +1356,7 @@ const Uploads = ({
                       e.stopPropagation();
                       handleShare(acc);
                     }}
-                    className="flex items-center justify-center bg-[#0576FF]/80 text-white p-1.5 sm:p-2 rounded-full hover:bg-[#0576FF] active:bg-[#045FCC] transition-all duration-300 w-8 h-8 sm:w-9 sm:h-9"
+                    className="flex items-center justify-center bg-[#0576FF]/80 text-gray-200 p-1.5 sm:p-2 rounded-full hover:bg-[#0576FF] active:bg-[#045FCC] transition-all duration-300 w-8 h-8 sm:w-9 sm:h-9"
                     aria-label={`Share account ${acc.accountName}`}
                     tabIndex={0}
                     onKeyDown={(e) => {
@@ -1389,7 +1373,7 @@ const Uploads = ({
                         e.stopPropagation();
                         handleEdit(acc);
                       }}
-                      className="flex items-center justify-center bg-[#4426B9]/80 text-white p-1.5 sm:p-2 rounded-full hover:bg-[#4426B9] active:bg-[#2F1A7F] transition-all duration-300 w-8 h-8 sm:w-9 sm:h-9"
+                      className="flex items-center justify-center bg-[#4426B9]/80 text-gray-200 p-1.5 sm:p-2 rounded-full hover:bg-[#4426B9] active:bg-[#2F1A7F] transition-all duration-300 w-8 h-8 sm:w-9 sm:h-9"
                       aria-label={`Edit account ${acc.accountName}`}
                     >
                       <BsPencilSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -1399,7 +1383,7 @@ const Uploads = ({
                         e.stopPropagation();
                         setShowDeleteConfirm(acc);
                       }}
-                      className="flex items-center justify-center bg-[#EB3223]/80 text-white p-1.5 sm:p-2 rounded-full hover:bg-[#EB3223] active:bg-[#B71C1C] transition-all duration-300 w-8 h-8 sm:w-9 sm:h-9"
+                      className="flex items-center justify-center bg-[#EB3223]/80 text-gray-200 p-1.5 sm:p-2 rounded-full hover:bg-[#EB3223] active:bg-[#B71C1C] transition-all duration-300 w-8 h-8 sm:w-9 sm:h-9"
                       aria-label={`Delete account ${acc.accountName}`}
                     >
                       <FaTrashAlt className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -1410,7 +1394,7 @@ const Uploads = ({
             ))}
           </div>
         ) : (
-          <p className="p-10 text-gray-400 text-center text-sm sm:text-base font-light tracking-wider">
+          <p className="p-10 text-gray-600 text-center text-sm sm:text-base font-light tracking-wider">
             No accounts uploaded yet.
           </p>
         )}
@@ -1449,6 +1433,7 @@ const About = ({ handleSaveBio }) => {
           }
         } catch (error) {
           console.error("Error fetching bio:", error);
+          toast.error("Failed to fetch bio: " + error.message);
         }
       }
     };
@@ -1456,9 +1441,10 @@ const About = ({ handleSaveBio }) => {
   }, []);
 
   return (
-    <div className="p-5">
+    <div className="p-4 sm:p-6">
       <textarea
-        className="w-full h-60 p-3 border border-gray-600 rounded-md bg-[#0E1115] text-sm text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0576FF]"
+        className="w-full h-60 p-3 rounded-lg border border-gray-300 bg-gray-100 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        role="textbox"
         value={tempText}
         onChange={(e) => setTempText(e.target.value)}
         readOnly={!isEditing}
@@ -1469,26 +1455,26 @@ const About = ({ handleSaveBio }) => {
           <>
             <button
               onClick={handleDiscard}
-              className="flex items-center gap-2 bg-[#EB3223] text-white px-4 py-2 rounded-md cursor-pointer hover:bg-[#B71C1C] transition"
+              className="flex items-center gap-2 bg-[#EB3223] text-gray-200 px-4 py-2 rounded-lg cursor-pointer hover:bg-[#B71C1C] transition"
               aria-label="Discard bio changes"
             >
-              <FaTrashAlt /> Discard
+              <FaTrashAlt className="w-4 h-4" /> Discard
             </button>
             <button
               onClick={handleSave}
-              className="flex items-center gap-2 bg-[#4426B9] text-white px-4 py-2 rounded-md cursor-pointer hover:bg-[#2F1A7F] transition"
+              className="flex items-center gap-2 bg-[#4426B9] text-gray-200 px-4 py-2 rounded-lg cursor-pointer hover:bg-[#2F1A7F] transition"
               aria-label="Save bio"
             >
-              <FaSave /> Save
+              <FaSave className="w-4 h-4" /> Save
             </button>
           </>
         ) : (
           <button
             onClick={handleEdit}
-            className="flex items-center gap-2 bg-[#0576FF] text-white px-4 py-2 rounded-md cursor-pointer hover:bg-[#045FCC] transition"
+            className="flex items-center gap-2 bg-[#0576FF] text-gray-200 px-4 py-2 rounded-lg cursor-pointer hover:bg-[#045FCC] transition"
             aria-label="Edit bio"
           >
-            <BsPencilSquare /> Edit
+            <BsPencilSquare className="w-4 h-4" /> Edit
           </button>
         )}
       </div>
@@ -1523,11 +1509,28 @@ const Socials = ({ handleSaveSocials, profileData }) => {
     setTempLinks({ ...tempLinks, [platform]: value });
   };
 
+  const formatSocialUrl = (platform, handle) => {
+    if (!handle || !handle.trim()) {
+      return null;
+    const cleanHandle = handle.replace(/^[@\/]/, "");
+    switch (platform.toLowerCase()) {
+      case "instagram":
+        return `https://www.instagram.com/${cleanHandle}`;
+      case "tiktok":
+        return `https://www.tiktok.com/@${cleanHandle}`;
+      case "twitter":
+        return `https://twitter.com/${cleanHandle}`;
+      case "facebook":
+        return `https://www.facebook.com/${cleanHandle}`;
+      default:
+        return null;
+    }
+  };
+
   const completionIndicators = [
     {
       label: "Username",
-      completed:
-        !!profileData.username && profileData.username !== "UnnamedUser",
+      completed: !!profileData.username && profileData.username !== "UnnamedUser",
     },
     {
       label: "Profile Image",
@@ -1562,8 +1565,8 @@ const Socials = ({ handleSaveSocials, profileData }) => {
             setTempLinks(userDoc.data().socials);
           }
         } catch (error) {
-          console.error("Error fetching social links:", error);
-          toast.error("Failed to fetch social links: " + error.message);
+          console.error("Error fetching socials: ", error);
+          toast.error("Failed to fetch socials: " + error.message);
         }
       }
     };
@@ -1571,9 +1574,9 @@ const Socials = ({ handleSaveSocials, profileData }) => {
   }, []);
 
   useEffect(() => {
-    if (!isProfileComplete && !sessionStorage.getItem("completionPopupShown")) {
+    if (!isProfileComplete && !sessionStorage.getItem("completionPopup")) {
       setShowCompletionPopup(true);
-      sessionStorage.setItem("completionPopupShown", "true");
+      sessionStorage.setItem("completionPopup", "true");
     }
   }, [isProfileComplete]);
 
@@ -1588,7 +1591,7 @@ const Socials = ({ handleSaveSocials, profileData }) => {
   }, [showCompletionPopup]);
 
   return (
-    <div className="mt-16 mb-20 p-4 sm:p-6 bg-[#161B22] rounded-xl border border-gray-800 shadow-lg">
+    <div className="mt-12 sm:p-16 p-4 sm:p-6 bg-white rounded-lg shadow-md sm:border sm:border-gray-200">
       {showCompletionPopup && !isProfileComplete && (
         <div
           className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
@@ -1597,31 +1600,32 @@ const Socials = ({ handleSaveSocials, profileData }) => {
           aria-describedby="completion-popup-description"
           ref={popupRef}
         >
-          <div className="bg-[#161B22] p-6 sm:p-8 rounded-xl border border-gray-800 max-w-sm w-full mx-4 shadow-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/10">
+          <div className="bg-white p-6 sm:p-8 rounded-lg border bg-gray-200 max-w-sm w-full mx-auto shadow-sm">
             <div className="flex items-center gap-3 mb-4">
-              <FaCheckCircle className="text-blue-400 w-8 h-8 animate-pulse" />
+              <FaCheckCircle className="text-blue-600 w-8 h-8 animate-pulse" />
               <h3
                 id="completion-popup-title"
-                className="text-white text-lg sm:text-xl font-semibold"
+                className="text-lg sm:text-xl text-gray-800 sm:font-semibold text-sm"
               >
                 Complete Your Profile!
               </h3>
             </div>
             <p
               id="completion-popup-description"
-              className="text-gray-300 text-sm sm:text-base mb-6"
+              className="text-gray-600 text-sm sm:text-base sm:text-sm mb-6"
             >
               Your profile is {completedCount}/{totalIndicators} complete.
-              Finish setting up to unlock the "Alfred" achievement and enhance
-              your presence!
+              Finish setting up to unlock the
+              <span className="font-semibold text-blue-600">"Alfred"</span>
+              achievement and enhance your presence!
             </p>
-            <ul className="text-gray-300 text-sm mb-6">
+            <ul className="text-gray-600 text-sm sm:text-sm">
               {completionIndicators.map((indicator, index) => (
-                <li key={index} className="flex items-center gap-2 mb-2">
+                <li key={index} className="flex items-center gap-2 sm:mb-2 mb-sm">
                   {indicator.completed ? (
-                    <FaCheckCircle className="text-green-500 w-4 h-4" />
+                    <FaCheckCircle className="text-green-600 w-4 sm:h-4" />
                   ) : (
-                    <FaTimesCircle className="text-red-500 w-4 h-4" />
+                    <FaTimesCircle className="text-red-400 w-4 sm:h-4" />
                   )}
                   <span>{indicator.label}</span>
                 </li>
@@ -1630,7 +1634,7 @@ const Socials = ({ handleSaveSocials, profileData }) => {
             <div className="flex justify-end">
               <button
                 onClick={() => setShowCompletionPopup(false)}
-                className="bg-[#4426B9] text-white px-4 py-2 rounded-lg hover:bg-[#2F1A7F] transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#0576FF]"
+                className="bg-blue-600 text-gray-200 px-4 py-2 rounded-lg hover:bg-blue-700 sm:transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label="Dismiss profile completion popup"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
@@ -1644,151 +1648,117 @@ const Socials = ({ handleSaveSocials, profileData }) => {
           </div>
         </div>
       )}
-      <h2 className="text-white text-xl sm:text-2xl font-semibold tracking-wider mb-6 flex items-center gap-2">
-        <FaShareAlt className="w-6 h-6 text-[#0576FF]" />
+      <h2 className="text-gray-900 sm:text-2xl sm:font-semibold mb-6 flex sm:flex sm:items-center sm:gap-2 text-sm tracking-wider">
+        <FaShareAlt className="w-6 sm:h-6 sm:text-blue-600 text-sm" />
         Socials
       </h2>
       {isEditing ? (
-        <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex items-center gap-3 bg-[#0E1115] p-3 rounded-lg border border-gray-600 focus-within:ring-2 focus-within:ring-[#0576FF] transition">
-              <FaInstagram className="text-pink-500 w-6 h-6" />
+        <div className="flex flex-col sm:gap-4 gap-sm">
+          <div className="grid sm:grid-cols-2 sm:gap-4 gap-sm">
+            <div className="flex items-center sm:gap-3 gap-sm bg-gray-100 sm:p-3 p-sm rounded-lg sm:border border-gray-200 focus-within:ring-2 focus-within:ring-blue-600 sm:transition">
+              <FaInstagram className="text-pink-600 sm:w-6 sm:h-6 w-sm h-sm" />
               <input
                 type="text"
-                placeholder="Instagram handle"
+                placeholder="Instagram Handle"
                 value={tempLinks.instagram}
                 onChange={(e) => handleChange("instagram", e.target.value)}
-                className="w-full bg-transparent text-white text-sm focus:outline-none"
-                aria-label="Instagram handle"
+                className="w-full bg-transparent text-gray-700 sm:text-sm text-sm focus:outline-none"
+                aria-label="Enter Instagram Handle"
               />
             </div>
-            <div className="flex items-center gap-3 bg-[#0E1115] p-3 rounded-lg border border-gray-600 focus-within:ring-2 focus-within:ring-[#0576FF] transition">
-              <FaTiktok className="text-white w-6 h-6" />
+            <div className="flex items-center sm:gap-3 gap-sm sm:p-3 p-sm bg-gray-100 rounded-lg sm:border sm:border-gray-200 focus-within:ring-2 sm:focus-within:ring-blue-600 sm:transition">
+              <FaTiktok className="text-gray-700 sm:w-6 sm:h-6 w-sm" />
               <input
                 type="text"
-                placeholder="TikTok handle"
+                placeholder="TikTok Handle"
                 value={tempLinks.tiktok}
                 onChange={(e) => handleChange("tiktok", e.target.value)}
-                className="w-full bg-transparent text-white text-sm focus:outline-none"
-                aria-label="TikTok handle"
+                className="w-full bg-transparent text-gray-700 sm:text-sm text-sm focus:outline-none"
+                aria-label="Enter TikTok Handle"
               />
             </div>
-            <div className="flex items-center gap-3 bg-[#0E1115] p-3 rounded-lg border border-gray-600 focus-within:ring-2 focus-within:ring-[#0576FF] transition">
-              <FaXTwitter className="text-blue-400 w-6 h-6" />
+            <div className="flex items-center sm:gap-3 gap-sm sm:p-3 p-sm bg-gray-100 rounded-lg sm:border sm:border-gray-200 focus-within:ring-2 sm:focus-within:ring-blue-600 sm:transition">
+              <FaXTwitter className="text-blue-500 sm:w-6 sm:h-6 w-sm" />
               <input
                 type="text"
-                placeholder="Twitter handle"
+                placeholder="Twitter Handle"
                 value={tempLinks.twitter}
                 onChange={(e) => handleChange("twitter", e.target.value)}
-                className="w-full bg-transparent text-white text-sm focus:outline-none"
-                aria-label="Twitter handle"
+                className="w-full bg-transparent text-gray-700 sm:text-sm text-sm focus:outline-none"
+                aria-label="Enter Twitter Handle"
               />
             </div>
-            <div className="flex items-center gap-3 bg-[#0E1115] p-3 rounded-lg border border-gray-600 focus-within:ring-2 focus-within:ring-[#0576FF] transition">
-              <FaSquareFacebook className="text-blue-600 w-6 h-6" />
+            <div className="flex items-center sm:gap-3 gap-sm sm:p-3 p-sm bg-gray-100 rounded-lg sm:border sm:border-gray-200 focus-within:ring-2 sm:focus-within:ring-blue-600 sm:transition">
+              <FaSquareFacebook className="text-blue-700 sm:w-6 sm:h-6 w-sm" />
               <input
                 type="text"
-                placeholder="Facebook handle"
+                placeholder="Facebook Handle"
                 value={tempLinks.facebook}
                 onChange={(e) => handleChange("facebook", e.target.value)}
-                className="w-full bg-transparent text-white text-sm focus:outline-none"
-                aria-label="Facebook handle"
+                className="w-full bg-transparent text-gray-700 sm:text-sm text-sm focus:outline-none"
+                aria-label="Enter Facebook Handle"
               />
             </div>
           </div>
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-end sm:gap-3 gap-sm">
             <button
               onClick={handleDiscard}
-              className="flex items-center gap-2 bg-[#EB3223] text-white px-4 py-2 rounded-lg hover:bg-[#B71C1C] transition transform hover:scale-105"
-              aria-label="Discard socials changes"
+              className="flex items-center sm:gap-2 gap-sm bg-[#EB3223] text-gray-200 sm:px-4 px-sm sm:py-2 py-sm rounded-sm hover:bg-[#B71C1C] sm:transition"
+              aria-label="Discard social links changes"
             >
-              <FaTrashAlt className="w-4 h-4" /> Discard
+              <FaTrashAlt className="sm:w-4 sm:h-4 w-sm" /> Discard
             </button>
             <button
               onClick={handleSave}
-              className="flex items-center gap-2 bg-[#4426B9] text-white px-4 py-2 rounded-lg hover:bg-[#2F1A7F] transition transform hover:scale-105"
-              aria-label="Save socials"
+              className="flex items-center sm:gap-2 gap-sm bg-[#4426B9] text-gray-200 sm:bg-[#2F1A7F] sm:px-4 px-sm sm:py-2 py-sm rounded-sm hover:bg-[#2F1A7F] sm:transition"
+              aria-label="Save social links"
             >
-              <FaSave className="w-4 h-4" /> Save
+              <FaSave className="sm:w-4 sm:h-4 w-sm" /> Save
             </button>
           </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {socialLinks.instagram && (
-              <a
-                href={`https://instagram.com/${socialLinks.instagram}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 bg-[#0E1115] p-3 rounded-lg border border-gray-600 hover:bg-[#1A1F29] hover:border-[#0576FF] transition"
-              >
-                <FaInstagram className="text-pink-500 w-6 h-6" />
-                <div>
-                  <p className="text-white text-sm font-medium">Instagram</p>
-                  <p className="text-gray-400 text-xs">
-                    {socialLinks.instagram}
-                  </p>
-                </div>
-              </a>
-            )}
-            {socialLinks.tiktok && (
-              <a
-                href={`https://tiktok.com/@${socialLinks.tiktok}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 bg-[#0E1115] p-3 rounded-lg border border-gray-600 hover:bg-[#1A1F29] hover:border-[#0576FF] transition"
-              >
-                <FaTiktok className="text-white w-6 h-6" />
-                <div>
-                  <p className="text-white text-sm font-medium">TikTok</p>
-                  <p className="text-gray-400 text-xs">{socialLinks.tiktok}</p>
-                </div>
-              </a>
-            )}
-            {socialLinks.twitter && (
-              <a
-                href={`https://twitter.com/${socialLinks.twitter}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 bg-[#0E1115] p-3 rounded-lg border border-gray-600 hover:bg-[#1A1F29] hover:border-[#0576FF] transition"
-              >
-                <FaXTwitter className="text-blue-400 w-6 h-6" />
-                <div>
-                  <p className="text-white text-sm font-medium">Twitter</p>
-                  <p className="text-gray-400 text-xs">{socialLinks.twitter}</p>
-                </div>
-              </a>
-            )}
-            {socialLinks.facebook && (
-              <a
-                href={`https://facebook.com/${socialLinks.facebook}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 bg-[#0E1115] p-3 rounded-lg border border-gray-600 hover:bg-[#1A1F29] hover:border-[#0576FF] transition"
-              >
-                <FaSquareFacebook className="text-blue-600 w-6 h-6" />
-                <div>
-                  <p className="text-white text-sm font-medium">Facebook</p>
-                  <p className="text-gray-400 text-xs">
-                    {socialLinks.facebook}
-                  </p>
-                </div>
-              </a>
-            )}
+        <div className="flex flex-col sm:gap-4 gap-sm">
+          <div className="grid sm:grid-cols-2 sm:gap-4 gap-sm">
+            {Object.keys(socialLinks).map((platform) => {
+              const url = formatSocialUrl(platform, socialLinks[platform]);
+              return url ? (
+                <a
+                  key={platform}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="sm:flex sm:items-center sm:gap-3 gap-sm bg-gray-100 sm:p-3 p-sm rounded-sm sm:border sm:border-gray-200 sm:hover:bg-gray-200 sm:hover:border-[#0576FF] sm:transition"
+                >
+                  {platform === "instagram" && (
+                    <FaInstagram className="text-pink-600 sm:w-6 sm:h-6 w-sm" />
+                  )}
+                  {platform === "tiktok" && (
+                    <FaTiktok className="text-gray-700 sm:w-6 sm:h-6 w-sm" />
+                  )}
+                  {platform === "twitter" && (
+                    <FaXTwitter className="text-blue-500 sm:w-6 sm:h-6 w-sm" />
+                  )}
+                  {platform === "facebook" && (
+                    <FaSquareFacebook className="text-blue-700 sm:w-6 sm:h-6 w-sm" />
+                  )}
+                  <div>
+                    <p className="sm:text-gray-800 sm:p-sm sm:text-sm font-medium sm:text-sm">
+                      {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                    </p>
+                    <p className="text-gray-600 sm:p-sm sm:p-sm text-xs sm:text-xs">{socialLinks[platform]}</p>
+                  </div>
+                </a>
+              ) : null;
+            })}
           </div>
-          {Object.values(socialLinks).every((val) => !val) && (
-            <p className="text-gray-400 text-sm text-center">
-              No social links added yet. Click "Edit Socials" to add some!
-            </p>
-          )}
           <div className="flex justify-end">
             <button
               onClick={handleEdit}
-              className="flex items-center gap-2 bg-gradient-to-r from-[#0576FF] to-[#4426B9] text-white px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg hover:scale-105 hover:border-[#0576FF] border border-transparent transition-all duration-300 text-base font-medium"
-              aria-label="Edit socials"
+              className="flex items-center sm:gap-2 gap-sm bg-[#0576FF] sm:text-gray-200 text-sm sm:px-4 px-sm sm:p-2 py-sm rounded-sm sm:hover:bg-[#045FCC] sm:transition"
+              aria-label="Edit social links"
             >
-              <BsPencilSquare className="w-4 h-4" /> Edit Socials
+              <BsPencilSquare className="sm:w-sm sm:h-sm" /> Edit
             </button>
           </div>
         </div>
@@ -2064,7 +2034,7 @@ const UserProfile = () => {
       )}
       {activeTab === "Achievements" && <Achievements userId={auth.currentUser?.uid} />}
     </Layout>
-  );
+    );
   };
   
   UserProfile.propTypes = {

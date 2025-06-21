@@ -54,8 +54,8 @@ export const initializeViews = async () => {
   }
 };
 
-// Optimized function to fetch user profile with caching
-const fetchUserProfileOptimized = async (userId, username) => {
+// Optimized function to fetch user profile with caching - EXPORTED FOR USE IN COMPONENTS
+export const fetchUserProfileOptimized = async (userId, username) => {
   const cacheKey = userId || username;
   const cached = userProfileCache.get(cacheKey);
   
@@ -278,12 +278,14 @@ export const fetchAccountsMinimal = async (userId = null) => {
         id: accountDoc.id,
         accountName: data.accountName || "Untitled",
         username: data.username || "Ghost",
+        userId: data.userId, // Include userId for profile picture fetching
         views: data.views || 0,
         currency: data.currency || "USD",
         accountWorth: data.accountWorth || "N/A",
         category: data.category || "Others",
         sold: data.sold || false,
         accountDescription: data.accountDescription || "No description",
+        accountCredential: data.accountCredential || "N/A",
         // Placeholder image initially
         accountImage: "",
         screenshots: [],

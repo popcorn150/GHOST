@@ -5,8 +5,8 @@ import CategoryFilter from "./CategoryFilter";
 import { AdminIcon } from "../utils";
 import availableAccounts from "../constants";
 import { 
-  fetchAccountsMinimal, 
-  loadAccountImages
+  fetchAccountsWithImages,
+  fetchUserProfileOptimized
 } from "../utils/firebaseUtils";
 import { useAuth } from "../components/AuthContext";
 import { db } from "../database/firebaseConfig";
@@ -18,50 +18,9 @@ const Category = () => {
   const [profileImage, setProfileImage] = useState(null);
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [imagesLoading, setImagesLoading] = useState(false);
   const [purchasedAccounts, setPurchasedAccounts] = useState([]);
   const [cartAccounts, setCartAccounts] = useState([]);
-  const [loadedImages, setLoadedImages] = useState({});
   const carouselRef = useRef(null);
-  const observerRef = useRef(null);
-
-  // Load individual account image
-  const loadAccountImage = useCallback(async (accountId) => {
-    try {
-      const imageData = await loadAccountImages([accountId]);
-      setLoadedImages(prev => ({
-        ...prev,
-        [accountId]: imageData[accountId] || { accountImage: AdminIcon, screenshots: [] }
-      }));
-    } catch (error) {
-      console.error(`Error loading image for account ${accountId}:`, error);
-      setLoadedImages(prev => ({
-        ...prev,
-        [accountId]: { accountImage: AdminIcon, screenshots: [] }
-      }));
-    }
-  }, []);
-
-  // Intersection Observer for lazy loading images
-  const setupImageLazyLoading = useCallback(() => {
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-    }
-
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const accountId = entry.target.dataset.accountId;
-            if (accountId && !loadedImages[accountId]) {
-              loadAccountImage(accountId);
-            }
-          }
-        });
-      },
-      { threshold: 0.1, rootMargin: "50px" }
-    );
-  }, [loadedImages, loadAccountImage]);
 
   // Fetch purchased and cart accounts from Firestore
   useEffect(() => {
@@ -71,7 +30,6 @@ const Category = () => {
       return;
     }
 
-    // Real-time listener for purchased accounts
     const purchasedQuery = query(collection(db, `users/${user.uid}/purchased`));
     const unsubscribePurchased = onSnapshot(
       purchasedQuery,
@@ -87,7 +45,6 @@ const Category = () => {
       }
     );
 
-    // Real-time listener for cart accounts
     const cartQuery = query(collection(db, `users/${user.uid}/cart`));
     const unsubscribeCart = onSnapshot(
       cartQuery,
@@ -109,17 +66,15 @@ const Category = () => {
     };
   }, [user]);
 
-  // Helper function to check if an account is purchased, in cart, or sold
-  const isAccountPurchasedOrInCart = useCallback((account) => {
+  const isAccountPurchasedOrInCart = (account) => {
     const accountId = account.slug || account.id;
     return (
       purchasedAccounts.some((item) => (item.slug || item.id) === accountId) ||
       cartAccounts.some((item) => (item.slug || item.id) === accountId) ||
       account.sold === true
     );
-  }, [purchasedAccounts, cartAccounts]);
+  };
 
-  // Fetch user profile image
   useEffect(() => {
     const fetchUserData = async () => {
       if (user) {
@@ -137,42 +92,53 @@ const Category = () => {
     fetchUserData();
   }, [user]);
 
-  // Fast initial load with minimal data
   useEffect(() => {
     const fetchAccountsInitial = async () => {
       setLoading(true);
       try {
-        // Use minimal fetch for faster initial load
-        const fetchedAccounts = await fetchAccountsMinimal();
+        console.log("Fetching accounts with images...");
+        const fetchedAccounts = await fetchAccountsWithImages();
         
         if (fetchedAccounts && fetchedAccounts.length > 0) {
-          const mappedAccounts = fetchedAccounts.map((account, index) => ({
-            id: account.id,
-            slug: account.id,
-            title: account.accountName || "Untitled",
-            accountName: account.accountName || "Untitled",
-            username: account.username || "Ghost",
-            img: AdminIcon, // Placeholder initially
-            accountImage: AdminIcon, // Placeholder initially
-            userProfilePic: AdminIcon, // Placeholder initially
-            views: account.views || 0,
-            currency: account.currency || "USD",
-            accountWorth: account.accountWorth || "N/A",
-            accountCredential: account.accountCredential || "N/A",
-            details: account.accountDescription || "No description",
-            accountDescription: account.accountDescription || "No description",
-            screenshots: [], // Empty initially
-            isFromFirestore: true,
-            category: account.category || "Others",
-            sold: account.sold || false,
-          }));
-          setAccounts(mappedAccounts);
+          console.log("Fetched accounts:", fetchedAccounts);
           
-          // Set up lazy loading after accounts are rendered
-          setTimeout(() => {
-            setupImageLazyLoading();
-          }, 100);
+          const mappedAccounts = await Promise.all(
+            fetchedAccounts.map(async (account, index) => {
+              let userProfilePic = account.userProfilePic;
+              if (!userProfilePic && (account.userId || account.username)) {
+                userProfilePic = await fetchUserProfileOptimized(account.userId, account.username);
+              }
+
+              return {
+                id: account.id,
+                slug: account.id,
+                title: account.accountName || "Untitled",
+                accountName: account.accountName || "Untitled",
+                username: account.username || "Ghost",
+                img: account.accountImage || AdminIcon,
+                accountImage: account.accountImage || AdminIcon,
+                userProfilePic: userProfilePic || AdminIcon,
+                views: account.views || 0,
+                currency: account.currency || "USD",
+                accountWorth: account.accountWorth || "N/A",
+                accountCredential: account.accountCredential || "N/A",
+                details: account.accountDescription || "No description",
+                accountDescription: account.accountDescription || "No description",
+                screenshots: account.screenshots || [],
+                isFromFirestore: true,
+                category: account.category || "Others",
+                sold: account.sold || false,
+                images: {
+                  accountImage: account.accountImage || AdminIcon
+                }
+              };
+            })
+          );
+          
+          console.log("Mapped accounts with images:", mappedAccounts);
+          setAccounts(mappedAccounts);
         } else {
+          console.log("No accounts found");
           setAccounts([]);
         }
       } catch (error) {
@@ -184,22 +150,8 @@ const Category = () => {
     };
 
     fetchAccountsInitial();
-  }, [user, setupImageLazyLoading]);
+  }, [user]);
 
-  // Set up intersection observer when accounts change
-  useEffect(() => {
-    if (accounts.length > 0 && !loading) {
-      setupImageLazyLoading();
-    }
-    
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, [accounts, loading, setupImageLazyLoading]);
-
-  // Combine static and Firestore accounts
   const modifiedAvailableAccounts = availableAccounts.map((account) => ({
     ...account,
     isFromFirestore: false,
@@ -208,7 +160,6 @@ const Category = () => {
 
   const combinedAccounts = [...modifiedAvailableAccounts, ...accounts];
 
-  // Filter accounts for the carousel
   const filteredAccounts = combinedAccounts.filter((account) => {
     const title = account.title || account.accountName || "";
     return (
@@ -231,7 +182,6 @@ const Category = () => {
             display: flex;
             width: fit-content;
             animation: continuousScroll 60s linear infinite;
-            gap: 1.5rem;
           }
           .carousel-wrapper::-webkit-scrollbar {
             display: none;
@@ -249,126 +199,116 @@ const Category = () => {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
           }
-          .image-placeholder {
-            background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-          }
-          @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
+          .image-error {
+            background: #2a2a2a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 12px;
           }
         `}
       </style>
 
       <NavBar profileImage={profileImage || "/default-profile.png"} />
 
-      <div className="px-4 py-6 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <input
-            type="text"
-            placeholder="Search for an account..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full p-4 mb-8 bg-[#161B22] text-white rounded-xl border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9] shadow-lg"
-          />
+      <div className="px-3 py-5"> {/* Further reduced from px-4 (16px) to px-3 (12px) */}
+        <input
+          type="text"
+          placeholder="Search for an account..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full p-3 mb-6 bg-[#161B22] text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4426B9]"
+        />
 
-          <h1 className="text-2xl sm:text-3xl md:text-4xl text-white font-bold mb-8">
-            Featured Game Accounts
-          </h1>
+        <h1 className="text-xl sm:text-2xl md:text-3xl text-white font-bold mb-6 whitespace-nowrap">
+          Featured Game Accounts
+        </h1>
 
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="loader" />
-            </div>
-          ) : (
-            <div className="overflow-hidden relative carousel-wrapper mb-12">
-              <div ref={carouselRef} className="carousel-track gap-6 pb-4">
-                {duplicatedAccounts.length > 0 ? (
-                  duplicatedAccounts.map((account, index) => {
-                    const accountId = account.id || account.slug;
-                    const imageData = loadedImages[accountId];
-                    const imageSrc = imageData?.accountImage || account.img || AdminIcon;
-                    
-                    return (
-                      <div
-                        key={`${accountId}-${index}`}
-                        data-account-id={accountId}
-                        ref={(el) => {
-                          if (el && observerRef.current && account.isFromFirestore) {
-                            observerRef.current.observe(el);
-                          }
-                        }}
-                        className="relative w-72 flex-shrink-0 bg-[#1C1F26] rounded-2xl shadow-2xl hover:scale-105 hover:shadow-purple-500/20 transition-all duration-300 ease-in-out cursor-pointer border border-gray-800/50"
-                      >
-                        <div className="overflow-hidden rounded-t-2xl p-3">
-                          {!imageData && account.isFromFirestore ? (
-                            <div className="w-full h-44 rounded-xl image-placeholder" />
-                          ) : (
-                            <img
-                              src={imageSrc}
-                              alt={account.title || account.accountName || "Untitled"}
-                              className="w-full h-44 object-cover rounded-xl transform hover:scale-110 transition duration-500 ease-in-out"
-                              loading="lazy"
-                            />
-                          )}
-                        </div>
-                        <div className="p-5">
-                          <h2 className="text-xl text-white font-bold truncate mb-2">
-                            {account.title || account.accountName || "Untitled"}
-                          </h2>
-                          <p className="text-sm text-gray-400 mb-3">
-                            {account.username ? `By ${account.username}` : "By Ghost"}
-                          </p>
-                          <div className="flex items-center justify-between text-sm text-gray-400 mb-4">
-                            <span className="flex items-center gap-1">
-                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
-                                <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/>
-                              </svg>
-                              {account.views || 0} Views
-                            </span>
-                            <img
-                              src={imageData?.userProfilePic || account.userProfilePic || AdminIcon}
-                              alt="User"
-                              className="w-9 h-9 rounded-full object-cover border-2 border-gray-700"
-                              loading="lazy"
-                            />
-                          </div>
-                          {account.isFromFirestore ? (
-                            <Link
-                              to={`/account/${account.slug || account.id}`}
-                              className="inline-block w-full text-center bg-gradient-to-r from-[#4426B9] to-[#6C5DD3] text-white py-3 px-6 rounded-xl font-bold hover:opacity-90 hover:scale-105 transition-all duration-200 shadow-lg"
-                            >
-                              View Details
-                            </Link>
-                          ) : null}
-                        </div>
+        {loading ? (
+          <div className="flex justify-center items-center h-48">
+            <div className="loader" />
+          </div>
+        ) : (
+          <div className="overflow-hidden relative carousel-wrapper">
+            <div ref={carouselRef} className="carousel-track space-x-3 pr-3"> {/* Further reduced from space-x-4 pr-4 to space-x-3 pr-3 */}
+              {duplicatedAccounts.length > 0 ? (
+                duplicatedAccounts.map((account, index) => {
+                  const accountId = account.id || account.slug;
+                  const imageSrc = account.img || account.accountImage || AdminIcon;
+                  const profilePic = account.userProfilePic || AdminIcon;
+                  
+                  return (
+                    <div
+                      key={`${accountId}-${index}`}
+                      className="relative w-64 flex-shrink-0 bg-[#1C1F26] rounded-xl shadow-xl hover:scale-105 hover:shadow-2xl transition-all duration-300 ease-in-out cursor-pointer"
+                    >
+                      <div className="overflow-hidden rounded-t-xl p-2">
+                        <img
+                          src={imageSrc}
+                          alt={account.title || account.accountName || "Untitled"}
+                          className="w-full h-40 object-cover rounded-md transform hover:scale-110 transition duration-500 ease-in-out"
+                          loading="lazy"
+                          onError={(e) => {
+                            console.error(`Failed to load image for ${account.title}:`, e.target.src);
+                            e.target.src = AdminIcon;
+                          }}
+                          onLoad={() => {
+                            console.log(`Successfully loaded image for ${account.title}:`, imageSrc);
+                          }}
+                        />
                       </div>
-                    );
-                  })
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-gray-400 text-lg">
-                      No featured accounts available.
-                    </p>
-                  </div>
-                )}
-              </div>
+                      <div className="p-4">
+                        <h2 className="text-lg text-white font-semibold truncate">
+                          {account.title || account.accountName || "Untitled"}
+                        </h2>
+                        <p className="text-sm text-gray-400 mb-2">
+                          {account.username ? `By ${account.username}` : "By Ghost"}
+                        </p>
+                        <div className="flex items-center justify-between text-sm text-gray-400 mb-3">
+                          <span>{account.views || 0} Views</span>
+                          <img
+                            src={profilePic}
+                            alt="User"
+                            className="w-8 h-8 rounded-full object-cover border border-gray-700"
+                            loading="lazy"
+                            onError={(e) => {
+                              console.error(`Failed to load profile pic for ${account.username}:`, e.target.src);
+                              e.target.src = AdminIcon;
+                            }}
+                          />
+                        </div>
+                        {account.isFromFirestore ? (
+                          <Link
+                            to={`/account/${account.slug || account.id}`}
+                            className="inline-block w-full text-center bg-gradient-to-r from-[#4426B9] to-[#6C5DD3] text-white py-2 px-4 rounded-lg font-semibold hover:opacity-90 transition"
+                          >
+                            View Details
+                          </Link>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-white text-center">
+                  No featured accounts available.
+                </p>
+              )}
             </div>
-          )}
+          </div>
+        )}
 
-          <h1 className="text-2xl sm:text-3xl md:text-4xl text-white font-bold mb-8">
-            Browse By Category
-          </h1>
+        <h1 className="text-xl sm:text-2xl md:text-3xl text-white font-bold my-6 whitespace-nowrap">
+          Browse By Category
+        </h1>
 
-          <CategoryFilter
-            key={searchTerm.trim() === "" ? "default" : "active"}
-            searchTerm={searchTerm}
-            combinedAccounts={combinedAccounts}
-            loading={loading}
-          />
-        </div>
+        <CategoryFilter
+          key={searchTerm.trim() === "" ? "default" : "active"}
+          searchTerm={searchTerm}
+          combinedAccounts={combinedAccounts}
+          loading={loading}
+        />
       </div>
     </>
   );
