@@ -6,6 +6,7 @@ import { BsApple } from "react-icons/bs";
 import { BiLinkAlt } from "react-icons/bi";
 import { TbCircleX } from "react-icons/tb";
 import { EscrowService } from "../services/Escrow.service";
+import emailService from "../services/api/Email.service"; // Import your email service
 import { db } from "../database/firebaseConfig";
 import { useUser } from "../hooks/useUser";
 
@@ -14,7 +15,6 @@ const PurchasedAccountsDetails = () => {
   const { user } = useUser(account?.userId);
   const navigate = useNavigate();
   const { reference, slug } = useParams();
-  // console.log({ account, currentUser, error, user });
 
   const [linkedAccounts, setLinkedAccounts] = useState({
     facebook: false,
@@ -23,6 +23,8 @@ const PurchasedAccountsDetails = () => {
     accountNotFound: false,
     noAdditionalAccounts: true,
   });
+
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleCheckboxChange = (account) => {
     setLinkedAccounts((prev) => ({
@@ -37,69 +39,94 @@ const PurchasedAccountsDetails = () => {
     }));
   };
 
-  const handleContinue = () => {
-    // Handle continue logic here
-    const service = new EscrowService(db);
+  const handleContinue = async () => {
+    setIsProcessing(true);
 
-    if (linkedAccounts.noAdditionalAccounts) {
-      // If no additional accounts, confirm the purchase directly
-      service
-        .confirmByBuyer(reference, currentUser?.email, user?.email)
-        .then(() => {
-          // After confirmation is successful, navigate to the account page
-          navigate(`/account/${account.id}`);
-        })
-        .catch((error) => {
-          console.error("Error confirming purchase:", error);
-          // Handle error case here
-        });
-    } else {
-      // If there are additional accounts needed, mark as holding
-      // Generate a detailed reason based on the specific verification issues
-      let verificationIssues = [];
+    try {
+      const service = new EscrowService(db);
 
-      if (account.missingDocuments) {
-        verificationIssues.push(
-          `Missing required documents: ${account.missingDocuments.join(", ")}`
+      if (linkedAccounts.noAdditionalAccounts) {
+        // If no additional accounts, confirm the purchase directly
+        await service.confirmByBuyer(
+          reference,
+          currentUser?.email,
+          user?.email
         );
-      }
+        navigate(`/account/${account.id}`);
+      } else {
+        // Identify missing credentials
+        const missingCredentials = [];
 
-      if (account.pendingVerifications) {
-        verificationIssues.push(
-          `Pending verifications: ${account.pendingVerifications.join(", ")}`
+        if (linkedAccounts.facebook) missingCredentials.push("facebook");
+        if (linkedAccounts.icloud) missingCredentials.push("icloud");
+        if (linkedAccounts.google) missingCredentials.push("google");
+        if (linkedAccounts.accountNotFound)
+          missingCredentials.push("accountNotFound");
+
+        // Send specific credential request email
+        try {
+          await emailService.sendSpecificCredentialRequestEmail(
+            reference,
+            currentUser?.email,
+            user?.email,
+            account.id,
+            missingCredentials,
+            {
+              description: account.description || account.title || slug,
+              price: account.price,
+              currency: account.currency || "NGN",
+            }
+          );
+
+          console.log("Credential request emails sent successfully");
+        } catch (emailError) {
+          console.error(
+            "Failed to send credential request emails:",
+            emailError
+          );
+          // Continue with the transaction hold even if email fails
+        }
+
+        // Generate a detailed reason based on the specific verification issues
+        const credentialNames = {
+          facebook: "Facebook",
+          icloud: "iCloud/Apple ID",
+          google: "Google Account",
+          accountNotFound: "Account Access Issues",
+        };
+
+        const missingCredentialNames = missingCredentials.map(
+          (cred) => credentialNames[cred] || cred
         );
-      }
 
-      if (
-        linkedAccounts.incompleteAccounts &&
-        linkedAccounts.incompleteAccounts.length > 0
-      ) {
-        const incompleteAccountsList = linkedAccounts.incompleteAccounts
-          .map((acc) => acc.name || acc.id)
-          .join(", ");
-        verificationIssues.push(
-          `Incomplete linked accounts: ${incompleteAccountsList}`
+        const specificReason = `URGENT: Missing linked account credentials identified by buyer. Missing: ${missingCredentialNames.join(
+          ", "
+        )}. Seller has been notified and has 3 hours to provide complete access to all missing credentials. Transaction held pending credential verification.`;
+
+        // Mark the transaction as holding with specific reason
+        await service.markHolding(
+          reference,
+          specificReason,
+          currentUser?.email,
+          user?.email
         );
+
+        // Show success message to user
+        alert(
+          `Credential request sent! The seller has been notified about the missing ${missingCredentialNames.join(
+            ", "
+          )} credentials and has 3 hours to provide them.`
+        );
+
+        navigate(`/account/${account.id}`);
       }
-
-      // Default message if no specific issues are identified
-      const specificReason =
-        verificationIssues.length > 0
-          ? `Transaction on hold pending: ${verificationIssues.join(
-              "; "
-            )}. Please address these issues to complete the transaction.`
-          : "Additional account verification required before confirmation. Please complete all verification steps.";
-
-      service
-        .markHolding(reference, specificReason, currentUser?.email, user?.email)
-        .then(() => {
-          // After marking as holding, navigate to the account page
-          navigate(`/account/${account.id}`);
-        })
-        .catch((error) => {
-          console.error("Error marking as holding:", error);
-          // Handle error case here
-        });
+    } catch (error) {
+      console.error("Error processing purchase verification:", error);
+      alert(
+        "An error occurred while processing your request. Please try again or contact support."
+      );
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -123,6 +150,10 @@ const PurchasedAccountsDetails = () => {
                 Please log into this account and check for other possible
                 accounts linked to this. Click the checkbox for linked ones.
               </p>
+              <p className="text-orange-300 mt-3 font-semibold">
+                ⏰ If any credentials are missing, the seller will be given
+                exactly 3 hours to provide them.
+              </p>
             </div>
           </div>
         </div>
@@ -134,12 +165,18 @@ const PurchasedAccountsDetails = () => {
               <FaFacebook className="text-[#1877F2] text-2xl mr-3" />
               <span>Facebook</span>
             </div>
-            <input
-              type="checkbox"
-              checked={linkedAccounts.facebook}
-              onChange={() => handleCheckboxChange("facebook")}
-              className="w-5 h-5"
-            />
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={linkedAccounts.facebook}
+                onChange={() => handleCheckboxChange("facebook")}
+                className="w-5 h-5"
+                disabled={isProcessing}
+              />
+              {linkedAccounts.facebook && (
+                <span className="ml-2 text-red-400 text-sm">Missing</span>
+              )}
+            </div>
           </div>
 
           {/* iCloud */}
@@ -148,12 +185,18 @@ const PurchasedAccountsDetails = () => {
               <BsApple className="text-white text-2xl mr-3" />
               <span>iCloud</span>
             </div>
-            <input
-              type="checkbox"
-              checked={linkedAccounts.icloud}
-              onChange={() => handleCheckboxChange("icloud")}
-              className="w-5 h-5"
-            />
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={linkedAccounts.icloud}
+                onChange={() => handleCheckboxChange("icloud")}
+                className="w-5 h-5"
+                disabled={isProcessing}
+              />
+              {linkedAccounts.icloud && (
+                <span className="ml-2 text-red-400 text-sm">Missing</span>
+              )}
+            </div>
           </div>
 
           {/* Google */}
@@ -162,12 +205,18 @@ const PurchasedAccountsDetails = () => {
               <FcGoogle className="text-2xl mr-3" />
               <span>Google</span>
             </div>
-            <input
-              type="checkbox"
-              checked={linkedAccounts.google}
-              onChange={() => handleCheckboxChange("google")}
-              className="w-5 h-5"
-            />
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={linkedAccounts.google}
+                onChange={() => handleCheckboxChange("google")}
+                className="w-5 h-5"
+                disabled={isProcessing}
+              />
+              {linkedAccounts.google && (
+                <span className="ml-2 text-red-400 text-sm">Missing</span>
+              )}
+            </div>
           </div>
 
           {/* Account Not Found */}
@@ -176,12 +225,18 @@ const PurchasedAccountsDetails = () => {
               <TbCircleX className="text-gray-300 text-2xl mr-3" />
               <span>Account Not Found</span>
             </div>
-            <input
-              type="checkbox"
-              checked={linkedAccounts.accountNotFound}
-              onChange={() => handleCheckboxChange("accountNotFound")}
-              className="w-5 h-5"
-            />
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={linkedAccounts.accountNotFound}
+                onChange={() => handleCheckboxChange("accountNotFound")}
+                className="w-5 h-5"
+                disabled={isProcessing}
+              />
+              {linkedAccounts.accountNotFound && (
+                <span className="ml-2 text-red-400 text-sm">Issue Found</span>
+              )}
+            </div>
           </div>
 
           {/* No Additional Accounts Linked */}
@@ -195,20 +250,49 @@ const PurchasedAccountsDetails = () => {
                 type="checkbox"
                 checked={linkedAccounts.noAdditionalAccounts}
                 onChange={() => handleCheckboxChange("noAdditionalAccounts")}
-                className="w-5 h-5 mr-2"
+                className="w-5 h-5"
+                disabled={isProcessing}
               />
-              {/* <FaCheck className="text-green-500 text-xl" /> */}
+              {linkedAccounts.noAdditionalAccounts && (
+                <span className="ml-2 text-green-400 text-sm">✓ Complete</span>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Display selected missing credentials */}
+        {!linkedAccounts.noAdditionalAccounts && (
+          <div className="mt-6 bg-red-900/20 border border-red-500/30 p-4 rounded">
+            <h4 className="text-red-400 font-semibold mb-2">
+              ⚠️ Missing Credentials Detected:
+            </h4>
+            <ul className="text-red-300 text-sm">
+              {linkedAccounts.facebook && <li>• Facebook account access</li>}
+              {linkedAccounts.icloud && <li>• iCloud/Apple ID credentials</li>}
+              {linkedAccounts.google && <li>• Google account access</li>}
+              {linkedAccounts.accountNotFound && (
+                <li>• Account access issues found</li>
+              )}
+            </ul>
+            <p className="mt-3 text-orange-300 text-sm">
+              The seller will be immediately notified and given 3 hours to
+              provide these credentials.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end mt-8">
         <button
           onClick={handleContinue}
-          className="bg-purple-700 hover:bg-purple-800 text-white px-6 py-2 rounded text-lg font-medium transition-all duration-200"
+          disabled={isProcessing}
+          className={`px-6 py-2 rounded text-lg font-medium transition-all duration-200 ${
+            isProcessing
+              ? "bg-gray-600 cursor-not-allowed text-gray-300"
+              : "bg-purple-700 hover:bg-purple-800 text-white"
+          }`}
         >
-          Continue
+          {isProcessing ? "Processing..." : "Continue"}
         </button>
       </div>
     </div>

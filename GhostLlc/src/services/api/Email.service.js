@@ -60,6 +60,220 @@ export class EmailService {
     }
   }
 
+  // Enhanced method for specific credential requests with 3-hour deadline
+  async sendSpecificCredentialRequestEmail(
+    escrowRef,
+    buyerEmail,
+    sellerEmail,
+    accountId,
+    missingCredentials = [],
+    accountDetails = {}
+  ) {
+    const credentialMapping = {
+      facebook: { name: "Facebook", icon: "📘", priority: "high" },
+      google: { name: "Google", icon: "🔍", priority: "high" },
+      icloud: { name: "iCloud/Apple ID", icon: "🍎", priority: "critical" },
+      accountNotFound: {
+        name: "Account Access Issue",
+        icon: "❌",
+        priority: "critical",
+      },
+    };
+
+    // Generate specific credential list
+    const missingCredentialsList = missingCredentials
+      .map((cred) => {
+        const mapping = credentialMapping[cred] || {
+          name: cred,
+          icon: "🔗",
+          priority: "medium",
+        };
+        return `${mapping.icon} ${mapping.name}`;
+      })
+      .join("<br>");
+
+    const priorityLevel = missingCredentials.some(
+      (cred) => credentialMapping[cred]?.priority === "critical"
+    )
+      ? "CRITICAL"
+      : "HIGH";
+
+    const deadlineTime = new Date(Date.now() + 3 * 60 * 60 * 1000); // 3 hours from now
+    const formattedDeadline = deadlineTime.toLocaleString("en-US", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZoneName: "short",
+    });
+
+    // Email to seller with specific requirements
+    const sellerResponse = await this.sendEmail({
+      to: sellerEmail,
+      subject: `🚨 URGENT: Missing Credentials for Account #${accountId} - 3 Hours Deadline`,
+      emailType: "support",
+      htmlBody: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 2px solid #dc3545;">
+          <!-- Header with urgency indicator -->
+          <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; padding: 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px; color: white;">🚨 URGENT ACTION REQUIRED</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Missing Credentials Detected</p>
+          </div>
+
+          <!-- Priority Badge -->
+          <div style="background: #fff3cd; border-bottom: 2px solid #ffc107; padding: 15px; text-align: center;">
+            <span style="background: #dc3545; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 14px;">
+              ${priorityLevel} PRIORITY
+            </span>
+          </div>
+
+          <div style="padding: 20px; background: white;">
+            <!-- Transaction Details -->
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #007bff;">
+              <h3 style="margin: 0 0 10px 0; color: #333;">📋 Transaction Details</h3>
+              <p style="margin: 5px 0; color: #666;"><strong>Account ID:</strong> #${accountId}</p>
+              <p style="margin: 5px  businesses for sale 0; color: #666;"><strong>Buyer:</strong> ${buyerEmail}</p>
+              <p style="margin: 5px 0; color: #666;"><strong>Reference ID:</strong> ${escrowRef}</p>
+              <p style="margin: 5px 0; color: #666;"><strong>Account Description:</strong> ${
+                accountDetails.description || "N/A"
+              }</p>
+            </div>
+
+            <!-- Missing Credentials -->
+            <div style="background: #fff5f5; border: 2px solid #fed7d7; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+              <h3 style="margin: 0 0 15px 0; color: #c53030;">❌ Missing Credentials Identified</h3>
+              <p style="margin: 0 0 15px 0; color: #4a5568;">The buyer has verified the account and found the following linked accounts/credentials are missing or inaccessible:</p>
+              
+              <div style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #dc3545;">
+                ${missingCredentialsList}
+              </div>
+            </div>
+
+            <!-- Countdown Timer Section -->
+            <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+              <h3 style="margin: 0 0 10px 0; color: white;">⏰ DEADLINE</h3>
+              <p style="margin: 0; font-size: 24px; font-weight: bold;">${formattedDeadline}</p>
+              <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">You have exactly 3から hours to provide the missing credentials</p>
+            </div>
+
+            <!-- Required Actions -->
+            <div style="background: #e6fffa; border: 2px solid #38b2ac; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+              <h3 style="margin: 0 0 15px 0; color: #2c7a7b;">✅ Required Actions</h3>
+              <ol style="margin: 0; padding-left: 20px; color: #4a5568;">
+                <li style="margin-bottom: 10px;"><strong>Immediately log into the account</strong> and verify all linked services</li>
+                <li style="margin-bottom: 10px;"><strong>Provide complete access</strong> to all missing credentials listed above</li>
+                <li style="margin-bottom: 10px;"><strong>Update account recovery information</strong> (phone numbers, backup emails)</li>
+                <li style="margin-bottom: 10px;"><strong>Remove any personal information</strong> that could compromise the account</li>
+                <li style="margin-bottom: 10px;"><strong>Contact the buyer directly</strong> to confirm credential access</li>
+              </ol>
+            </div>
+
+            <!-- Warning Section -->
+            <div style="background: #fed7d7; border: 2px solid #fc8181; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+              <h3 style="margin: 0 0 15px 0; color: #c53030;">⚠️ Important Warning</h3>
+              <ul style="margin: 0; padding-left: 20px; color: #4a5568;">
+                <li style="margin-bottom: 8px;">Failure to provide missing credentials within 3 hours will result in <strong>automatic escrow hold</strong></li>
+                <li style="margin-bottom: 8px;">Extended delays may lead to <strong>transaction cancellation and refund</strong></li>
+                <li style="margin-bottom: 8px;">Your seller rating will be <strong>negatively affected</strong> by incomplete deliveries</li>
+                <li style="margin-bottom: 8px;">Repeated violations may result in <strong>account suspension</strong></li>
+              </ul>
+            </div>
+
+            <!-- Contact Information -->
+            <div style="text-align: center; margin-top: 30px;">
+              <p style="margin: 0 0 15px 0; color: #666;">Need help? Contact our support team:</p>
+              <a href="mailto:support@ghostplay.store" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Contact Support</a>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div style="background: #f8f9fa; padding: 15px; text-align: center; border-top: 1px solid #dee2e6;">
+            <p style="margin: 0; font-size: 12px; color: #6c757d;">This is an automated message from GhostPlay. Please respond promptly to avoid transaction complications.</p>
+          </div>
+        </div>
+      `,
+      textBody: `URGENT: Missing Credentials for Account #${accountId}
+
+DEADLINE: ${formattedDeadline} (3 HOURS FROM NOW)
+
+Transaction Details:
+- Account ID: #${accountId}
+- Buyer: ${buyerEmail}
+- Reference: ${escrowRef}
+
+MISSING CREDENTIALS:
+${missingCredentials.join(", ")}
+
+REQUIRED ACTIONS:
+1. Immediately log into the account and verify all linked services
+2. Provide complete access to all missing credentials listed above
+3. Update account recovery information
+4. Remove any personal information
+5. Contact the buyer directly to confirm credential access
+
+WARNING: Failure to provide missing credentials within 3 hours will result in automatic escrow hold and may lead to transaction cancellation.
+
+Contact Support: support@ghostplay.store`,
+      trackOpens: true,
+    });
+
+    // Email to buyer confirming the request has been sent
+    const buyerResponse = await this.sendEmail({
+      to: buyerEmail,
+      subject: `✅ Credential Request Sent - Account #${accountId}`,
+      emailType: "support",
+      htmlBody: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 20px; text-align: center;">
+            <h2 style="margin: 0; color: white;">✅ Credential Request Sent</h2>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">We've notified the seller about the missing credentials</p>
+          </div>
+
+          <div style="padding: 20px; background: white;">
+            <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+              <h3 style="margin: 0 0 10px 0; color: #155724;">Request Details</h3>
+              <p style="margin: 5px 0; color: #155724;"><strong>Account ID:</strong> #${accountId}</p>
+              <p style="margin: 5px 0; color: #155724;"><strong>Reference:</strong> ${escrowRef}</p>
+              <p style="margin: 5px 0; color: #155724;"><strong>Missing Credentials:</strong></p>
+              <div style="margin-left: 15px; margin-top: 10px;">
+                ${missingCredentialsList}
+              </div>
+            </div>
+
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+              <p style="margin: 0; color: #856404;"><strong>⏰ Seller has 3 hours</strong> to provide the missing credentials from now: <strong>${formattedDeadline}</strong></p>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px;">
+              <h3 style="margin: 0 0 10px 0; color: #333;">What happens next?</h3>
+              <ul style="margin: 0; padding-left: 20px; color: #666;">
+                <li style="margin-bottom: 5px;">The seller will be notified immediately</li>
+                <li style="margin-bottom: 5px;">They have exactly 3 hours to provide missing credentials</li>
+                <li style="margin-bottom: 5px;">You'll be notified once credentials are updated</li>
+                <li style="margin-bottom: 5px;">If not resolved in time, the transaction will be held for review</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      `,
+      textBody: `Credential Request Sent for Account #${accountId}
+
+We've sent an urgent notification to the seller about the missing credentials you identified.
+
+Missing Credentials: ${missingCredentials.join(", ")}
+Seller Deadline: ${formattedDeadline} (3 hours)
+
+The seller will provide the missing credentials within 3 hours or the transaction will be held for review.
+
+Reference: ${escrowRef}`,
+      trackOpens: true,
+    });
+
+    return { sellerResponse, buyerResponse };
+  }
+
   async sendAccountPurchasedEmail(
     escrowRef,
     buyerEmail,
@@ -443,7 +657,6 @@ export class EmailService {
     });
   }
 
-  // New method for handling inbound email processing
   async processInboundEmail(inboundData) {
     try {
       console.log("[LIVE] Processing inbound email locally:", inboundData);
@@ -470,7 +683,6 @@ export class EmailService {
     }
   }
 
-  // Method to get email configuration from backend
   async getEmailConfig() {
     try {
       const response = await axios.get(`${this.apiUrl}/config`);
@@ -481,7 +693,6 @@ export class EmailService {
     }
   }
 
-  // Health check method
   async healthCheck() {
     try {
       const response = await axios.get(
