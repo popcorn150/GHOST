@@ -13,7 +13,7 @@ import { useAuth } from "../../components/AuthContext";
 import { toast, Toaster } from "sonner";
 import AuthTokenPersister from "../../components/AuthTokenPersister";
 
-const NavBar = () => {
+const NavBar = ({profileImage}) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
@@ -103,7 +103,7 @@ const NavBar = () => {
               aria-label="Toggle profile menu"
             >
               <img
-                src={ProfileIcon}
+                src={profileImage}
                 alt="Profile"
                 className="w-10 md:w-12 self-center rounded-full border-2 border-[#4426B9]"
               />
