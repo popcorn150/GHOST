@@ -5,7 +5,9 @@ import { auth, googleProvider } from "../database/firebaseConfig";
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInAnonymously,
   signOut,
+  onAuthStateChanged,
 } from "firebase/auth";
 import {
   getFirestore,
@@ -27,7 +29,7 @@ const AccountLogin = () => {
   const db = getFirestore();
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         console.log(`User already signed in: ${user.uid}`);
       }
@@ -252,6 +254,23 @@ const AccountLogin = () => {
     }
   };
 
+  const handleGuestLogin = async () => {
+    setLoading(true);
+
+    try {
+      await signInAnonymously(auth);
+      toast.success("Logged in as a guest. Enjoy exploring the app.");
+      navigate("/categories");
+    } catch (error) {
+      console.error("Guest login error:", error);
+      toast.error(
+        "Unable to log in as a guest. Please try again or use another sign-in method."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCreateAccount = async () => {
     try {
       if (auth.currentUser) {
@@ -272,7 +291,7 @@ const AccountLogin = () => {
   };
 
   return (
-    <div className="relative flex items-center justify-center bg-[#010409] w-full h-screen overflow-hidden">
+    <div className="relative flex min-h-screen items-center justify-center bg-[#010409] w-full overflow-hidden">
       <Toaster richColors position="top-center" />
       <div className="absolute inset-0 opacity-50">
         <img
@@ -282,14 +301,14 @@ const AccountLogin = () => {
         />
       </div>
 
-      <div className="relative my-5 flex flex-col items-center gap-8 px-6 md:flex-row md:gap-30">
+      <div className="relative my-5 flex w-full max-w-6xl flex-col items-center gap-8 px-6 md:flex-row md:gap-12">
         <div className="flex flex-row gap-3 md:flex-col items-center">
           <img
             src={Logo}
             alt="Ghost Logo"
             className="w-14 h-14 md:w-48 md:h-48 lg:w-64 lg:h-64"
           />
-          <img src={Title} alt="Title" className="w-34 md:w-56" />
+          <img src={Title} alt="Title" className="w-32 md:w-56" />
         </div>
 
         <div className="flex flex-col items-center bg-[#010409] p-7 md:p-14 rounded-xl w-full max-w-md">
@@ -348,7 +367,14 @@ const AccountLogin = () => {
             </button>
           </form>
 
-          <div className="flex flex-col items-center mt-6 w-full">
+          <div className="flex flex-col items-center mt-6 w-full gap-3">
+            <button
+              onClick={handleGuestLogin}
+              className="w-full bg-[#1F2937] text-white font-semibold p-2 rounded-md hover:bg-[#111827] transition duration-200"
+              disabled={loading}
+            >
+              {loading ? "Please wait..." : "Free Login as Guest"}
+            </button>
             <p className="text-white text-sm mb-2">OR</p>
             <button
               onClick={handleGoogleSignIn}

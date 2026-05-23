@@ -3,11 +3,11 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 
 export const ProtectedRoute = () => {
-  const { currentUser } = useAuth();
+  const { isAuthenticated } = useAuth();
   const location = useLocation();
 
   // If not authenticated, redirect to login with return URL
-  if (!currentUser) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
