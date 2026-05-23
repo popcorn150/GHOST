@@ -221,7 +221,7 @@ const Category = () => {
                   return (
                     <div
                       key={`${account.id || account.slug}-${index}`}
-                      className="relative w-64 flex-shrink-0 bg-[#1C1F26] rounded-xl shadow-xl hover:scale-105 hover:shadow-2xl transition-all duration-300 ease-in-out cursor-pointer"
+                      className="relative w-64 shrink-0 bg-[#1C1F26] rounded-xl shadow-xl hover:scale-105 hover:shadow-2xl transition-all duration-300 ease-in-out cursor-pointer"
                     >
                       <div className="overflow-hidden rounded-t-xl p-2">
                         <img
@@ -252,7 +252,7 @@ const Category = () => {
                         {account.isFromFirestore ? (
                           <Link
                             to={`/account/${account.slug || account.id}`}
-                            className="inline-block w-full text-center bg-gradient-to-r from-[#4426B9] to-[#6C5DD3] text-white py-2 px-4 rounded-lg font-semibold hover:opacity-90 transition"
+                            className="inline-block w-full text-center bg-linear-to-r from-[#4426B9] to-[#6C5DD3] text-white py-2 px-4 rounded-lg font-semibold hover:opacity-90 transition"
                           >
                             View Details
                           </Link>

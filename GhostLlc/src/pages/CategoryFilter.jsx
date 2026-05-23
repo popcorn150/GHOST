@@ -290,7 +290,7 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
                   : "bg-gray-200 text-black hover:bg-blue-600 hover:text-white"
               }
               text-sm md:text-base
-              flex-shrink-0
+              shrink-0
               min-w-[120px] md:min-w-[150px] 
               max-w-[250px] md:max-w-[300px]
               whitespace-nowrap`}
