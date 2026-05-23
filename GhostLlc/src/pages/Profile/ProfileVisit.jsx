@@ -123,7 +123,7 @@ const Uploads = ({ profileImage, userId }) => {
 
   if (error) {
     return (
-      <div className="mt-16 mb-20 p-6 bg-gradient-to-br from-[#0E1115] to-[#1A1F29] rounded-2xl border border-gray-800 text-center">
+      <div className="mt-16 mb-20 p-6 bg-linear-to-br from-[#0E1115] to-[#1A1F29] rounded-2xl border border-gray-800 text-center">
         <p className="text-gray-400 text-base font-light tracking-wider">
           {error}
         </p>
@@ -138,7 +138,7 @@ const Uploads = ({ profileImage, userId }) => {
   }
 
   return (
-    <div className="mt-16 mb-20 p-4 xs:p-5 sm:p-6 md:p-7 lg:p-8 xl:p-10 bg-gradient-to-br from-[#0E1115] via-[#1A1F29] to-[#252A36] rounded-2xl border border-gray-800">
+    <div className="mt-16 mb-20 p-4 xs:p-5 sm:p-6 md:p-7 lg:p-8 xl:p-10 bg-linear-to-br from-[#0E1115] via-[#1A1F29] to-[#252A36] rounded-2xl border border-gray-800">
       <h2 className="text-gray-100 text-lg xs:text-xl sm:text-2xl md:text-2xl lg:text-3xl font-semibold tracking-wider mb-7">
         Accounts Uploaded
       </h2>
@@ -177,10 +177,10 @@ const Uploads = ({ profileImage, userId }) => {
                     className="w-full h-36 sm:h-40 md:h-44 object-cover rounded-lg shadow-md transition-transform duration-300 group-hover/image:scale-105"
                     style={{ aspectRatio: "16/9" }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute inset-0 bg-linear-to-t from-black/40 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300"></div>
                 </div>
               ) : (
-                <div className="w-full h-36 sm:h-40 md:h-44 bg-gradient-to-br from-[#1A1F29] to-[#252A36] flex items-center justify-center rounded-lg shadow-md mb-4">
+                <div className="w-full h-36 sm:h-40 md:h-44 bg-linear-to-br from-[#1A1F29] to-[#252A36] flex items-center justify-center rounded-lg shadow-md mb-4">
                   <FaImage className="text-gray-500 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
                   <p className="text-gray-500 text-xs sm:text-sm font-light tracking-wider ml-2">
                     No Image
@@ -247,7 +247,7 @@ const Uploads = ({ profileImage, userId }) => {
                         ) : (
                           <div
                             key={index}
-                            className="w-full h-16 sm:h-18 md:h-20 bg-gradient-to-br from-[#1A1F29] to-[#252A36] flex items-center justify-center rounded-md shadow-sm"
+                            className="w-full h-16 sm:h-18 md:h-20 bg-linear-to-br from-[#1A1F29] to-[#252A36] flex items-center justify-center rounded-md shadow-sm"
                           >
                             <FaImage className="text-gray-500 w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                           </div>
@@ -357,7 +357,7 @@ const Achievements = ({ userId }) => {
 
   if (error) {
     return (
-      <div className="mt-16 mb-20 p-6 bg-gradient-to-br from-[#0E1115] to-[#1A1F29] rounded-2xl border border-gray-800 text-center">
+      <div className="mt-16 mb-20 p-6 bg-linear-to-br from-[#0E1115] to-[#1A1F29] rounded-2xl border border-gray-800 text-center">
         <p className="text-gray-400 text-base font-light tracking-wider">
           {error}
         </p>
@@ -366,7 +366,7 @@ const Achievements = ({ userId }) => {
   }
 
   return (
-    <div className="mt-16 mb-20 p-4 xs:p-5 sm:p-6 md:p-7 lg:p-8 xl:p-10 bg-gradient-to-br from-[#0E1115] via-[#1A1F29] to-[#252A36] rounded-2xl border border-gray-800">
+    <div className="mt-16 mb-20 p-4 xs:p-5 sm:p-6 md:p-7 lg:p-8 xl:p-10 bg-linear-to-br from-[#0E1115] via-[#1A1F29] to-[#252A36] rounded-2xl border border-gray-800">
       <h2 className="text-gray-100 text-lg xs:text-xl sm:text-2xl md:text-2xl lg:text-3xl font-semibold tracking-wider mb-10 sm:mb-12 lg:mb-14">
         Achievements
       </h2>
