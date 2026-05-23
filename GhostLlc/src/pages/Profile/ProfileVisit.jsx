@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import NavBar from "./NavBar";
 import BackButton from "../../components/BackButton";
+import { useAuth } from "../../components/AuthContext";
 import {
   BellAlertIcon,
   BellSlashIcon,
@@ -44,6 +45,7 @@ const tabs = [
 ];
 
 const Uploads = ({ profileImage, userId }) => {
+  const { isGuest } = useAuth();
   const [uploadedAccounts, setUploadedAccounts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -51,7 +53,12 @@ const Uploads = ({ profileImage, userId }) => {
 
   useEffect(() => {
     const fetchAccounts = async () => {
-      if (!userId) {
+      if (!userId || isGuest) {
+        if (isGuest) {
+          setUploadedAccounts([]);
+          setIsLoading(false);
+          return;
+        }
         console.error("No userId provided to Uploads component");
         toast.error("Invalid user ID");
         setIsLoading(false);

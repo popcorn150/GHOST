@@ -19,6 +19,7 @@ export const AuthProvider = ({ children }) => {
   const [userDetails, setUserDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userTimeout, setUserTimeout] = useState(null);
+  const [isGuest, setIsGuest] = useState(() => localStorage.getItem("guestMode") === "true");
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -102,6 +103,8 @@ export const AuthProvider = ({ children }) => {
       setCurrentUser(null);
       setUserDetails(null);
       setLastProcessedUid(null);
+      setIsGuest(false);
+      localStorage.removeItem("guestMode");
       await signOut(auth);
       navigate("/login");
     } catch (error) {
@@ -127,6 +130,11 @@ export const AuthProvider = ({ children }) => {
 
   const handleAuthStateChange = useCallback(
     async (user) => {
+      if (isGuest) {
+        setLoading(false);
+        return;
+      }
+
       if (user?.uid === lastProcessedUid && !loading) {
         return;
       }
@@ -252,7 +260,8 @@ export const AuthProvider = ({ children }) => {
   const value = {
     currentUser,
     userDetails,
-    isAuthenticated: !!currentUser,
+    isAuthenticated: !!currentUser || isGuest,
+    isGuest,
     isSetupComplete: userDetails?.setupComplete || false,
     logout,
     resetInactivityTimer,

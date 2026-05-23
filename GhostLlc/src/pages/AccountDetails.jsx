@@ -19,7 +19,7 @@ const FALLBACK_IMAGE = "https://via.placeholder.com/150?text=Placeholder";
 const AccountDetails = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser, isGuest } = useAuth();
   const [loadingImages, setLoadingImages] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
   const [account, setAccount] = useState(null);
@@ -158,6 +158,11 @@ const AccountDetails = () => {
     );
 
   const handleAddToCart = async () => {
+    if (isGuest) {
+      toast.error("Guest users cannot add items to cart. Please create an account.");
+      navigate("/login");
+      return;
+    }
     if (!currentUser) {
       toast.error("Please log in to add to cart.");
       navigate("/login");
@@ -211,6 +216,11 @@ const AccountDetails = () => {
   };
 
   const handlePurchase = async () => {
+    if (isGuest) {
+      toast.error("Guest users cannot purchase items. Please create an account.");
+      navigate("/login");
+      return;
+    }
     if (!currentUser) {
       toast.error("Please log in to purchase.");
       navigate("/login");

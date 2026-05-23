@@ -20,14 +20,14 @@ const ALLOWED_CATEGORIES = [
 ];
 
 const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, isGuest } = useAuth();
   const [activeCategory, setActiveCategory] = useState("All");
   const [purchasedAccounts, setPurchasedAccounts] = useState([]);
   const [cartAccounts, setCartAccounts] = useState([]);
 
   // Fetch purchased and cart accounts from Firestore
   useEffect(() => {
-    if (!currentUser) {
+    if (!currentUser || isGuest) {
       setPurchasedAccounts([]);
       setCartAccounts([]);
       return;

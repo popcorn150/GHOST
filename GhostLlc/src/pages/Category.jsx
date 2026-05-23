@@ -10,7 +10,7 @@ import { db } from "../database/firebaseConfig";
 import { doc, getDoc, collection, query, onSnapshot } from "firebase/firestore";
 
 const Category = () => {
-  const { currentUser: user } = useAuth();
+  const { currentUser: user, isGuest } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [profileImage, setProfileImage] = useState(null);
   const [accounts, setAccounts] = useState([]);
@@ -21,7 +21,7 @@ const Category = () => {
 
   // Fetch purchased and cart accounts from Firestore
   useEffect(() => {
-    if (!user) {
+    if (!user || isGuest) {
       setPurchasedAccounts([]);
       setCartAccounts([]);
       return;

@@ -253,8 +253,7 @@ const AccountLogin = () => {
     }
   };
 
-  const handleGuestLogin = () => {
-    navigate("/categories");
+  const handleGuestLogin = () => {    localStorage.setItem(\"guestMode\", \"true\");    navigate("/categories");
   };
 
   const handleCreateAccount = async () => {
