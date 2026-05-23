@@ -5,7 +5,6 @@ import { auth, googleProvider } from "../database/firebaseConfig";
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
-  signInAnonymously,
   signOut,
   onAuthStateChanged,
 } from "firebase/auth";
@@ -254,21 +253,8 @@ const AccountLogin = () => {
     }
   };
 
-  const handleGuestLogin = async () => {
-    setLoading(true);
-
-    try {
-      await signInAnonymously(auth);
-      toast.success("Logged in as a guest. Enjoy exploring the app.");
-      navigate("/categories");
-    } catch (error) {
-      console.error("Guest login error:", error);
-      toast.error(
-        "Unable to log in as a guest. Please try again or use another sign-in method."
-      );
-    } finally {
-      setLoading(false);
-    }
+  const handleGuestLogin = () => {
+    navigate("/categories");
   };
 
   const handleCreateAccount = async () => {

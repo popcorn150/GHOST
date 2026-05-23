@@ -141,21 +141,6 @@ export const AuthProvider = ({ children }) => {
         setLastProcessedUid(user.uid);
         setCurrentUser(user);
 
-        if (user.isAnonymous) {
-          setUserDetails({
-            uid: user.uid,
-            displayName: "Guest",
-            setupComplete: true,
-            guest: true,
-          });
-
-          if (location.pathname === "/login" || location.pathname === "/") {
-            navigate("/categories");
-          }
-          setLoading(false);
-          return;
-        }
-
         const userExists = await checkUserExists(user.uid);
         console.log(
           `Navigation check: userExists=${userExists}, setupComplete=${userDetails?.setupComplete}, path=${location.pathname}`
@@ -268,7 +253,6 @@ export const AuthProvider = ({ children }) => {
     currentUser,
     userDetails,
     isAuthenticated: !!currentUser,
-    isGuest: currentUser?.isAnonymous || false,
     isSetupComplete: userDetails?.setupComplete || false,
     logout,
     resetInactivityTimer,
