@@ -84,14 +84,16 @@ const AchievementsGrid = () => {
     const [achievements, setAchievements] = useState(initialAchievements);
     const [confetti, setConfetti] = useState(false);
 
-    const handleClaim = () => {
+    const handleClaim = (achievementId) => {
+        const unlockedAchievement = achievements.find((ach) => ach.id === achievementId);
+
         setAchievements((prev) =>
             prev.map((ach) =>
-                ach.id === id ? { ...ach, earned: true } : ach
+                ach.id === achievementId ? { ...ach, earned: true } : ach
             )
         );
         setConfetti(true);
-        toast.success(`Achievement Unlocked: ${achievements.title}`);
+        toast.success(`Achievement Unlocked: ${unlockedAchievement?.title || "Achievement"}`);
 
         setTimeout(() => setConfetti(false), 3000);
     };

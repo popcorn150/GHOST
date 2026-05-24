@@ -1,176 +1,67 @@
-import { useState, useEffect } from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-  useNavigate,
-} from "react-router-dom";
-import { AuthProvider } from "./components/AuthContext";
-import { ProtectedRoute } from "./components/ProtectedRoute";
-import { auth } from "./database/firebaseConfig";
-import { signOut, onAuthStateChanged } from "firebase/auth";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
 // Import pages
 import Category from "./pages/Category";
-import AccountDetails from "./pages/AccountDetails";
-import Settings from "./pages/Settings";
-import UserProfile from "./pages/Profile/UserProfile";
-import ProfileVisit from "./pages/Profile/ProfileVisit";
 import WelcomePage from "./pages/WelcomePage";
-import AccountSetup from "./pages/AccountSetup";
 import AccountLogin from "./pages/AccountLogin";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
 import FAQs from "./pages/FAQs";
 import Doc from "./pages/Doc";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import Community from "./pages/Community";
-import Withdrawal from "./pages/Withdrawal";
 import Cart from "./pages/Cart";
 import AchievementsGrid from "./pages/AchievementsGrid";
-import AccountDetailsDefault from "./pages/AccountDetailsDefault";
-import PurchasedAccountsDetails from "./pages/PurchasedAccounts";
+import StaticPage from "./pages/StaticPage";
 
-// Session timeout wrapper component
-const SessionTimeoutWrapper = ({ children }) => {
-  const navigate = useNavigate();
-  const TIMEOUT_DURATION = 60 * 60 * 1000;
-
-  useEffect(() => {
-    let inactivityTimer;
-
-    const resetTimer = () => {
-      clearTimeout(inactivityTimer);
-      inactivityTimer = setTimeout(handleLogout, TIMEOUT_DURATION);
-    };
-
-    const handleLogout = () => {
-      signOut(auth)
-        .then(() => {
-          console.log("User logged out due to inactivity");
-          navigate("/login");
-        })
-        .catch((error) => {
-          console.error("Logout error:", error);
-        });
-    };
-
-    const authUnsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        resetTimer();
-        const events = [
-          "mousedown",
-          "keypress",
-          "scroll",
-          "touchstart",
-          "mousemove",
-        ];
-        events.forEach((event) => window.addEventListener(event, resetTimer));
-      }
-    });
-
-    return () => {
-      clearTimeout(inactivityTimer);
-      if (authUnsubscribe) authUnsubscribe();
-
-      const events = [
-        "mousedown",
-        "keypress",
-        "scroll",
-        "touchstart",
-        "mousemove",
-      ];
-      events.forEach((event) => window.removeEventListener(event, resetTimer));
-    };
-  }, [navigate]);
-
-  return children;
-};
 
 const App = () => {
-  const [uploadedAccounts, setUploadedAccounts] = useState([]);
-
   return (
     <Router>
-      <AuthProvider>
-        <SessionTimeoutWrapper>
-          <Routes>
-            {/* Public Routes */}
-            <Route index element={<WelcomePage />} />
-            <Route path="/sign-up" element={<AccountSetup />} />
-            <Route path="/login" element={<AccountLogin />} />
-            <Route
-              path="/categories"
-              element={<Category uploadedAccounts={uploadedAccounts} />}
+      <Routes>
+        <Route index element={<WelcomePage />} />
+        <Route
+          path="/sign-up"
+          element={
+            <StaticPage
+              title="Sign Up"
+              description="Account creation is disabled in this demo. Continue browsing without authentication."
             />
-            <Route
-              path="/account"
-              element={
-                <UserProfile setUploadedAccounts={setUploadedAccounts} />
-              }
-            />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/account/:slug" element={<AccountDetails />} />
-            <Route path="/profile" element={<UserProfile />} />
-            <Route path="/profilevisit" element={<ProfileVisit />} />
-            <Route path="/doc" element={<Doc />} />
-            <Route
-              path="/profile"
-              element={
-                <UserProfile setUploadedAccounts={setUploadedAccounts} />
-              }
-            />
-            <Route path="/faqs" element={<FAQs />} />
-            <Route path="/community" element={<Community />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/faqs" element={<FAQs />} />
-            <Route path="/doc" element={<Doc />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/withdraw" element={<Withdrawal />} />
-            <Route path="/achievements" element={<AchievementsGrid />} />
-
-            {/* Protected Routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route
-                path="/categories"
-                element={<Category uploadedAccounts={uploadedAccounts} />}
-              />
-              <Route
-                path="/account"
-                element={
-                  <UserProfile setUploadedAccounts={setUploadedAccounts} />
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <UserProfile setUploadedAccounts={setUploadedAccounts} />
-                }
-              />
-              <Route path="/account/:slug" element={<AccountDetails />}>
-                <Route index element={<AccountDetailsDefault />} />
-                <Route
-                  path="linked-accounts/:reference"
-                  element={<PurchasedAccountsDetails />}
-                />
-              </Route>
-              <Route path="/community" element={<Community />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route
-                path="/profilevisit/:userId"
-                element={<ProfileVisit />}
-              />{" "}
-              {/* Protected and parameterized */}
-            </Route>
-
-            {/* Fallback route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </SessionTimeoutWrapper>
-      </AuthProvider>
+          }
+        />
+        <Route path="/login" element={<AccountLogin />} />
+        <Route path="/categories" element={<Category />} />
+        <Route
+          path="/account"
+          element={<StaticPage title="Account" description="No account data is available." />}
+        />
+        <Route
+          path="/account/:slug"
+          element={<StaticPage title="Account Details" description="Account detail pages are currently read-only." />}
+        />
+        <Route path="/profile" element={<StaticPage title="Profile" description="Profile pages do not require login." />} />
+        <Route path="/profilevisit" element={<StaticPage title="Profile Visit" description="Guest browsing only." />} />
+        <Route path="/profilevisit/:userId" element={<StaticPage title="Profile Visit" description="Guest browsing only." />} />
+        <Route path="/doc" element={<Doc />} />
+        <Route path="/faqs" element={<FAQs />} />
+        <Route path="/community" element={<Community />} />
+        <Route
+          path="/privacy-policy"
+          element={<StaticPage title="Privacy Policy" description="Privacy policy content is static and not tied to Firebase." />}
+        />
+        <Route
+          path="/settings"
+          element={<StaticPage title="Settings" description="Settings are not available without authentication." />}
+        />
+        <Route
+          path="/forgot-password"
+          element={<StaticPage title="Forgot Password" description="Password reset is disabled in this demo." />}
+        />
+        <Route
+          path="/withdraw"
+          element={<StaticPage title="Withdrawal" description="Withdrawal features are disabled in this demo." />}
+        />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/achievements" element={<AchievementsGrid />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </Router>
   );
 };

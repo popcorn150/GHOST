@@ -1,144 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import CategoryFilter from "./CategoryFilter";
 import { AdminIcon } from "../utils";
 import availableAccounts from "../constants";
-import { fetchAccountsWithImages } from "../utils/firebaseUtils";
-import { useAuth } from "../components/AuthContext";
-import { db } from "../database/firebaseConfig";
-import { doc, getDoc, collection, query, onSnapshot } from "firebase/firestore";
 
 const Category = () => {
-  const { currentUser: user, isGuest } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
-  const [profileImage, setProfileImage] = useState(null);
-  const [accounts, setAccounts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [purchasedAccounts, setPurchasedAccounts] = useState([]);
-  const [cartAccounts, setCartAccounts] = useState([]);
-  const carouselRef = useRef(null);
-
-  // Fetch purchased and cart accounts from Firestore
-  useEffect(() => {
-    if (!user || isGuest) {
-      setPurchasedAccounts([]);
-      setCartAccounts([]);
-      return;
-    }
-
-    // Real-time listener for purchased accounts
-    const purchasedQuery = query(collection(db, `users/${user.uid}/purchased`));
-    const unsubscribePurchased = onSnapshot(
-      purchasedQuery,
-      (snapshot) => {
-        const purchased = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setPurchasedAccounts(purchased);
-        console.log("Updated purchased accounts:", purchased);
-      },
-      (error) => {
-        console.error("Error fetching purchased accounts:", error);
-      }
-    );
-
-    // Real-time listener for cart accounts
-    const cartQuery = query(collection(db, `users/${user.uid}/cart`));
-    const unsubscribeCart = onSnapshot(
-      cartQuery,
-      (snapshot) => {
-        const cart = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setCartAccounts(cart);
-        console.log("Updated cart accounts:", cart);
-      },
-      (error) => {
-        console.error("Error fetching cart accounts:", error);
-      }
-    );
-
-    return () => {
-      unsubscribePurchased();
-      unsubscribeCart();
-    };
-  }, [user]);
-
-  // Helper function to check if an account is purchased, in cart, or sold
-  const isAccountPurchasedOrInCart = (account) => {
-    const accountId = account.slug || account.id;
-    return (
-      purchasedAccounts.some((item) => (item.slug || item.id) === accountId) ||
-      cartAccounts.some((item) => (item.slug || item.id) === accountId) ||
-      account.sold === true // Check if account is marked as sold
-    );
-  };
-
-  // Fetch user profile image
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (user) {
-        try {
-          const userDocRef = doc(db, "users", user.uid);
-          const userDocSnap = await getDoc(userDocRef);
-          if (userDocSnap.exists() && userDocSnap.data().profileImage) {
-            setProfileImage(userDocSnap.data().profileImage);
-          }
-        } catch (error) {
-          console.error("Error fetching profile image:", error);
-        }
-      }
-    };
-    fetchUserData();
-  }, [user]);
-
-  // Fetch uploaded accounts from Firestore
-  useEffect(() => {
-    const fetchUploadedAccounts = async () => {
-      setLoading(true);
-      try {
-        const fetchedAccounts = await fetchAccountsWithImages();
-        if (fetchedAccounts && fetchedAccounts.length > 0) {
-          const mappedAccounts = fetchedAccounts.map((account, index) => ({
-            id: account.id,
-            slug: account.id,
-            title: account.accountName || "Untitled",
-            accountName: account.accountName || "Untitled",
-            username: account.username || "Ghost",
-            img: account.accountImage || AdminIcon,
-            accountImage: account.accountImage || AdminIcon,
-            userProfilePic: account.userProfilePic || AdminIcon,
-            views: account.views || 0,
-            currency: account.currency || "USD",
-            accountWorth: account.accountWorth || "N/A",
-            accountCredential: account.accountCredential || "N/A",
-            details: account.accountDescription || "No description",
-            accountDescription: account.accountDescription || "No description",
-            screenshots: (account.screenshots || []).map((img, idx) => ({
-              id: `screenshot-${index}-${idx}`,
-              img: img || AdminIcon,
-            })),
-            isFromFirestore: true,
-            category: account.category || "Others",
-            sold: account.sold || false, // Include sold status
-          }));
-          setAccounts(mappedAccounts);
-        } else {
-          setAccounts([]);
-        }
-      } catch (error) {
-        console.error("Error fetching accounts:", error);
-        setAccounts([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUploadedAccounts();
-  }, [user]);
+  const [accounts] = useState([]);
+  const [loading] = useState(false);
 
   // Combine static and Firestore accounts
   const modifiedAvailableAccounts = availableAccounts.map((account) => ({
@@ -152,10 +22,7 @@ const Category = () => {
   // Filter accounts for the carousel
   const filteredAccounts = combinedAccounts.filter((account) => {
     const title = account.title || account.accountName || "";
-    return (
-      title.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      !isAccountPurchasedOrInCart(account)
-    );
+    return title.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
   const duplicatedAccounts = [...filteredAccounts, ...filteredAccounts];
@@ -192,7 +59,7 @@ const Category = () => {
         `}
       </style>
 
-      <NavBar profileImage={profileImage || "/default-profile.png"} />
+      <NavBar profileImage="/default-profile.png" />
 
       <div className="p-5">
         <input
@@ -213,7 +80,7 @@ const Category = () => {
           </div>
         ) : (
           <div className="overflow-hidden relative carousel-wrapper">
-            <div ref={carouselRef} className="carousel-track space-x-6 pr-6">
+            <div className="carousel-track space-x-6 pr-6">
               {duplicatedAccounts.length > 0 ? (
                 duplicatedAccounts.map((account, index) => {
                   const imageSrc =

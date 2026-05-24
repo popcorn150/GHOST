@@ -1,13 +1,10 @@
 // CategoryFilter.jsx
 import "../App.css";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import categoryAccounts from "../constants/category";
 import { Link } from "react-router-dom";
 import { AdminIcon } from "../utils";
 import PropTypes from "prop-types";
-import { db } from "../database/firebaseConfig";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { useAuth } from "../components/AuthContext";
 
 const ALLOWED_CATEGORIES = [
   "Fighting",
@@ -20,70 +17,9 @@ const ALLOWED_CATEGORIES = [
 ];
 
 const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
-  const { currentUser, isGuest } = useAuth();
   const [activeCategory, setActiveCategory] = useState("All");
-  const [purchasedAccounts, setPurchasedAccounts] = useState([]);
-  const [cartAccounts, setCartAccounts] = useState([]);
 
-  // Fetch purchased and cart accounts from Firestore
-  useEffect(() => {
-    if (!currentUser || isGuest) {
-      setPurchasedAccounts([]);
-      setCartAccounts([]);
-      return;
-    }
-
-    // Real-time listener for purchased accounts
-    const purchasedQuery = query(
-      collection(db, `users/${currentUser.uid}/purchased`)
-    );
-    const unsubscribePurchased = onSnapshot(
-      purchasedQuery,
-      (snapshot) => {
-        const purchased = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setPurchasedAccounts(purchased);
-        console.log("Updated purchased accounts:", purchased);
-      },
-      (error) => {
-        console.error("Error fetching purchased accounts:", error);
-      }
-    );
-
-    // Real-time listener for cart accounts
-    const cartQuery = query(collection(db, `users/${currentUser.uid}/cart`));
-    const unsubscribeCart = onSnapshot(
-      cartQuery,
-      (snapshot) => {
-        const cart = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setCartAccounts(cart);
-        console.log("Updated cart accounts:", cart);
-      },
-      (error) => {
-        console.error("Error fetching cart accounts:", error);
-      }
-    );
-
-    return () => {
-      unsubscribePurchased();
-      unsubscribeCart();
-    };
-  }, [currentUser]);
-
-  // Helper function to check if an account is purchased, in cart, or sold
-  const isAccountPurchasedOrInCart = (account) => {
-    const accountId = account.slug || account.id;
-    return (
-      purchasedAccounts.some((item) => (item.slug || item.id) === accountId) ||
-      cartAccounts.some((item) => (item.slug || item.id) === accountId) ||
-      account.sold === true // Check if account is marked as sold
-    );
-  };
+  const isAccountPurchasedOrInCart = (account) => account.sold === true;
 
   // Memoized merged categories with proper account mapping
   const mergedCategories = useMemo(() => {
@@ -219,13 +155,11 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
       })
       .map((cat) => ({
         name: cat.category === "Fighter" ? "Fighting" : cat.category,
-        games: cat.games
-          .filter((game) => !isAccountPurchasedOrInCart(game))
-          .map((game) => ({
-            ...game,
-            isFromFirestore: false,
-            sold: false, // Static accounts are never sold
-          })),
+        games: cat.games.map((game) => ({
+          ...game,
+          isFromFirestore: false,
+          sold: false,
+        })),
       }));
 
     const dynamicCategories = processUploadedAccounts();
@@ -250,7 +184,7 @@ const CategoryFilter = ({ searchTerm, combinedAccounts, loading }) => {
     });
 
     return combinedCategories;
-  }, [combinedAccounts, purchasedAccounts, cartAccounts]);
+  }, [combinedAccounts]);
 
   const categoryNames = useMemo(() => ["All", ...ALLOWED_CATEGORIES], []);
 

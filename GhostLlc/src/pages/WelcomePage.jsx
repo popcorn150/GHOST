@@ -1,111 +1,22 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth, db, googleProvider } from "../database/firebaseConfig";
-import { signInWithPopup, onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
 import { BackGround_, Google, Logo, Title } from "../utils";
 
 const WelcomePage = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [user, setUser] = useState(null); // Added missing state variable
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      setLoading(false); // Added to ensure loading state changes
-
-      // If user is signed in, check their status
-      if (currentUser) {
-        const userRef = doc(db, "users", currentUser.uid);
-        const userSnapshot = await getDoc(userRef);
-
-        if (
-          userSnapshot.exists() &&
-          userSnapshot.data().setupComplete === true
-        ) {
-          // Existing user with completed setup
-          navigate("/categories");
-        } else if (
-          userSnapshot.exists() &&
-          userSnapshot.data().setupComplete === false
-        ) {
-          // User started but didn't complete setup
-          navigate("/sign-up", { state: userSnapshot.data() });
-        }
-        // New users are handled in handleGoogleSignIn
-      }
-    });
-    return () => unsubscribe();
-  }, [navigate]);
-
-  // Get user's country
-  const fetchCountry = async () => {
-    try {
-      const response = await fetch("https://ipapi.co/json/");
-      if (!response.ok) throw new Error("Failed to fetch location");
-      const data = await response.json();
-      return data.country_name || "Unknown";
-    } catch (err) {
-      console.error("Error fetching country:", err.message);
-      return "Unknown";
-    }
+  const handleGoogleSignIn = () => {
+    navigate("/categories");
   };
 
-  const handleGoogleSignIn = async () => {
-    setError(""); // Reset error
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const signedInUser = result.user;
-
-      if (!signedInUser) {
-        throw new Error("No user returned from sign-in.");
-      }
-
-      const userRef = doc(db, "users", signedInUser.uid);
-      const userSnapshot = await getDoc(userRef);
-
-      if (userSnapshot.exists() && userSnapshot.data().setupComplete === true) {
-        // User exists and has completed setup
-        navigate("/categories");
-      } else {
-        // New user OR existing user who hasn't completed setup
-        const detectedCountry = await fetchCountry();
-        const userData = {
-          uid: signedInUser.uid,
-          email: signedInUser.email || "",
-          displayName: signedInUser.displayName || "",
-          photoURL: signedInUser.photoURL || "",
-          country: detectedCountry,
-          authProvider: "google",
-          createdAt: new Date().toISOString(),
-          setupComplete: false, // Mark setup as incomplete
-        };
-
-        // Create or update minimal user document
-        await setDoc(userRef, userData, { merge: true });
-
-        // Redirect to sign-up page for additional info
-        navigate("/sign-up", { state: userData });
-      }
-    } catch (err) {
-      console.error("Sign-in failed:", err.message);
-      setError(
-        err.message.includes("popup")
-          ? "Popup blocked. Please allow popups and try again."
-          : err.message || "Something went wrong during sign-in."
-      );
-    }
+  const handleSignUp = () => {
+    navigate("/sign-up");
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-[#010409]">
-        <p className="text-white text-lg">Checking authentication...</p>
-      </div>
-    );
-  }
+  const handleLogin = () => {
+    navigate("/login");
+  };
 
   return (
     <div className="relative flex items-center justify-center min-h-screen bg-[#010409] px-6">

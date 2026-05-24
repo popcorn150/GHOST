@@ -1,22 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { BackGround_, Logo, Title, Google } from "../utils";
-import { auth, googleProvider } from "../database/firebaseConfig";
-import {
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-  onAuthStateChanged,
-} from "firebase/auth";
-import {
-  getFirestore,
-  collection,
-  query,
-  where,
-  getDocs,
-  doc,
-  getDoc,
-} from "firebase/firestore";
 import "../App.css";
 import { Toaster, toast } from "sonner";
 
@@ -25,256 +9,30 @@ const AccountLogin = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const db = getFirestore();
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        console.log(`User already signed in: ${user.uid}`);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const validateEmail = (email) => {
-    const regex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
-    return regex.test(email);
-  };
-
-  const checkUserDetails = async (uid) => {
-    try {
-      const userRef = doc(db, "users", uid);
-      const userDoc = await getDoc(userRef);
-
-      if (!userDoc.exists()) {
-        console.log(`User document doesn't exist for UID=${uid}`);
-        return {
-          exists: false,
-          message: "Account not found. Please sign up to create an account.",
-        };
-      }
-
-      const userData = userDoc.data();
-      const requiredFields = ["email", "username"];
-      const missingFields = requiredFields.filter((field) => !userData[field]);
-
-      if (missingFields.length > 0) {
-        console.log(`Missing user details: ${missingFields.join(", ")}`);
-        return {
-          exists: false,
-          message:
-            "Account incomplete. Please sign up to create a full account.",
-        };
-      }
-
-      console.log(`User details complete for UID=${uid}`);
-      return { exists: true };
-    } catch (error) {
-      console.error(`Error checking user details for UID=${uid}:`, error);
-      return {
-        exists: false,
-        message:
-          "Account verification failed. Please sign up if you don't have an account.",
-      };
-    }
-  };
-
-  const handleLogin = async (e) => {
+  const handleLogin = (e) => {
     e.preventDefault();
-
     if (!emailOrUsername.trim() || !password.trim()) {
-      toast.error("Please fill out all required fields.");
+      toast.error("Please fill in both fields to continue.");
       return;
     }
-
     setLoading(true);
-    try {
-      let userEmail = emailOrUsername;
-      let userExists = false;
-
-      if (!validateEmail(emailOrUsername)) {
-        try {
-          const usersRef = collection(db, "users");
-          const q = query(usersRef, where("username", "==", emailOrUsername));
-          const querySnapshot = await getDocs(q);
-
-          if (querySnapshot.empty) {
-            throw new Error("auth/user-not-found");
-          }
-
-          if (querySnapshot.size > 1) {
-            throw new Error(
-              "Multiple users found with this username. Please contact support."
-            );
-          }
-
-          const userData = querySnapshot.docs[0].data();
-          userEmail = userData.email;
-
-          if (!validateEmail(userEmail)) {
-            throw new Error("Invalid email retrieved from database.");
-          }
-
-          userExists = true;
-        } catch (firestoreError) {
-          if (
-            firestoreError.code === "permission-denied" ||
-            firestoreError.message.includes("permissions")
-          ) {
-            console.log(
-              "Permission error when looking up username, will try direct auth"
-            );
-          } else {
-            throw firestoreError;
-          }
-        }
-      }
-
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        userEmail,
-        password
-      );
-      const userDetailsCheck = await checkUserDetails(userCredential.user.uid);
-
-      if (!userDetailsCheck.exists) {
-        toast.error(userDetailsCheck.message);
-        return;
-      }
-
-      toast.success("Login successful!");
-      navigate("/categories");
-    } catch (error) {
-      console.error("Login error:", error);
-      if (error.code) {
-        switch (error.code) {
-          case "auth/user-not-found":
-            toast.error("User not found. Please sign up to create an account.");
-            break;
-          case "auth/wrong-password":
-            toast.error("Incorrect password. Please try again.");
-            break;
-          case "auth/invalid-email":
-            toast.error("Invalid email format. Please enter a valid email.");
-            break;
-          case "auth/invalid-credential":
-            toast.error("Invalid credentials. Please check your input.");
-            break;
-          case "auth/too-many-requests":
-            toast.error("Too many attempts. Please try again later.");
-            break;
-          case "auth/user-disabled":
-            toast.error("This account has been disabled.");
-            break;
-          case "auth/network-request-failed":
-            toast.error("Network error. Please check your connection.");
-            break;
-          default:
-            toast.error(
-              "Login failed. Please try again or sign up for an account."
-            );
-        }
-      } else {
-        switch (error.message) {
-          case "auth/user-not-found":
-            toast.error("User not found. Please sign up to create an account.");
-            break;
-          case "Multiple users found with this username. Please contact support.":
-            toast.error(error.message);
-            break;
-          case "Invalid email retrieved from database.":
-            toast.error("Invalid email data. Please contact support.");
-            break;
-          default:
-            toast.error(
-              "Login failed. Please try again or sign up for an account."
-            );
-        }
-      }
-    } finally {
+    setTimeout(() => {
       setLoading(false);
-    }
+      navigate("/categories");
+    }, 200);
   };
 
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const signedInUser = result.user;
-
-      if (!signedInUser || !signedInUser.email) {
-        throw new Error("No user or email returned from Google sign-in.");
-      }
-
-      const userDetailsCheck = await checkUserDetails(signedInUser.uid);
-
-      if (!userDetailsCheck.exists) {
-        toast.error(userDetailsCheck.message);
-        return;
-      }
-
-      toast.success("Google sign-in successful!");
-      navigate("/categories");
-    } catch (error) {
-      console.error("Google sign-in error:", error);
-      if (error.code) {
-        switch (error.code) {
-          case "auth/popup-closed-by-user":
-            toast.error("Google sign-in was canceled. Please try again.");
-            break;
-          case "auth/popup-blocked":
-            toast.error("Popup blocked. Please allow popups and try again.");
-            break;
-          case "auth/account-exists-with-different-credential":
-            toast.error(
-              "Account exists with a different sign-in method. Try another method."
-            );
-            break;
-          case "auth/cancelled-popup-request":
-            toast.error("Another authentication request is in progress.");
-            break;
-          case "auth/network-request-failed":
-            toast.error("Network error. Please check your connection.");
-            break;
-          default:
-            toast.error(
-              "Google sign-in failed. Please try again or sign up for an account."
-            );
-        }
-      } else {
-        toast.error(
-          error.message ||
-            "Google sign-in failed. Please try again or sign up for an account."
-        );
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGuestLogin = () => {
-    localStorage.setItem("guestMode", "true");
+  const handleGoogleSignIn = () => {
     navigate("/categories");
   };
 
-  const handleCreateAccount = async () => {
-    try {
-      if (auth.currentUser) {
-        console.log(
-          "Signing out current user before navigating to Welcome page"
-        );
-        await signOut(auth);
-        console.log("Sign-out successful");
-      }
-      navigate("/");
-    } catch (error) {
-      console.error(
-        "Error during sign-out before navigating to Welcome page:",
-        error
-      );
-      toast.error("Failed to prepare for account creation. Please try again.");
-    }
+  const handleGuestLogin = () => {
+    navigate("/categories");
+  };
+
+  const handleCreateAccount = () => {
+    navigate("/sign-up");
   };
 
   return (

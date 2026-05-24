@@ -26,7 +26,6 @@
     "@tailwindcss/vite": "^4.1.4",
     "axios": "^1.9.0",
     "browser-image-compression": "^2.0.2",
-    "firebase": "^11.3.1",
     "framer-motion": "^12.8.0",
     "lucide-react": "^0.477.0",
     "prop-types": "^15.8.1",
